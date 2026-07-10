@@ -6,9 +6,12 @@ import {
   buildReadingFormContext,
   validateReadingCreateInput,
   type CreateReadingInput,
+  type ReadingDeletionSummary,
   type ReadingDetail,
   type ReadingFormContext,
   type ReadingRepository,
+  type UpdateReadingInput,
+  ReadingNotFoundError,
 } from './readingRepository';
 
 export class MockReadingRepository implements ReadingRepository {
@@ -69,6 +72,113 @@ export class MockReadingRepository implements ReadingRepository {
 
   async getReadingDetail(readingId: UUID): Promise<ReadingDetail | null> {
     return buildReadingDetail(this.store.snapshot(), this.store.userId, readingId);
+  }
+
+  async updateReading(readingId: UUID, input: UpdateReadingInput): Promise<Reading> {
+    const currentReading = this.store
+      .snapshot()
+      .readings.find(
+        (reading) => reading.id === readingId && reading.user_id === this.store.userId,
+      );
+
+    if (!currentReading) {
+      throw new ReadingNotFoundError();
+    }
+
+    const values = validateReadingCreateInput(this.store.snapshot(), this.store.userId, input);
+    const now = this.store.now();
+    const questionTextSnapshot =
+      currentReading.question_template_id === values.question_template_id
+        ? currentReading.question_text_snapshot
+        : values.question_text_snapshot;
+    const updatedReading: Reading = {
+      ...currentReading,
+      topic_id: values.topic_id,
+      question_template_id: values.question_template_id,
+      question_text_snapshot: questionTextSnapshot,
+      reading_at: values.reading_at,
+      reading_timezone: values.reading_timezone,
+      interpretation: values.interpretation,
+      status: values.status,
+      updated_at: now,
+    };
+    const readingCards: ReadingCard[] = values.cards.map((card) => ({
+      id: this.store.createId('reading-card'),
+      user_id: this.store.userId,
+      reading_id: readingId,
+      tarot_card_id: card.tarot_card_id,
+      position_order: card.position_order,
+      position_name: card.position_name,
+      orientation: card.orientation,
+      created_at: now,
+      updated_at: now,
+    }));
+
+    this.store.mutate((data) => {
+      const readingIndex = data.readings.findIndex((reading) => reading.id === readingId);
+      data.readings[readingIndex] = updatedReading;
+      data.reading_cards = data.reading_cards.filter((card) => card.reading_id !== readingId);
+      data.reading_cards.push(...readingCards);
+
+      const topicIndex = data.topics.findIndex((topic) => topic.id === updatedReading.topic_id);
+      const currentTopic = data.topics[topicIndex];
+
+      if (currentTopic) {
+        data.topics[topicIndex] = { ...currentTopic, updated_at: now };
+      }
+    });
+
+    return updatedReading;
+  }
+
+  async deleteReading(readingId: UUID): Promise<ReadingDeletionSummary> {
+    const currentReading = this.store
+      .snapshot()
+      .readings.find(
+        (reading) => reading.id === readingId && reading.user_id === this.store.userId,
+      );
+
+    if (!currentReading) {
+      throw new ReadingNotFoundError();
+    }
+
+    const cardCount = this.store
+      .snapshot()
+      .reading_cards.filter(
+        (card) => card.reading_id === readingId && card.user_id === this.store.userId,
+      ).length;
+
+    this.store.mutate((data) => {
+      data.readings = data.readings.filter((reading) => reading.id !== readingId);
+      data.reading_cards = data.reading_cards.filter((card) => card.reading_id !== readingId);
+    });
+
+    return { reading_id: readingId, card_count: cardCount };
+  }
+
+  async toggleFavorite(readingId: UUID): Promise<Reading> {
+    const currentReading = this.store
+      .snapshot()
+      .readings.find(
+        (reading) => reading.id === readingId && reading.user_id === this.store.userId,
+      );
+
+    if (!currentReading) {
+      throw new ReadingNotFoundError();
+    }
+
+    const updatedReading: Reading = {
+      ...currentReading,
+      is_favorite: !currentReading.is_favorite,
+      updated_at: this.store.now(),
+    };
+
+    this.store.mutate((data) => {
+      const readingIndex = data.readings.findIndex((reading) => reading.id === readingId);
+      data.readings[readingIndex] = updatedReading;
+    });
+
+    return updatedReading;
   }
 }
 

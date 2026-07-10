@@ -52,3 +52,24 @@ Implementation status: complete and verified.
 ### Next Step
 
 Prompt 12.
+
+## Prompt 12: Reading Detail, Editing, and Deletion
+
+Implementation status: complete and verified.
+
+### Completed Scope
+
+- Expanded the local `ReadingRepository` with update, delete, and favorite operations.
+- Added a full Reading detail screen with topic, question snapshot/source, cards, interpretation, feedback placeholder, status, favorite state, and metadata.
+- Added an edit screen that reuses the existing Reading form, validation, duplicate-submission guard, and unsaved-change prompt.
+- Added completed-to-draft confirmation, deletion confirmation, question-copy flow, and an ID-free plain-text share summary.
+- Preserved historical question snapshots when an edited Reading keeps the same fixed-question template.
+
+### Verification
+
+- Prettier check: passed.
+- ESLint: passed with 0 errors and 0 warnings.
+- TypeScript: passed.
+- Vitest: 10 test files and 43 tests passed.
+- Expo Web: `expo export --platform web --clear` completed successfully.
+- Manual Web check: opened a completed Reading detail and its edit form; verified topic, template source, status, favorite, feedback, ordered cards, orientations, positions, and prefilled form values.

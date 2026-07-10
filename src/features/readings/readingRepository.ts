@@ -30,6 +30,8 @@ export type CreateReadingInput = {
   cards: ReadingCardInput[];
 };
 
+export type UpdateReadingInput = CreateReadingInput;
+
 export type ReadingFormContext = {
   topics: Topic[];
   question_templates: QuestionTemplate[];
@@ -50,11 +52,26 @@ export type ReadingDetail = {
   cards: ReadingDetailCard[];
 };
 
+export type ReadingDeletionSummary = {
+  reading_id: UUID;
+  card_count: number;
+};
+
 export interface ReadingRepository {
   getReadingFormContext(): Promise<ReadingFormContext>;
   createReading(input: CreateReadingInput): Promise<Reading>;
+  updateReading(readingId: UUID, input: UpdateReadingInput): Promise<Reading>;
+  deleteReading(readingId: UUID): Promise<ReadingDeletionSummary>;
+  toggleFavorite(readingId: UUID): Promise<Reading>;
   getReadingDetail(readingId: UUID): Promise<ReadingDetail | null>;
   subscribe(listener: () => void): () => void;
+}
+
+export class ReadingNotFoundError extends Error {
+  constructor() {
+    super('未找到这条记录。');
+    this.name = 'ReadingNotFoundError';
+  }
 }
 
 export class ReadingValidationError extends Error {

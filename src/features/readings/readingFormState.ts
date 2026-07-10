@@ -1,11 +1,12 @@
 import type { QuestionTemplate } from '../../domain/types';
 
-import type { ReadingFormContext } from './readingRepository';
+import type { ReadingDetail, ReadingFormContext } from './readingRepository';
 import { createEmptyReadingCard, getDateTimeFields, type ReadingFormValues } from './readingSchema';
 
 export type ReadingPrefill = {
   topic_id?: string;
   question_template_id?: string;
+  temporary_question?: string;
 };
 
 function getTemplateCards(context: ReadingFormContext, template: QuestionTemplate | undefined) {
@@ -37,17 +38,49 @@ export function buildInitialReadingFormValues(
     : undefined;
   const topicIdFromTemplate = template?.topic_id;
   const hasPrefilledTopic = context.topics.some((topic) => topic.id === prefill.topic_id);
+  const temporaryQuestion = prefill.temporary_question?.trim() ?? '';
   const { reading_date: readingDate, reading_time: readingTime } = getDateTimeFields(now, timeZone);
 
   return {
     topic_id: topicIdFromTemplate ?? (hasPrefilledTopic ? (prefill.topic_id ?? '') : ''),
-    question_mode: template ? 'template' : 'temporary',
-    question_template_id: template?.id ?? null,
-    temporary_question: '',
+    question_mode: temporaryQuestion.length > 0 ? 'temporary' : template ? 'template' : 'temporary',
+    question_template_id: temporaryQuestion.length > 0 ? null : (template?.id ?? null),
+    temporary_question: temporaryQuestion,
     reading_date: readingDate,
     reading_time: readingTime,
     cards: getTemplateCards(context, template),
     interpretation: '',
+  };
+}
+
+export function buildReadingFormValuesFromDetail(
+  context: ReadingFormContext,
+  detail: ReadingDetail,
+): ReadingFormValues {
+  const templateIsAvailable =
+    detail.question_template !== null &&
+    context.question_templates.some((template) => template.id === detail.question_template?.id);
+  const { reading_date: readingDate, reading_time: readingTime } = getDateTimeFields(
+    new Date(detail.reading.reading_at),
+    detail.reading.reading_timezone,
+  );
+
+  return {
+    topic_id: detail.topic.id,
+    question_mode: templateIsAvailable ? 'template' : 'temporary',
+    question_template_id: templateIsAvailable ? (detail.question_template?.id ?? null) : null,
+    temporary_question: templateIsAvailable ? '' : detail.question_text,
+    reading_date: readingDate,
+    reading_time: readingTime,
+    cards:
+      detail.cards.length > 0
+        ? detail.cards.map(({ reading_card: card }) => ({
+            tarot_card_id: card.tarot_card_id,
+            position_name: card.position_name ?? '',
+            orientation: card.orientation,
+          }))
+        : [createEmptyReadingCard()],
+    interpretation: detail.reading.interpretation ?? '',
   };
 }
 
