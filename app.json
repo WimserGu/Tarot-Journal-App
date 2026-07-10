@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Tarot Journal",
+    "slug": "tarot-journal-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "tarotjournal",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "platforms": ["ios", "android", "web"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wimsergu.tarotjournal"
+    },
+    "android": {
+      "package": "com.wimsergu.tarotjournal"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

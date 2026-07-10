@@ -1,0 +1,75 @@
+import type { Reading, ReadingCard, UUID } from '../../domain/types';
+import { MockJournalStore, mockJournalStore } from '../../repositories/mockJournalStore';
+
+import {
+  buildReadingDetail,
+  buildReadingFormContext,
+  validateReadingCreateInput,
+  type CreateReadingInput,
+  type ReadingDetail,
+  type ReadingFormContext,
+  type ReadingRepository,
+} from './readingRepository';
+
+export class MockReadingRepository implements ReadingRepository {
+  constructor(private readonly store: MockJournalStore) {}
+
+  subscribe(listener: () => void): () => void {
+    return this.store.subscribe(listener);
+  }
+
+  async getReadingFormContext(): Promise<ReadingFormContext> {
+    return buildReadingFormContext(this.store.snapshot(), this.store.userId);
+  }
+
+  async createReading(input: CreateReadingInput): Promise<Reading> {
+    const values = validateReadingCreateInput(this.store.snapshot(), this.store.userId, input);
+    const now = this.store.now();
+    const reading: Reading = {
+      id: this.store.createId('reading'),
+      user_id: this.store.userId,
+      topic_id: values.topic_id,
+      question_template_id: values.question_template_id,
+      question_text_snapshot: values.question_text_snapshot,
+      reading_at: values.reading_at,
+      reading_timezone: values.reading_timezone,
+      interpretation: values.interpretation,
+      reality_feedback: null,
+      status: values.status,
+      is_favorite: false,
+      created_at: now,
+      updated_at: now,
+    };
+    const readingCards: ReadingCard[] = values.cards.map((card) => ({
+      id: this.store.createId('reading-card'),
+      user_id: this.store.userId,
+      reading_id: reading.id,
+      tarot_card_id: card.tarot_card_id,
+      position_order: card.position_order,
+      position_name: card.position_name,
+      orientation: card.orientation,
+      created_at: now,
+      updated_at: now,
+    }));
+
+    this.store.mutate((data) => {
+      data.readings.push(reading);
+      data.reading_cards.push(...readingCards);
+
+      const topicIndex = data.topics.findIndex((topic) => topic.id === reading.topic_id);
+      const currentTopic = data.topics[topicIndex];
+
+      if (currentTopic) {
+        data.topics[topicIndex] = { ...currentTopic, updated_at: now };
+      }
+    });
+
+    return reading;
+  }
+
+  async getReadingDetail(readingId: UUID): Promise<ReadingDetail | null> {
+    return buildReadingDetail(this.store.snapshot(), this.store.userId, readingId);
+  }
+}
+
+export const readingRepository = new MockReadingRepository(mockJournalStore);
