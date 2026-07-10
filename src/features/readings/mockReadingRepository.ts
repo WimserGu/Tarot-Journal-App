@@ -4,12 +4,18 @@ import { MockJournalStore, mockJournalStore } from '../../repositories/mockJourn
 import {
   buildReadingDetail,
   buildReadingFormContext,
+  buildQuestionHistory,
+  buildTopicTimeline,
   validateReadingCreateInput,
   type CreateReadingInput,
   type ReadingDeletionSummary,
   type ReadingDetail,
   type ReadingFormContext,
   type ReadingRepository,
+  type QuestionHistory,
+  type QuestionHistoryQuery,
+  type ReadingTimelineItem,
+  type TopicTimelineFilters,
   type UpdateReadingInput,
   ReadingNotFoundError,
 } from './readingRepository';
@@ -72,6 +78,14 @@ export class MockReadingRepository implements ReadingRepository {
 
   async getReadingDetail(readingId: UUID): Promise<ReadingDetail | null> {
     return buildReadingDetail(this.store.snapshot(), this.store.userId, readingId);
+  }
+
+  async getTopicTimeline(filters: TopicTimelineFilters): Promise<ReadingTimelineItem[]> {
+    return buildTopicTimeline(this.store.snapshot(), this.store.userId, filters);
+  }
+
+  async getQuestionHistory(query: QuestionHistoryQuery): Promise<QuestionHistory | null> {
+    return buildQuestionHistory(this.store.snapshot(), this.store.userId, query);
   }
 
   async updateReading(readingId: UUID, input: UpdateReadingInput): Promise<Reading> {

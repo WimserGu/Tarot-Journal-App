@@ -73,3 +73,24 @@ Implementation status: complete and verified.
 - Vitest: 10 test files and 43 tests passed.
 - Expo Web: `expo export --platform web --clear` completed successfully.
 - Manual Web check: opened a completed Reading detail and its edit form; verified topic, template source, status, favorite, feedback, ordered cards, orientations, positions, and prefilled form values.
+
+## Prompt 13: Timeline and Same-Question Tracking
+
+Implementation status: complete and verified.
+
+### Completed Scope
+
+- Added repository-level topic timeline queries with date, fixed-question, card-name, orientation, date-range, and favorite filters.
+- Added a virtualized Topic timeline with clear filter, empty, no-result, draft, and completed states.
+- Added same-question history using fixed-question IDs while retaining each Reading's historical question snapshot.
+- Added factual comparisons of repeated, newly appearing, disappeared, and orientation-changed cards between two real records.
+- Added topic and Reading detail entry points for timeline and same-question history.
+
+### Verification
+
+- Prettier check: passed.
+- ESLint: passed with 0 errors and 0 warnings.
+- TypeScript: passed.
+- Vitest: 11 test files and 52 tests passed.
+- Expo Web: `expo export --platform web --clear` completed successfully.
+- Manual Web check: verified descending Topic timeline, Chinese card-name filtering, and a two-record same-question comparison.

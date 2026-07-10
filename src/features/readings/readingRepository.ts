@@ -10,6 +10,7 @@ import type {
   Topic,
   UUID,
 } from '../../domain/types';
+import { searchTarotCards } from '../../domain/readingUtils';
 import type { JournalData } from '../../repositories/journalData';
 
 export type ReadingCardInput = {
@@ -57,6 +58,66 @@ export type ReadingDeletionSummary = {
   card_count: number;
 };
 
+export type TopicTimelineFilters = {
+  card_query?: string;
+  date_from?: string;
+  date_to?: string;
+  is_favorite?: boolean;
+  orientation?: CardOrientation;
+  question_template_id?: UUID;
+  topic_id: UUID;
+};
+
+export type ReadingTimelineCard = {
+  orientation: CardOrientation;
+  position_name: string | null;
+  position_order: number;
+  tarot_card: TarotCard | null;
+};
+
+export type ReadingTimelineItem = {
+  cards: ReadingTimelineCard[];
+  question_template: QuestionTemplate | null;
+  question_text: string;
+  reading: Reading;
+};
+
+export type QuestionHistoryQuery = {
+  current_reading_id?: UUID;
+  question_template_id: UUID;
+  topic_id: UUID;
+};
+
+export type CardOccurrence = {
+  occurrence_count: number;
+  tarot_card: TarotCard;
+};
+
+export type CardOrientationChange = {
+  current_orientation: CardOrientation;
+  previous_orientation: CardOrientation;
+  tarot_card: TarotCard;
+};
+
+export type QuestionHistoryComparison = {
+  current_reading: ReadingTimelineItem;
+  disappeared_cards: TarotCard[];
+  new_cards: TarotCard[];
+  orientation_changes: CardOrientationChange[];
+  previous_reading: ReadingTimelineItem;
+  repeated_cards: TarotCard[];
+};
+
+export type QuestionHistory = {
+  comparison: QuestionHistoryComparison | null;
+  earliest_reading_at: ISODateTime | null;
+  latest_reading_at: ISODateTime | null;
+  most_frequent_cards: CardOccurrence[];
+  question_template: QuestionTemplate;
+  records: ReadingTimelineItem[];
+  total_reading_count: number;
+};
+
 export interface ReadingRepository {
   getReadingFormContext(): Promise<ReadingFormContext>;
   createReading(input: CreateReadingInput): Promise<Reading>;
@@ -64,6 +125,8 @@ export interface ReadingRepository {
   deleteReading(readingId: UUID): Promise<ReadingDeletionSummary>;
   toggleFavorite(readingId: UUID): Promise<Reading>;
   getReadingDetail(readingId: UUID): Promise<ReadingDetail | null>;
+  getTopicTimeline(filters: TopicTimelineFilters): Promise<ReadingTimelineItem[]>;
+  getQuestionHistory(query: QuestionHistoryQuery): Promise<QuestionHistory | null>;
   subscribe(listener: () => void): () => void;
 }
 
@@ -317,5 +380,246 @@ export function buildReadingDetail(
     question_text:
       reading.question_text_snapshot ?? questionTemplate?.question_text ?? '未命名问题',
     cards,
+  };
+}
+
+function readingDateKey(reading: Reading): string {
+  return reading.reading_at.slice(0, 10);
+}
+
+function buildTimelineItem(
+  data: JournalData,
+  userId: UUID,
+  reading: Reading,
+): ReadingTimelineItem | null {
+  const detail = buildReadingDetail(data, userId, reading.id);
+
+  if (!detail) {
+    return null;
+  }
+
+  return {
+    reading: detail.reading,
+    question_template: detail.question_template,
+    question_text: detail.question_text,
+    cards: detail.cards.map(({ reading_card: card, tarot_card: tarotCard }) => ({
+      orientation: card.orientation,
+      position_name: card.position_name,
+      position_order: card.position_order,
+      tarot_card: tarotCard,
+    })),
+  };
+}
+
+function matchesTimelineFilters(
+  reading: Reading,
+  cards: readonly ReadingCard[],
+  filters: TopicTimelineFilters,
+  matchingTarotCardIds: ReadonlySet<number> | null,
+): boolean {
+  const date = readingDateKey(reading);
+
+  if (
+    filters.question_template_id &&
+    reading.question_template_id !== filters.question_template_id
+  ) {
+    return false;
+  }
+
+  if (filters.is_favorite === true && !reading.is_favorite) {
+    return false;
+  }
+
+  if (filters.date_from && date < filters.date_from) {
+    return false;
+  }
+
+  if (filters.date_to && date > filters.date_to) {
+    return false;
+  }
+
+  if (filters.orientation && !cards.some((card) => card.orientation === filters.orientation)) {
+    return false;
+  }
+
+  if (
+    matchingTarotCardIds !== null &&
+    !cards.some(
+      (card) => card.tarot_card_id !== null && matchingTarotCardIds.has(card.tarot_card_id),
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function buildTopicTimeline(
+  data: JournalData,
+  userId: UUID,
+  filters: TopicTimelineFilters,
+): ReadingTimelineItem[] {
+  const matchingTarotCardIds = filters.card_query?.trim()
+    ? new Set(searchTarotCards(filters.card_query, data.tarot_cards).map((card) => card.id))
+    : null;
+  const cardsByReadingId = new Map<UUID, ReadingCard[]>();
+
+  data.reading_cards
+    .filter((card) => card.user_id === userId)
+    .forEach((card) => {
+      const current = cardsByReadingId.get(card.reading_id) ?? [];
+      current.push(card);
+      cardsByReadingId.set(card.reading_id, current);
+    });
+
+  return data.readings
+    .filter((reading) => reading.user_id === userId && reading.topic_id === filters.topic_id)
+    .filter((reading) =>
+      matchesTimelineFilters(
+        reading,
+        cardsByReadingId.get(reading.id) ?? [],
+        filters,
+        matchingTarotCardIds,
+      ),
+    )
+    .sort((first, second) => timestamp(second.reading_at) - timestamp(first.reading_at))
+    .flatMap((reading) => {
+      const item = buildTimelineItem(data, userId, reading);
+
+      return item ? [item] : [];
+    });
+}
+
+function cardMap(item: ReadingTimelineItem): Map<number, ReadingTimelineCard> {
+  const result = new Map<number, ReadingTimelineCard>();
+
+  item.cards.forEach((card) => {
+    if (card.tarot_card !== null && !result.has(card.tarot_card.id)) {
+      result.set(card.tarot_card.id, card);
+    }
+  });
+
+  return result;
+}
+
+export function buildQuestionHistoryComparison(
+  currentReading: ReadingTimelineItem,
+  previousReading: ReadingTimelineItem,
+): QuestionHistoryComparison {
+  const currentCards = cardMap(currentReading);
+  const previousCards = cardMap(previousReading);
+  const repeatedCards: TarotCard[] = [];
+  const newCards: TarotCard[] = [];
+  const disappearedCards: TarotCard[] = [];
+  const orientationChanges: CardOrientationChange[] = [];
+
+  currentCards.forEach((currentCard, tarotCardId) => {
+    const previousCard = previousCards.get(tarotCardId);
+
+    if (!currentCard.tarot_card) {
+      return;
+    }
+
+    if (!previousCard) {
+      newCards.push(currentCard.tarot_card);
+      return;
+    }
+
+    repeatedCards.push(currentCard.tarot_card);
+
+    if (currentCard.orientation !== previousCard.orientation) {
+      orientationChanges.push({
+        tarot_card: currentCard.tarot_card,
+        previous_orientation: previousCard.orientation,
+        current_orientation: currentCard.orientation,
+      });
+    }
+  });
+
+  previousCards.forEach((previousCard, tarotCardId) => {
+    if (previousCard.tarot_card && !currentCards.has(tarotCardId)) {
+      disappearedCards.push(previousCard.tarot_card);
+    }
+  });
+
+  const byCardOrder = (first: TarotCard, second: TarotCard) => first.sort_order - second.sort_order;
+
+  return {
+    current_reading: currentReading,
+    previous_reading: previousReading,
+    repeated_cards: repeatedCards.sort(byCardOrder),
+    new_cards: newCards.sort(byCardOrder),
+    disappeared_cards: disappearedCards.sort(byCardOrder),
+    orientation_changes: orientationChanges.sort(
+      (first, second) => first.tarot_card.sort_order - second.tarot_card.sort_order,
+    ),
+  };
+}
+
+export function buildQuestionHistory(
+  data: JournalData,
+  userId: UUID,
+  query: QuestionHistoryQuery,
+): QuestionHistory | null {
+  const questionTemplate = data.question_templates.find(
+    (template) =>
+      template.id === query.question_template_id &&
+      template.user_id === userId &&
+      template.topic_id === query.topic_id,
+  );
+
+  if (!questionTemplate) {
+    return null;
+  }
+
+  const records = buildTopicTimeline(data, userId, {
+    topic_id: query.topic_id,
+    question_template_id: query.question_template_id,
+  });
+  const cardCounts = new Map<number, number>();
+
+  records.forEach((record) => {
+    record.cards.forEach((card) => {
+      if (card.tarot_card) {
+        cardCounts.set(card.tarot_card.id, (cardCounts.get(card.tarot_card.id) ?? 0) + 1);
+      }
+    });
+  });
+
+  const mostFrequentCards = [...cardCounts.entries()]
+    .flatMap(([tarotCardId, occurrenceCount]) => {
+      const tarotCard = data.tarot_cards.find((card) => card.id === tarotCardId);
+
+      return tarotCard ? [{ tarot_card: tarotCard, occurrence_count: occurrenceCount }] : [];
+    })
+    .sort((first, second) => {
+      if (first.occurrence_count !== second.occurrence_count) {
+        return second.occurrence_count - first.occurrence_count;
+      }
+
+      return first.tarot_card.sort_order - second.tarot_card.sort_order;
+    });
+  const highestCount = mostFrequentCards[0]?.occurrence_count;
+  const currentIndex = query.current_reading_id
+    ? records.findIndex((record) => record.reading.id === query.current_reading_id)
+    : 0;
+  const currentReading = currentIndex >= 0 ? records[currentIndex] : undefined;
+  const previousReading = currentIndex >= 0 ? records[currentIndex + 1] : undefined;
+
+  return {
+    question_template: questionTemplate,
+    records,
+    total_reading_count: records.length,
+    earliest_reading_at:
+      records.length > 0 ? records[records.length - 1]!.reading.reading_at : null,
+    latest_reading_at: records[0]?.reading.reading_at ?? null,
+    most_frequent_cards:
+      highestCount === undefined
+        ? []
+        : mostFrequentCards.filter((card) => card.occurrence_count === highestCount),
+    comparison:
+      currentReading && previousReading
+        ? buildQuestionHistoryComparison(currentReading, previousReading)
+        : null,
   };
 }

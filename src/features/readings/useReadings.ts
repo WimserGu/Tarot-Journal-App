@@ -3,7 +3,15 @@ import { useCallback, useEffect, useState } from 'react';
 import type { UUID } from '@/domain/types';
 
 import { readingRepository } from './mockReadingRepository';
-import type { ReadingDetail, ReadingFormContext, ReadingRepository } from './readingRepository';
+import type {
+  QuestionHistory,
+  QuestionHistoryQuery,
+  ReadingDetail,
+  ReadingFormContext,
+  ReadingRepository,
+  ReadingTimelineItem,
+  TopicTimelineFilters,
+} from './readingRepository';
 
 type ResourceState<T> = {
   data: T;
@@ -77,6 +85,88 @@ export function useReadingDetail(
       }));
     }
   }, [readingId, repository]);
+
+  useEffect(() => {
+    void reload();
+
+    return repository.subscribe(() => {
+      void reload();
+    });
+  }, [repository, reload]);
+
+  return { ...state, reload };
+}
+
+export function useTopicTimeline(
+  filters: TopicTimelineFilters | null,
+  repository: ReadingRepository = readingRepository,
+) {
+  const [state, setState] = useState<ResourceState<ReadingTimelineItem[]>>({
+    data: [],
+    is_loading: true,
+    error_message: null,
+  });
+
+  const reload = useCallback(async () => {
+    if (!filters) {
+      setState({ data: [], is_loading: false, error_message: '缺少议题标识。' });
+      return;
+    }
+
+    setState((current) => ({ ...current, is_loading: true, error_message: null }));
+
+    try {
+      const timeline = await repository.getTopicTimeline(filters);
+      setState({ data: timeline, is_loading: false, error_message: null });
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        is_loading: false,
+        error_message: errorMessage(error, '暂时无法加载时间线。'),
+      }));
+    }
+  }, [filters, repository]);
+
+  useEffect(() => {
+    void reload();
+
+    return repository.subscribe(() => {
+      void reload();
+    });
+  }, [repository, reload]);
+
+  return { ...state, reload };
+}
+
+export function useQuestionHistory(
+  query: QuestionHistoryQuery | null,
+  repository: ReadingRepository = readingRepository,
+) {
+  const [state, setState] = useState<ResourceState<QuestionHistory | null>>({
+    data: null,
+    is_loading: true,
+    error_message: null,
+  });
+
+  const reload = useCallback(async () => {
+    if (!query) {
+      setState({ data: null, is_loading: false, error_message: '缺少固定问题标识。' });
+      return;
+    }
+
+    setState((current) => ({ ...current, is_loading: true, error_message: null }));
+
+    try {
+      const history = await repository.getQuestionHistory(query);
+      setState({ data: history, is_loading: false, error_message: null });
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        is_loading: false,
+        error_message: errorMessage(error, '暂时无法加载同题历史。'),
+      }));
+    }
+  }, [query, repository]);
 
   useEffect(() => {
     void reload();

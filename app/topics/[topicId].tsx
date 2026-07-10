@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useState } from 'react';
 
 import { Button } from '@/components/Button';
@@ -160,6 +160,12 @@ export default function TopicDetailScreen() {
             router.push({ pathname: '/questions/new', params: { topicId: detail.topic.id } })
           }
         />
+        <Button
+          label="查看时间线"
+          onPress={() =>
+            router.push({ pathname: '/topics/timeline', params: { topicId: detail.topic.id } })
+          }
+        />
       </View>
 
       <View style={styles.statRow}>
@@ -190,6 +196,19 @@ export default function TopicDetailScreen() {
                 {questionFrequencyLabels[question.frequency]} ·{' '}
                 {question.is_active ? '启用中' : '已停用'}
               </Text>
+              <Pressable
+                accessibilityLabel={`查看${question.question_text}的历史记录`}
+                accessibilityRole="button"
+                onPress={() =>
+                  router.push({
+                    pathname: '/questions/history',
+                    params: { questionTemplateId: question.id, topicId: detail.topic.id },
+                  })
+                }
+                style={({ pressed }) => [styles.historyLink, pressed ? styles.pressed : null]}
+              >
+                <Text style={styles.historyLinkLabel}>查看同题历史</Text>
+              </Pressable>
             </View>
           ))
         ) : (
@@ -231,9 +250,21 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.danger,
   },
+  historyLink: {
+    alignSelf: 'flex-start',
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  historyLinkLabel: {
+    color: colors.accent,
+    fontWeight: '700',
+  },
   pinnedLabel: {
     color: colors.accent,
     fontWeight: '700',
+  },
+  pressed: {
+    opacity: 0.72,
   },
   recordHeader: {
     flexDirection: 'row',

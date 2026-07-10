@@ -190,6 +190,21 @@ export default function ReadingDetailScreen() {
             })
           }
         />
+        {detail.question_template ? (
+          <Button
+            label="查看同题历史"
+            onPress={() =>
+              router.push({
+                pathname: '/questions/history',
+                params: {
+                  currentReadingId: detail.reading.id,
+                  questionTemplateId: detail.question_template!.id,
+                  topicId: detail.topic.id,
+                },
+              })
+            }
+          />
+        ) : null}
         <Button label="分享纯文本摘要" onPress={() => void shareReading()} />
       </View>
 
