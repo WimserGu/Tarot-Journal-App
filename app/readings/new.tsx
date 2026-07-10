@@ -11,6 +11,7 @@ import { ReadingForm } from '@/features/readings/components/ReadingForm';
 import { buildInitialReadingFormValues } from '@/features/readings/readingFormState';
 import { readingRepository } from '@/features/readings/mockReadingRepository';
 import { toReadingCreateInput, type ReadingFormValues } from '@/features/readings/readingSchema';
+import { createSubmissionGuard } from '@/features/readings/submissionGuard';
 import { useReadingFormContext } from '@/features/readings/useReadings';
 import { useUnsavedChangesGuard } from '@/features/readings/useUnsavedChangesGuard';
 import { colors, spacing } from '@/theme/tokens';
@@ -36,7 +37,7 @@ export default function NewReadingScreen() {
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const saveLock = useRef(false);
+  const submissionGuard = useRef(createSubmissionGuard());
   const { allowNextNavigation } = useUnsavedChangesGuard(isDirty);
   const timeZone = getCurrentTimeZone();
   const initialValues = useMemo(() => {
@@ -53,26 +54,22 @@ export default function NewReadingScreen() {
   }, [context, questionTemplateId, timeZone, topicId]);
 
   const saveReading = async (values: ReadingFormValues, status: 'draft' | 'completed') => {
-    if (saveLock.current) {
-      return;
-    }
+    await submissionGuard.current.run(async () => {
+      setIsSaving(true);
+      setSaveError(null);
 
-    saveLock.current = true;
-    setIsSaving(true);
-    setSaveError(null);
-
-    try {
-      const reading = await readingRepository.createReading(
-        toReadingCreateInput(values, status, timeZone),
-      );
-      allowNextNavigation();
-      router.replace({ pathname: '/readings/[readingId]', params: { readingId: reading.id } });
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : '暂时无法保存这条记录。');
-    } finally {
-      saveLock.current = false;
-      setIsSaving(false);
-    }
+      try {
+        const reading = await readingRepository.createReading(
+          toReadingCreateInput(values, status, timeZone),
+        );
+        allowNextNavigation();
+        router.replace({ pathname: '/readings/[readingId]', params: { readingId: reading.id } });
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : '暂时无法保存这条记录。');
+      } finally {
+        setIsSaving(false);
+      }
+    });
   };
 
   return (

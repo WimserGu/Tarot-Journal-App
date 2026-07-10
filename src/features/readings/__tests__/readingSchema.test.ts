@@ -54,4 +54,27 @@ describe('readingFormSchema', () => {
     ]);
     expect(input.interpretation).toBe('先缩小范围。');
   });
+
+  it('renumbers the remaining cards after the middle card is removed', () => {
+    const input = toReadingCreateInput(
+      {
+        topic_id: 'topic-id',
+        question_mode: 'temporary',
+        question_template_id: null,
+        temporary_question: '删除中间一张牌后，还应关注什么？',
+        reading_date: '2026-07-10',
+        reading_time: '08:30',
+        cards: [
+          { tarot_card_id: 71, position_name: '现状', orientation: 'upright' },
+          { tarot_card_id: 57, position_name: '建议', orientation: 'reversed' },
+        ],
+        interpretation: '',
+      },
+      'completed',
+      'Africa/Nairobi',
+    );
+
+    expect(input.cards.map((card) => card.position_order)).toEqual([1, 2]);
+    expect(input.cards.map((card) => card.tarot_card_id)).toEqual([71, 57]);
+  });
 });
