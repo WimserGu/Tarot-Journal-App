@@ -6,6 +6,8 @@ import type { TarotCard } from '@/domain/types';
 import type { ReadingCardFormValue } from '@/features/readings/readingSchema';
 import { borderRadii, colors, fontSizes, spacing } from '@/theme/tokens';
 
+import { toggleCardOrientation } from '../tarotCardPickerState';
+
 type ReadingCardEditorProps = {
   canMoveDown: boolean;
   canMoveUp: boolean;
@@ -153,6 +155,22 @@ export function ReadingCardEditor({
             );
           })}
         </View>
+        <Pressable
+          accessibilityLabel={value.orientation === 'upright' ? '快速切换为逆位' : '快速切换为正位'}
+          accessibilityRole="button"
+          disabled={disabled}
+          onPress={() => onOrientationChange(toggleCardOrientation(value.orientation))}
+          style={({ pressed }) => [
+            styles.orientationToggle,
+            pressed && !disabled ? styles.pressed : null,
+            disabled ? styles.toolButtonDisabled : null,
+          ]}
+        >
+          <Ionicons color={colors.accent} name="swap-horizontal" size={18} />
+          <Text style={styles.orientationToggleText}>
+            {value.orientation === 'upright' ? '切换为逆位' : '切换为正位'}
+          </Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -205,6 +223,18 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.72,
+  },
+  orientationToggle: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    gap: spacing.xs,
+    minHeight: 36,
+    paddingHorizontal: spacing.xs,
+  },
+  orientationToggleText: {
+    color: colors.accent,
+    fontWeight: '700',
   },
   segment: {
     alignItems: 'center',

@@ -26,3 +26,29 @@ Implementation status: complete and verified.
 ### Next Step
 
 Prompt 11.
+
+## Prompt 11: Tarot Card Picker
+
+Implementation status: complete and verified.
+
+### Completed Scope
+
+- Reused the canonical 78-card metadata and the existing Reading form flow.
+- Added normalized Chinese and English search that ignores case and extra whitespace.
+- Added all, major/minor arcana, and four-suit filters with a single clear action.
+- Made selected cards visible in the picker, including an accessible selected state and text label.
+- Added an accessible quick orientation toggle while preserving the existing upright/reversed controls.
+- Kept the picker image-free with consistent text-card placeholders.
+
+### Verification
+
+- Prettier check: passed.
+- ESLint: passed with 0 errors and 0 warnings.
+- TypeScript: passed.
+- Vitest: 9 test files and 35 tests passed.
+- Expo Web: `expo export --platform web --clear` completed successfully.
+- Manual Web check: selected three consecutive cards (The Fool, The Magician, The High Priestess); each selection retained its selected state and appended the next empty card slot.
+
+### Next Step
+
+Prompt 12.

@@ -459,6 +459,9 @@ export function ReadingForm({
         cards={context.tarot_cards}
         onClose={() => setActiveCardIndex(null)}
         onSelect={selectTarotCard}
+        selectedCardIds={cards.flatMap((card) =>
+          card.tarot_card_id === null ? [] : [card.tarot_card_id],
+        )}
         visible={activeCardIndex !== null}
       />
     </View>

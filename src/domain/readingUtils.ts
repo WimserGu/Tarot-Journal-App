@@ -2,7 +2,7 @@ import { tarotCards } from './tarotCards';
 import type { Reading, ReadingQuery, TarotCard } from './types';
 
 function normalizeCardName(value: string): string {
-  return value.trim().toLowerCase();
+  return value.trim().toLowerCase().replace(/\s+/g, '');
 }
 
 /** Finds a card by its stable key, Chinese name, or English display name. */
