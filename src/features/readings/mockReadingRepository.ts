@@ -1,5 +1,5 @@
 import type { Reading, ReadingCard, UUID } from '../../domain/types';
-import { MockJournalStore, mockJournalStore } from '../../repositories/mockJournalStore';
+import { JournalStore, mockJournalStore } from '../../repositories/mockJournalStore';
 
 import {
   buildReadingDetail,
@@ -21,17 +21,19 @@ import {
 } from './readingRepository';
 
 export class MockReadingRepository implements ReadingRepository {
-  constructor(private readonly store: MockJournalStore) {}
+  constructor(private readonly store: JournalStore) {}
 
   subscribe(listener: () => void): () => void {
     return this.store.subscribe(listener);
   }
 
   async getReadingFormContext(): Promise<ReadingFormContext> {
+    await this.store.ready();
     return buildReadingFormContext(this.store.snapshot(), this.store.userId);
   }
 
   async createReading(input: CreateReadingInput): Promise<Reading> {
+    await this.store.ready();
     const values = validateReadingCreateInput(this.store.snapshot(), this.store.userId, input);
     const now = this.store.now();
     const reading: Reading = {
@@ -61,7 +63,7 @@ export class MockReadingRepository implements ReadingRepository {
       updated_at: now,
     }));
 
-    this.store.mutate((data) => {
+    await this.store.mutate((data) => {
       data.readings.push(reading);
       data.reading_cards.push(...readingCards);
 
@@ -77,18 +79,22 @@ export class MockReadingRepository implements ReadingRepository {
   }
 
   async getReadingDetail(readingId: UUID): Promise<ReadingDetail | null> {
+    await this.store.ready();
     return buildReadingDetail(this.store.snapshot(), this.store.userId, readingId);
   }
 
   async getTopicTimeline(filters: TopicTimelineFilters): Promise<ReadingTimelineItem[]> {
+    await this.store.ready();
     return buildTopicTimeline(this.store.snapshot(), this.store.userId, filters);
   }
 
   async getQuestionHistory(query: QuestionHistoryQuery): Promise<QuestionHistory | null> {
+    await this.store.ready();
     return buildQuestionHistory(this.store.snapshot(), this.store.userId, query);
   }
 
   async updateReading(readingId: UUID, input: UpdateReadingInput): Promise<Reading> {
+    await this.store.ready();
     const currentReading = this.store
       .snapshot()
       .readings.find(
@@ -128,7 +134,7 @@ export class MockReadingRepository implements ReadingRepository {
       updated_at: now,
     }));
 
-    this.store.mutate((data) => {
+    await this.store.mutate((data) => {
       const readingIndex = data.readings.findIndex((reading) => reading.id === readingId);
       data.readings[readingIndex] = updatedReading;
       data.reading_cards = data.reading_cards.filter((card) => card.reading_id !== readingId);
@@ -146,6 +152,7 @@ export class MockReadingRepository implements ReadingRepository {
   }
 
   async deleteReading(readingId: UUID): Promise<ReadingDeletionSummary> {
+    await this.store.ready();
     const currentReading = this.store
       .snapshot()
       .readings.find(
@@ -162,7 +169,7 @@ export class MockReadingRepository implements ReadingRepository {
         (card) => card.reading_id === readingId && card.user_id === this.store.userId,
       ).length;
 
-    this.store.mutate((data) => {
+    await this.store.mutate((data) => {
       data.readings = data.readings.filter((reading) => reading.id !== readingId);
       data.reading_cards = data.reading_cards.filter((card) => card.reading_id !== readingId);
     });
@@ -171,6 +178,7 @@ export class MockReadingRepository implements ReadingRepository {
   }
 
   async toggleFavorite(readingId: UUID): Promise<Reading> {
+    await this.store.ready();
     const currentReading = this.store
       .snapshot()
       .readings.find(
@@ -187,7 +195,7 @@ export class MockReadingRepository implements ReadingRepository {
       updated_at: this.store.now(),
     };
 
-    this.store.mutate((data) => {
+    await this.store.mutate((data) => {
       const readingIndex = data.readings.findIndex((reading) => reading.id === readingId);
       data.readings[readingIndex] = updatedReading;
     });

@@ -1,0 +1,197 @@
+import { describe, expect, it } from 'vitest';
+
+import { DEMO_USER_ID, MOCK_TOPIC_IDS } from '../../domain/mockData';
+import { MockQuestionTemplateRepository } from '../../features/questions/mockQuestionTemplateRepository';
+import { MockReadingRepository } from '../../features/readings/mockReadingRepository';
+import { MockTopicRepository } from '../../features/topics/mockTopicRepository';
+import {
+  JOURNAL_SCHEMA_VERSION,
+  JournalPersistence,
+  JournalStorageError,
+  journalStorageKeys,
+  type JournalKeyValueStorage,
+} from '../journalPersistence';
+import { journalSeedData, MockJournalStore } from '../mockJournalStore';
+
+class MemoryStorage implements JournalKeyValueStorage {
+  readonly values = new Map<string, string>();
+
+  async getItem(key: string): Promise<string | null> {
+    return this.values.get(key) ?? null;
+  }
+
+  async removeItem(key: string): Promise<void> {
+    this.values.delete(key);
+  }
+
+  async setItem(key: string, value: string): Promise<void> {
+    this.values.set(key, value);
+  }
+}
+
+class FailingStorage extends MemoryStorage {
+  override async setItem(): Promise<void> {
+    throw new Error('storage unavailable');
+  }
+}
+
+function createStore(storage: JournalKeyValueStorage, suffix = 'a') {
+  let id = 0;
+
+  return new MockJournalStore(journalSeedData, {
+    user_id: DEMO_USER_ID,
+    now: () => '2026-07-12T09:00:00.000Z',
+    create_id: (entity) => `${entity}-${suffix}-${++id}`,
+    persistence: new JournalPersistence(storage),
+  });
+}
+
+describe('Journal persistence', () => {
+  it('keeps Topics after a store restart and supports Topic CRUD', async () => {
+    const storage = new MemoryStorage();
+    const firstStore = createStore(storage);
+    const firstRepository = new MockTopicRepository(firstStore);
+    const created = await firstRepository.createTopic({
+      name: '持久化测试',
+      description: '验证重启',
+      icon: 'moon',
+      isPinned: false,
+    });
+    const updated = await firstRepository.updateTopic(created.id, {
+      name: '已更新议题',
+      description: '',
+      icon: 'book',
+      isPinned: true,
+    });
+    const restartedRepository = new MockTopicRepository(createStore(storage, 'b'));
+
+    expect((await restartedRepository.getTopicDetail(updated.id))?.topic.title).toBe('已更新议题');
+    await restartedRepository.deleteTopic(updated.id);
+    expect(await restartedRepository.getTopicDetail(updated.id)).toBeNull();
+  });
+
+  it('persists Question Template CRUD through the shared store', async () => {
+    const storage = new MemoryStorage();
+    const repository = new MockQuestionTemplateRepository(createStore(storage));
+    const created = await repository.createQuestionTemplate({
+      topic_id: MOCK_TOPIC_IDS.thesis,
+      question_text: '今天应如何安排？',
+      frequency: 'daily',
+      is_active: true,
+      is_pinned: false,
+      position_names: ['现状', '建议'],
+    });
+    const restartedRepository = new MockQuestionTemplateRepository(
+      createStore(storage, 'questions-restart'),
+    );
+    await restartedRepository.updateQuestionTemplate(created.id, {
+      topic_id: MOCK_TOPIC_IDS.thesis,
+      question_text: '更新后的问题？',
+      frequency: 'weekly',
+      is_active: true,
+      is_pinned: true,
+      position_names: ['阻碍'],
+    });
+    expect((await restartedRepository.getQuestionTemplate(created.id))?.positions).toHaveLength(1);
+    await restartedRepository.deleteQuestionTemplate(created.id);
+    expect(await restartedRepository.getQuestionTemplate(created.id)).toBeNull();
+  });
+
+  it('persists Reading CRUD after a restart', async () => {
+    const storage = new MemoryStorage();
+    const repository = new MockReadingRepository(createStore(storage));
+    const created = await repository.createReading({
+      topic_id: MOCK_TOPIC_IDS.thesis,
+      question_template_id: null,
+      temporary_question: '今天关注什么？',
+      reading_at: '2026-07-12T08:30:00.000Z',
+      reading_timezone: 'Africa/Nairobi',
+      interpretation: null,
+      status: 'draft',
+      cards: [],
+    });
+    await repository.updateReading(created.id, {
+      topic_id: MOCK_TOPIC_IDS.thesis,
+      question_template_id: null,
+      temporary_question: '更新后的问题？',
+      reading_at: '2026-07-12T08:30:00.000Z',
+      reading_timezone: 'Africa/Nairobi',
+      interpretation: '已更新',
+      status: 'completed',
+      cards: [
+        { tarot_card_id: 71, position_name: null, orientation: 'upright', position_order: 1 },
+      ],
+    });
+    const restartedRepository = new MockReadingRepository(createStore(storage, 'reading-restart'));
+
+    expect((await restartedRepository.getReadingDetail(created.id))?.reading.status).toBe(
+      'completed',
+    );
+    await restartedRepository.deleteReading(created.id);
+    expect(await restartedRepository.getReadingDetail(created.id)).toBeNull();
+  });
+
+  it('writes the schema version and migrates version zero', async () => {
+    const storage = new MemoryStorage();
+    storage.values.set(journalStorageKeys.schema, JSON.stringify({ version: 0 }));
+    const store = createStore(storage);
+    await store.ready();
+
+    expect(storage.values.get(journalStorageKeys.schema)).toBe(
+      JSON.stringify({ version: JOURNAL_SCHEMA_VERSION }),
+    );
+  });
+
+  it('safely recovers from malformed JSON and skips malformed records', async () => {
+    const storage = new MemoryStorage();
+    storage.values.set(journalStorageKeys.tables.topics, '{not-json');
+    const malformedStore = createStore(storage);
+    await malformedStore.ready();
+    expect(malformedStore.getRecoveryNotices()).toHaveLength(1);
+    expect(malformedStore.snapshot().topics).toHaveLength(journalSeedData.topics.length);
+
+    storage.values.set(
+      journalStorageKeys.tables.readings,
+      JSON.stringify([{}, journalSeedData.readings[0]]),
+    );
+    const partialStore = createStore(storage, 'partial');
+    await partialStore.ready();
+    expect(partialStore.snapshot().readings).toHaveLength(1);
+    expect(partialStore.getRecoveryNotices().length).toBeGreaterThan(0);
+  });
+
+  it('serializes concurrent writes without losing either Topic', async () => {
+    const storage = new MemoryStorage();
+    const repository = new MockTopicRepository(createStore(storage));
+
+    await Promise.all([
+      repository.createTopic({ name: '并发一', description: '', icon: 'book', isPinned: false }),
+      repository.createTopic({ name: '并发二', description: '', icon: 'heart', isPinned: false }),
+    ]);
+    const names = (await repository.listTopics()).map((item) => item.topic.title);
+
+    expect(names).toEqual(expect.arrayContaining(['并发一', '并发二']));
+  });
+
+  it('resets development test data through the shared store', async () => {
+    const storage = new MemoryStorage();
+    const store = createStore(storage);
+    const repository = new MockTopicRepository(store);
+    await repository.createTopic({
+      name: '临时议题',
+      description: '',
+      icon: 'book',
+      isPinned: false,
+    });
+    await store.resetToSeed();
+
+    expect((await repository.listTopics()).map((item) => item.topic.title)).not.toContain(
+      '临时议题',
+    );
+  });
+
+  it('reports stable storage errors without crashing repositories', async () => {
+    const store = createStore(new FailingStorage());
+    await expect(store.mutate(() => undefined)).rejects.toBeInstanceOf(JournalStorageError);
+  });
+});

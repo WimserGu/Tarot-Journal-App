@@ -1,6 +1,6 @@
 import type { Topic, UUID } from '../../domain/types';
 import {
-  MockJournalStore,
+  JournalStore,
   mockJournalStore,
   type MockJournalStoreOptions,
 } from '../../repositories/mockJournalStore';
@@ -27,18 +27,18 @@ export class TopicNotFoundError extends Error {
 }
 
 export class MockTopicRepository implements TopicRepository {
-  private readonly store: MockJournalStore;
+  private readonly store: JournalStore;
 
-  constructor(store: MockJournalStore);
+  constructor(store: JournalStore);
   constructor(data: TopicRepositoryData, options: MockTopicRepositoryOptions);
   constructor(
-    storeOrData: MockJournalStore | TopicRepositoryData,
+    storeOrData: JournalStore | TopicRepositoryData,
     options?: MockTopicRepositoryOptions,
   ) {
     this.store =
-      storeOrData instanceof MockJournalStore
+      storeOrData instanceof JournalStore
         ? storeOrData
-        : new MockJournalStore(
+        : new JournalStore(
             storeOrData,
             options ?? { user_id: '00000000-0000-4000-8000-000000000001' },
           );
@@ -49,14 +49,17 @@ export class MockTopicRepository implements TopicRepository {
   }
 
   async listTopics(): Promise<TopicListItem[]> {
+    await this.store.ready();
     return buildTopicListItems(this.store.snapshot(), this.store.userId);
   }
 
   async getTopicDetail(topicId: UUID): Promise<TopicDetail | null> {
+    await this.store.ready();
     return buildTopicDetail(this.store.snapshot(), this.store.userId, topicId);
   }
 
   async createTopic(input: TopicFormValues): Promise<Topic> {
+    await this.store.ready();
     const values = topicFormSchema.parse(input);
     const now = this.store.now();
     const topic: Topic = {
@@ -71,7 +74,7 @@ export class MockTopicRepository implements TopicRepository {
       updated_at: now,
     };
 
-    this.store.mutate((data) => {
+    await this.store.mutate((data) => {
       data.topics.push(topic);
     });
 
@@ -79,6 +82,7 @@ export class MockTopicRepository implements TopicRepository {
   }
 
   async updateTopic(topicId: UUID, input: TopicFormValues): Promise<Topic> {
+    await this.store.ready();
     const values = topicFormSchema.parse(input);
     const data = this.store.snapshot();
     const currentTopic = data.topics.find(
@@ -99,7 +103,7 @@ export class MockTopicRepository implements TopicRepository {
       updated_at: this.store.now(),
     };
 
-    this.store.mutate((mutableData) => {
+    await this.store.mutate((mutableData) => {
       const topicIndex = mutableData.topics.findIndex((topic) => topic.id === topicId);
 
       if (topicIndex >= 0) {
@@ -111,6 +115,7 @@ export class MockTopicRepository implements TopicRepository {
   }
 
   async deleteTopic(topicId: UUID): Promise<TopicDeletionSummary> {
+    await this.store.ready();
     const data = this.store.snapshot();
     const deletionSummary = buildTopicDeletionSummary(data, this.store.userId, topicId);
 
@@ -131,7 +136,7 @@ export class MockTopicRepository implements TopicRepository {
         .map((reading) => reading.id),
     );
 
-    this.store.mutate((mutableData) => {
+    await this.store.mutate((mutableData) => {
       mutableData.topics = mutableData.topics.filter(
         (topic) => !(topic.id === topicId && topic.user_id === this.store.userId),
       );

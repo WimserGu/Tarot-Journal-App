@@ -94,3 +94,30 @@ Implementation status: complete and verified.
 - Vitest: 11 test files and 52 tests passed.
 - Expo Web: `expo export --platform web --clear` completed successfully.
 - Manual Web check: verified descending Topic timeline, Chinese card-name filtering, and a two-record same-question comparison.
+
+## Prompt 14: Reliable Local Persistence
+
+Implementation status: complete and verified.
+
+### Storage Design
+
+- Uses Expo-compatible `@react-native-async-storage/async-storage` below the existing shared `JournalStore` and repository interfaces.
+- Persists Topics, fixed questions, question positions, Readings, and Reading cards in separate keys; canonical tarot card metadata remains bundled with the app.
+- Stores a schema version independently and includes a version-zero-to-one migration path.
+- Serializes writes through one store queue so overlapping writes cannot overwrite a newer snapshot.
+- Quarantines malformed table payloads and skips malformed individual records while retaining valid data and recovery notices.
+
+### Completed Scope
+
+- Added durable hydration, recovery notices, reset-to-seed support, and stable storage errors to the existing shared store.
+- Updated Topic and Reading adapters to wait for store hydration and persist all mutations.
+- Added a QuestionTemplate repository interface and local adapter with CRUD and position persistence.
+- Added a development-only reset-test-data control; it is not rendered in production builds.
+
+### Verification
+
+- Prettier check: passed.
+- ESLint: passed with 0 errors and 0 warnings.
+- TypeScript: passed.
+- Vitest: 12 test files and 60 tests passed.
+- Expo Web: `expo export --platform web --clear` completed successfully.

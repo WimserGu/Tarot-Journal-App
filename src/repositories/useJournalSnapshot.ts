@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
-import { mockJournalStore, type MockJournalStore } from './mockJournalStore';
+import { journalStore, type JournalStore } from './mockJournalStore';
 import type { JournalData } from './journalData';
 
-export function useJournalSnapshot(store: MockJournalStore = mockJournalStore): JournalData {
+export function useJournalSnapshot(store: JournalStore = journalStore): JournalData {
   const [data, setData] = useState<JournalData>(() => store.snapshot());
 
   useEffect(() => {
