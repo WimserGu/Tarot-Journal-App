@@ -76,6 +76,38 @@ Implementation status: complete and verified.
 ### Next Step
 
 Prompt 15B.
+
+## Prompt 15B: Supabase Schema and RLS
+
+Implementation status: complete locally; remote deployment requires manual Supabase CLI authentication.
+
+### Current Scope
+
+- The initial migration is aligned with the Prompt 14 local domain model, including Topic icons, historical question snapshots, ordered card rows, and current enum values.
+- RLS and minimum Data API grants are defined for every private business table; anonymous access is revoked.
+- Unused AI-summary storage was removed from the MVP migration.
+- The local adapter remains the default; no Supabase repository or authentication UI is enabled.
+- Remote migration deployment and two-user RLS verification are pending Supabase CLI authentication.
+
+### Remote State
+
+- Remote migration deployed: no.
+- Manual deployment required: yes.
+- Reason: the CLI returned `Access token not provided` before the project could be linked.
+
+### Verification
+
+- Prettier check: passed.
+- ESLint: passed with 0 errors and 0 warnings.
+- TypeScript: passed.
+- Vitest: 14 test files and 66 tests passed.
+- Expo Web: `expo export --platform web --clear` completed successfully.
+- Expo Doctor: 13 of 18 checks passed in this environment. Four dependency-tree checks and the npm-version check could not run because `npm` is unavailable. Doctor also reported `.expo` despite `git check-ignore` confirming `.expo/` is ignored and untracked.
+
+### Next Step
+
+Prompt 15C after remote deployment verification.
+
 - Manual Web check: selected three consecutive cards (The Fool, The Magician, The High Priestess); each selection retained its selected state and appended the next empty card slot.
 
 ### Next Step

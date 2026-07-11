@@ -119,6 +119,7 @@ create table public.topics (
     references auth.users (id) on delete cascade,
   title text not null,
   description text,
+  icon text not null default 'sparkles',
   is_pinned boolean not null default false,
   archived_at timestamptz,
   created_at timestamptz not null default now(),
@@ -126,6 +127,9 @@ create table public.topics (
   constraint topics_title_check check (char_length(btrim(title)) between 1 and 120),
   constraint topics_description_check check (
     description is null or char_length(description) <= 5000
+  ),
+  constraint topics_icon_check check (
+    icon in ('book', 'briefcase', 'compass', 'heart', 'moon', 'sparkles')
   ),
   constraint topics_id_user_key unique (id, user_id)
 );
@@ -221,7 +225,7 @@ create table public.readings (
   constraint readings_template_context_fk
     foreign key (question_template_id, topic_id, user_id)
     references public.question_templates (id, topic_id, user_id)
-    on delete no action
+    on delete set null (question_template_id)
     deferrable initially deferred
 );
 
@@ -253,53 +257,6 @@ create table public.reading_cards (
     foreign key (tarot_card_id)
     references public.tarot_cards (id)
     on delete restrict
-);
-
--- Reserved for later server-generated summaries. The mobile client cannot
--- insert or update this table directly.
-create table public.ai_summaries (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null
-    references auth.users (id) on delete cascade,
-  question_template_id uuid not null,
-  status text not null default 'pending',
-  period_start timestamptz,
-  period_end timestamptz,
-  source_reading_count integer not null default 0,
-  source_max_reading_updated_at timestamptz,
-  summary_text text,
-  model_name text,
-  prompt_version text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint ai_summaries_status_check check (
-    status in ('pending', 'completed', 'failed')
-  ),
-  constraint ai_summaries_period_check check (
-    period_start is null or period_end is null or period_end >= period_start
-  ),
-  constraint ai_summaries_source_count_check check (source_reading_count >= 0),
-  constraint ai_summaries_text_check check (
-    summary_text is null or char_length(summary_text) <= 50000
-  ),
-  constraint ai_summaries_model_check check (
-    model_name is null or char_length(model_name) <= 200
-  ),
-  constraint ai_summaries_prompt_version_check check (
-    prompt_version is null or char_length(prompt_version) <= 100
-  ),
-  constraint ai_summaries_completed_check check (
-    status <> 'completed'
-    or (
-      nullif(btrim(summary_text), '') is not null
-      and nullif(btrim(model_name), '') is not null
-      and nullif(btrim(prompt_version), '') is not null
-    )
-  ),
-  constraint ai_summaries_template_owner_fk
-    foreign key (question_template_id, user_id)
-    references public.question_templates (id, user_id)
-    on delete cascade
 );
 
 comment on column public.readings.question_text_snapshot is
@@ -364,56 +321,6 @@ begin
 end;
 $$;
 
-create or replace function public.validate_completed_reading()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  affected_reading_ids uuid[];
-  affected_reading_id uuid;
-  reading_status text;
-  total_card_rows bigint;
-  selected_card_rows bigint;
-begin
-  if tg_table_name = 'readings' then
-    affected_reading_ids := array[new.id];
-  elsif tg_op = 'INSERT' then
-    affected_reading_ids := array[new.reading_id];
-  elsif tg_op = 'DELETE' then
-    affected_reading_ids := array[old.reading_id];
-  else
-    affected_reading_ids := array[old.reading_id, new.reading_id];
-  end if;
-
-  foreach affected_reading_id in array affected_reading_ids loop
-    continue when affected_reading_id is null;
-
-    select status
-      into reading_status
-    from public.readings
-    where id = affected_reading_id;
-
-    if not found or reading_status <> 'completed' then
-      continue;
-    end if;
-
-    select count(*), count(tarot_card_id)
-      into total_card_rows, selected_card_rows
-    from public.reading_cards
-    where reading_id = affected_reading_id;
-
-    if total_card_rows = 0 or total_card_rows <> selected_card_rows then
-      raise exception 'A completed reading requires at least one fully selected card.'
-        using errcode = '23514';
-    end if;
-  end loop;
-
-  return null;
-end;
-$$;
-
 create trigger topics_set_updated_at
 before update on public.topics
 for each row execute function public.set_updated_at();
@@ -434,33 +341,13 @@ create trigger reading_cards_set_updated_at
 before update on public.reading_cards
 for each row execute function public.set_updated_at();
 
-create trigger ai_summaries_set_updated_at
-before update on public.ai_summaries
-for each row execute function public.set_updated_at();
-
 create trigger readings_set_question_snapshot
 before insert or update of question_template_id, topic_id, question_text_snapshot, status
 on public.readings
 for each row execute function public.set_reading_question_snapshot();
 
-create constraint trigger readings_validate_completed_insert
-after insert on public.readings
-deferrable initially deferred
-for each row execute function public.validate_completed_reading();
-
-create constraint trigger readings_validate_completed_status
-after update of status on public.readings
-deferrable initially deferred
-for each row execute function public.validate_completed_reading();
-
-create constraint trigger reading_cards_validate_completed_parent
-after insert or update or delete on public.reading_cards
-deferrable initially deferred
-for each row execute function public.validate_completed_reading();
-
 revoke all on function public.set_updated_at() from public, anon, authenticated;
 revoke all on function public.set_reading_question_snapshot() from public, anon, authenticated;
-revoke all on function public.validate_completed_reading() from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Query indexes
@@ -497,9 +384,6 @@ create index reading_cards_analysis_idx
   on public.reading_cards (user_id, tarot_card_id, reading_id)
   where tarot_card_id is not null;
 
-create index ai_summaries_question_idx
-  on public.ai_summaries (user_id, question_template_id, created_at desc);
-
 -- ---------------------------------------------------------------------------
 -- Row Level Security
 -- ---------------------------------------------------------------------------
@@ -510,7 +394,6 @@ alter table public.question_templates enable row level security;
 alter table public.question_template_positions enable row level security;
 alter table public.readings enable row level security;
 alter table public.reading_cards enable row level security;
-alter table public.ai_summaries enable row level security;
 
 create policy tarot_cards_select_authenticated
 on public.tarot_cards
@@ -537,6 +420,12 @@ to authenticated
 using ((select auth.uid()) = user_id)
 with check ((select auth.uid()) = user_id);
 
+create policy topics_delete_own
+on public.topics
+for delete
+to authenticated
+using ((select auth.uid()) = user_id);
+
 create policy question_templates_select_own
 on public.question_templates
 for select
@@ -555,6 +444,12 @@ for update
 to authenticated
 using ((select auth.uid()) = user_id)
 with check ((select auth.uid()) = user_id);
+
+create policy question_templates_delete_own
+on public.question_templates
+for delete
+to authenticated
+using ((select auth.uid()) = user_id);
 
 create policy question_template_positions_select_own
 on public.question_template_positions
@@ -631,33 +526,22 @@ for delete
 to authenticated
 using ((select auth.uid()) = user_id);
 
-create policy ai_summaries_select_own
-on public.ai_summaries
-for select
-to authenticated
-using ((select auth.uid()) = user_id);
-
-create policy ai_summaries_delete_own
-on public.ai_summaries
-for delete
-to authenticated
-using ((select auth.uid()) = user_id);
-
 -- Explicit Data API privileges. RLS still filters every granted operation.
+revoke all on schema public from anon, authenticated;
+grant usage on schema public to authenticated;
+
 revoke all privileges on table public.tarot_cards from anon, authenticated;
 revoke all privileges on table public.topics from anon, authenticated;
 revoke all privileges on table public.question_templates from anon, authenticated;
 revoke all privileges on table public.question_template_positions from anon, authenticated;
 revoke all privileges on table public.readings from anon, authenticated;
 revoke all privileges on table public.reading_cards from anon, authenticated;
-revoke all privileges on table public.ai_summaries from anon, authenticated;
 
 grant select on table public.tarot_cards to authenticated;
-grant select, insert, update on table public.topics to authenticated;
-grant select, insert, update on table public.question_templates to authenticated;
+grant select, insert, update, delete on table public.topics to authenticated;
+grant select, insert, update, delete on table public.question_templates to authenticated;
 grant select, insert, update, delete on table public.question_template_positions to authenticated;
 grant select, insert, update, delete on table public.readings to authenticated;
 grant select, insert, update, delete on table public.reading_cards to authenticated;
-grant select, delete on table public.ai_summaries to authenticated;
 
 commit;

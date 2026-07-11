@@ -77,3 +77,23 @@ Topics, fixed questions, readings, and reading cards are stored locally through 
 ## Supabase MCP
 
 Supabase MCP is optional for local development and is not required by the app runtime. It can be configured manually later without changing this codebase.
+
+## Supabase Database
+
+The app still uses the local adapter by default. The prepared Supabase schema,
+RLS policies, and migration are documented in `docs/DATABASE_DESIGN.md`; a
+Supabase repository adapter and authentication UI are not implemented yet.
+
+After installing the Supabase CLI and authenticating locally, link and inspect
+the remote project before the first deployment:
+
+```powershell
+pnpm exec supabase link --project-ref <project-ref>
+pnpm exec supabase migration list
+pnpm exec supabase db push
+```
+
+Do not edit an already deployed migration. Create a new migration for a repair,
+then deploy it with `supabase db push`. RLS and the minimum table grants are
+both required for Data API access. Never put a database password, access token,
+or service-role key in Expo public variables or the repository.
