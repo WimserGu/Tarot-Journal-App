@@ -47,6 +47,35 @@ Implementation status: complete and verified.
 - TypeScript: passed.
 - Vitest: 9 test files and 35 tests passed.
 - Expo Web: `expo export --platform web --clear` completed successfully.
+
+## Prompt 15A: Supabase Client Foundation
+
+Implementation status: complete and verified.
+
+### Completed Scope
+
+- Added `@supabase/supabase-js` and `react-native-url-polyfill` without changing the default local adapter.
+- Added strict public environment validation and a lazy Supabase client factory backed by AsyncStorage for session persistence.
+- Added `.env.example` placeholders only; no real project URL or key is stored in source control.
+- Documented the local-first adapter policy, public-variable boundaries, and optional Supabase MCP setup.
+- Supabase client: complete.
+- Local adapter default: complete.
+- Migration: not deployed.
+- Authentication UI: not implemented.
+- MCP: optional and not blocking.
+
+### Verification
+
+- Prettier check: passed.
+- ESLint: passed with 0 errors and 0 warnings.
+- TypeScript: passed.
+- Vitest: 14 test files and 66 tests passed.
+- Expo Doctor: 14 of 18 checks passed. The remaining checks could not run because this execution environment has no `npm` executable for Expo Doctor's dependency-tree subprocesses.
+- Expo Web: `expo export --platform web --clear` completed successfully.
+
+### Next Step
+
+Prompt 15B.
 - Manual Web check: selected three consecutive cards (The Fool, The Magician, The High Priestess); each selection retained its selected state and appended the next empty card slot.
 
 ### Next Step

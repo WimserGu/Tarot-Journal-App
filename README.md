@@ -2,7 +2,7 @@
 
 Tarot Journal App is a private tarot journaling and trend-tracking app built with Expo, React Native, TypeScript, and Expo Router.
 
-The current project state is an application shell only. Supabase and tarot-specific business features are intentionally not connected yet.
+The app currently uses a local persistence adapter by default. A Supabase client foundation is present for a later adapter, but no Supabase data access, migrations, or authentication UI is enabled yet.
 
 ## Tech Stack
 
@@ -10,6 +10,8 @@ The current project state is an application shell only. Supabase and tarot-speci
 - React Native
 - TypeScript with strict mode
 - Expo Router
+- AsyncStorage local persistence
+- Optional Supabase JavaScript client foundation
 - ESLint
 - Prettier
 - Android, iOS, and Web support
@@ -58,4 +60,20 @@ npm run format
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` when environment variables are needed. Do not commit real secrets.
+Copy `.env.example` to `.env`. Do not commit real keys.
+
+```bash
+EXPO_PUBLIC_DATA_ADAPTER=local
+EXPO_PUBLIC_SUPABASE_URL=
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+```
+
+`local` is the default adapter and does not require Supabase values. Set `EXPO_PUBLIC_DATA_ADAPTER=supabase` only after a Supabase repository adapter is implemented; the app will then validate both public Supabase variables before creating a client. Public publishable keys may be present in the app, but service-role keys must never be used in Expo or committed to the repository.
+
+## Local Data
+
+Topics, fixed questions, readings, and reading cards are stored locally through AsyncStorage. The store keeps a schema version, serializes writes, and safely recovers from malformed persisted records. In development builds only, Settings offers a reset control that restores bundled test data.
+
+## Supabase MCP
+
+Supabase MCP is optional for local development and is not required by the app runtime. It can be configured manually later without changing this codebase.
