@@ -111,7 +111,7 @@ Complete two-user RLS verification before Prompt 15C.
 
 ## Prompt 15C: Supabase Repositories
 
-Implementation status: complete locally; remote migration and two-user RLS verification pending.
+Implementation status: complete; remote migration deployed and two-user RLS verification pending.
 
 ### Completed Scope
 
@@ -124,7 +124,7 @@ Implementation status: complete locally; remote migration and two-user RLS verif
 ### Remote State
 
 - Prompt 15B initial migration deployed: yes.
-- Prompt 15C migration deployed: no (local file only).
+- Prompt 15C migration deployed: yes.
 - Default adapter: local.
 - Real two-user RLS integration verification: pending.
 - Mocked Supabase tests: local test doubles only; not proof of remote RLS, email, or session behavior.
@@ -139,11 +139,38 @@ Implementation status: complete locally; remote migration and two-user RLS verif
 - Prettier, ESLint, and TypeScript: passed.
 - Expo Web export: passed.
 - Expo Doctor: 18 of 18 checks passed.
-- Real remote two-user/RLS integration tests: pending until `0002_supabase_repositories.sql` is deployed.
+- Real remote two-user/RLS integration tests: pending until authentication test users are available.
 
 ### Next Step
 
-Review and run `pnpm exec supabase db push`, perform authenticated two-user RLS/RPC integration tests, then begin Prompt 16.
+Perform authenticated two-user RLS/RPC integration tests.
+
+## Prompt 16: Authentication and onboarding
+
+Implementation status: implemented locally; Prompt 16 migration and real Auth integration verification pending.
+
+### Completed Scope
+
+- Central Auth provider/service, stable error mapping, session restoration/listener cleanup, and duplicate-submit guards.
+- Email sign-up/sign-in, verification branch, sign-out, generic password recovery, callback handling, and password update.
+- Central Expo Router protected navigation with a stable loading gate.
+- Persisted local development entry without Supabase Auth, with a clear environment banner.
+- Shared local/Supabase onboarding repository and safe owned upsert semantics.
+- Three-step onboarding for purpose, first Topic, and first fixed question, including skip and non-destructive review mode.
+- Local-only `0003_auth_onboarding.sql` with RLS-protected `user_preferences`.
+
+### Integration Status
+
+- Auth/onboarding unit and mocked tests: 17 passed; full suite currently 21 files and 100 tests.
+- Local Web regression: welcome, local entry, forced onboarding, skip, persistent re-entry, environment banner, Settings review mode, and non-destructive exit verified.
+- Prettier, ESLint, TypeScript, Expo Web export, and Expo Doctor 18/18: passed.
+- Real Supabase sign-up, email delivery/confirmation, recovery, mobile/web deep links: pending manual verification.
+- Real `user_preferences` RLS and Prompt 15C two-user RLS/RPC verification: pending.
+- Default adapter: local. Prompt 17 has not started.
+
+### Next Step
+
+Deploy `0003`, configure redirect URLs, complete real Auth and two-user RLS checks, then begin Prompt 17.
 
 - Manual Web check: selected three consecutive cards (The Fool, The Magician, The High Priestess); each selection retained its selected state and appended the next empty card slot.
 

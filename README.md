@@ -80,16 +80,14 @@ Supabase MCP is optional for local development and is not required by the app ru
 
 ## Supabase Database
 
-The initial schema and RLS are deployed. Prompt 15C adds local-only migration
+The initial schema, RLS, and Prompt 15C migration are deployed. Prompt 15C adds
 `0002_supabase_repositories.sql`, which introduces template-level display order,
-the Topic activity query, and transactional template/Reading RPCs. It has not
-been pushed to the remote project. The adapters use RLS, never a service role,
+the Topic activity query, and transactional template/Reading RPCs. The adapters use RLS, never a service role,
 and notify in-process listeners after successful mutations; cross-device
 Realtime is outside this prompt.
 
 Two-user remote RLS verification remains pending. Mocked repository tests do
-not replace that integration check. After reviewing the migration, deploy it:
-For a future schema repair, do not edit the deployed migration; create a new
+not replace that integration check. For a future schema repair, do not edit the deployed migration; create a new
 migration and deploy it after linking and inspecting the remote project:
 
 ```powershell
@@ -108,3 +106,34 @@ Do not edit an already deployed migration. Create a new migration for a repair,
 then deploy it with `supabase db push`. RLS and the minimum table grants are
 both required for Data API access. Never put a database password, access token,
 or service-role key in Expo public variables or the repository.
+
+## Authentication and onboarding
+
+Prompt 16 provides centralized email/password authentication, session restoration,
+sign-out, email-verification messaging, password recovery, protected routes, and
+first-use onboarding. Pages call stable Auth APIs rather than Supabase directly;
+passwords, tokens, full sessions, and recovery URLs are never logged.
+
+Local mode never initializes Supabase Auth or cloud repositories. Entering the
+development experience is persisted separately from journal data. The app displays
+“Local Development Mode · Data is stored on this device”, and exiting does not delete
+Topics, templates, or Readings.
+
+Configure the applicable Supabase Auth redirect URLs:
+
+```text
+tarotjournal://recovery
+http://localhost:8081/recovery
+```
+
+Use the exact production web origin for deployed web builds. Recovery handles PKCE
+`code`, query/fragment tokens, and an already-restored session. Real email delivery,
+confirmation, deep links, web callbacks, and two-user RLS remain manual checks.
+
+Migration `0003_auth_onboarding.sql` adds RLS-protected `user_preferences` and is
+intentionally local-only until manually reviewed and deployed:
+
+```powershell
+pnpm exec supabase migration list
+pnpm exec supabase db push
+```

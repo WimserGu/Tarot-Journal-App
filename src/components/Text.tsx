@@ -1,4 +1,4 @@
-import { PropsWithChildren } from 'react';
+import { ComponentProps, PropsWithChildren } from 'react';
 import { StyleProp, StyleSheet, Text as NativeText, TextStyle } from 'react-native';
 
 import { colors, fontSizes } from '@/theme/tokens';
@@ -8,10 +8,15 @@ type TextVariant = 'body' | 'title' | 'subtitle' | 'eyebrow' | 'muted';
 type TextProps = PropsWithChildren<{
   variant?: TextVariant;
   style?: StyleProp<TextStyle>;
-}>;
+}> &
+  Omit<ComponentProps<typeof NativeText>, 'style'>;
 
-export function Text({ children, variant = 'body', style }: TextProps) {
-  return <NativeText style={[styles.base, styles[variant], style]}>{children}</NativeText>;
+export function Text({ children, variant = 'body', style, ...props }: TextProps) {
+  return (
+    <NativeText {...props} style={[styles.base, styles[variant], style]}>
+      {children}
+    </NativeText>
+  );
 }
 
 const styles = StyleSheet.create({
