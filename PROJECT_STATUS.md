@@ -170,7 +170,31 @@ Implementation status: implemented locally; Prompt 16 migration and real Auth in
 
 ### Next Step
 
-Deploy `0003`, configure redirect URLs, complete real Auth and two-user RLS checks, then begin Prompt 17.
+Deploy `0003`, configure redirect URLs, and complete real Auth and two-user RLS checks.
+
+## Prompt 17: Basic Statistics and Traceable Insights
+
+Implementation status: complete locally and verified.
+
+### Completed Scope
+
+- Added a StatisticsRepository facade over existing Reading, Topic, and QuestionTemplate contracts; local and Supabase remain hidden from the page.
+- Added a pure StatisticsService and reusable StatisticsResult/StatisticsFilter domain models.
+- Added Reading/card counts, Top 10 cards, upright/reversed counts and ratios, arcana and suit distribution, recent 7/30-day activity, fixed-question counts, consecutive-card streaks, and equal-period quantity comparisons.
+- Every aggregate includes source Reading IDs and navigates to Reading detail.
+- Added lightweight text/count/percentage horizontal bars without a chart dependency.
+- Added Topic, inclusive date-range, and include-drafts filters; drafts are excluded by default and date-only boundaries use Reading timezone.
+- No migration, SQL aggregation, RPC, view, AI, prediction, export, or sharing was added.
+
+### Verification
+
+- Statistics service/repository/page-model tests cover counts, duplicate cards, arcana, suits, orientation, questions, drafts, Topic/date filters, DST, empty/invalid ranges, comparison, streaks, trace, loading/empty/error/content states, navigation, and local/mocked-Supabase output consistency.
+- Statistics-specific tests: 17 passed; full suite: 24 files and 117 tests passed.
+- Existing Prompt 15 repository and Prompt 16 Auth/onboarding suites remain in the full regression gate.
+
+### Next Step
+
+Prompt 18 may reuse StatisticsResult directly; Prompt 18 has not started.
 
 - Manual Web check: selected three consecutive cards (The Fool, The Magician, The High Priestess); each selection retained its selected state and appended the next empty card slot.
 

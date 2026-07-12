@@ -137,3 +137,21 @@ intentionally local-only until manually reviewed and deployed:
 pnpm exec supabase migration list
 pnpm exec supabase db push
 ```
+
+## Statistics and traceability
+
+The Insights tab provides historical Statistics without AI interpretation. A shared
+StatisticsRepository composes the existing Reading, Topic, and QuestionTemplate
+repositories, while a pure StatisticsService calculates counts, card frequency,
+orientation, arcana, suit distribution, fixed-question frequency, streaks, recent
+7/30-day activity, and current-versus-previous period quantities.
+
+`includeDrafts` defaults to `false`. Topic and inclusive date filters are centralized
+in `StatisticsFilter`; date-only boundaries use each Reading's `reading_timezone`.
+Every aggregate carries source Reading IDs, and the page exposes links back to Reading
+detail. Charts always show labels, counts, and percentages and have text empty states.
+No SQL aggregation, RPC, view, migration, AI, or network statistics service was added.
+
+Statistics tests cover empty data, drafts, duplicate cards, date boundaries, DST,
+Topic filters, ratios, comparisons, streaks, trace IDs, repository consistency, page
+states, and Reading-detail navigation.
