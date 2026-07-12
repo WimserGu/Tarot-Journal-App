@@ -15,6 +15,7 @@ import {
   type QuestionHistory,
   type QuestionHistoryQuery,
   type ReadingTimelineItem,
+  type ReadingListFilters,
   type TopicTimelineFilters,
   type UpdateReadingInput,
   ReadingNotFoundError,
@@ -86,6 +87,52 @@ export class MockReadingRepository implements ReadingRepository {
   async getTopicTimeline(filters: TopicTimelineFilters): Promise<ReadingTimelineItem[]> {
     await this.store.ready();
     return buildTopicTimeline(this.store.snapshot(), this.store.userId, filters);
+  }
+
+  async listReadings(filters: ReadingListFilters = {}): Promise<ReadingTimelineItem[]> {
+    await this.store.ready();
+    const topicIds = new Set(
+      this.store
+        .snapshot()
+        .topics.filter((topic) => topic.user_id === this.store.userId)
+        .map((topic) => topic.id),
+    );
+    const query = filters.text_query?.trim().toLocaleLowerCase('zh-CN');
+    return this.store
+      .snapshot()
+      .readings.filter(
+        (reading) =>
+          reading.user_id === this.store.userId &&
+          reading.topic_id !== null &&
+          topicIds.has(reading.topic_id),
+      )
+      .filter((reading) => !filters.topic_id || reading.topic_id === filters.topic_id)
+      .filter(
+        (reading) =>
+          !filters.question_template_id ||
+          reading.question_template_id === filters.question_template_id,
+      )
+      .filter((reading) => !filters.status || reading.status === filters.status)
+      .filter(
+        (reading) =>
+          filters.is_favorite === undefined || reading.is_favorite === filters.is_favorite,
+      )
+      .filter((reading) => !filters.date_from || reading.reading_at >= filters.date_from)
+      .filter((reading) => !filters.date_to || reading.reading_at <= filters.date_to)
+      .filter(
+        (reading) =>
+          !query ||
+          [reading.question_text_snapshot, reading.interpretation, reading.reality_feedback].some(
+            (value) => value?.toLocaleLowerCase('zh-CN').includes(query),
+          ),
+      )
+      .map((reading) =>
+        buildTopicTimeline(this.store.snapshot(), this.store.userId, {
+          topic_id: reading.topic_id!,
+        }).find((item) => item.reading.id === reading.id)!,
+      )
+      .filter(Boolean)
+      .sort((a, b) => b.reading.reading_at.localeCompare(a.reading.reading_at));
   }
 
   async getQuestionHistory(query: QuestionHistoryQuery): Promise<QuestionHistory | null> {

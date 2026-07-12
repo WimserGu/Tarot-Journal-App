@@ -6,7 +6,7 @@ import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { IconButton } from '@/features/topics/components/IconButton';
 import { TopicForm } from '@/features/topics/components/TopicForm';
-import { topicRepository } from '@/features/topics/mockTopicRepository';
+import { topicRepository } from '@/repositories/repositoryFactory';
 import type { TopicFormValues } from '@/features/topics/topicSchema';
 import { spacing } from '@/theme/tokens';
 

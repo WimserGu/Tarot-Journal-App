@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { NotFoundRepositoryError } from '../../repositories/repositoryErrors';
 
 import type {
   QuestionFrequency,
@@ -16,6 +17,12 @@ export type QuestionTemplateInput = {
   topic_id: UUID;
 };
 
+export type QuestionTemplateDuplicateQuery = {
+  topic_id: UUID;
+  question_text: string;
+  exclude_id?: UUID;
+};
+
 export type QuestionTemplateDetail = {
   positions: QuestionTemplatePosition[];
   question_template: QuestionTemplate;
@@ -26,6 +33,11 @@ export interface QuestionTemplateRepository {
   deleteQuestionTemplate(questionTemplateId: UUID): Promise<void>;
   getQuestionTemplate(questionTemplateId: UUID): Promise<QuestionTemplateDetail | null>;
   listQuestionTemplates(topicId: UUID): Promise<QuestionTemplate[]>;
+  findDuplicateQuestionTemplate(
+    query: QuestionTemplateDuplicateQuery,
+  ): Promise<QuestionTemplate | null>;
+  setQuestionTemplateActive(questionTemplateId: UUID, isActive: boolean): Promise<QuestionTemplate>;
+  reorderQuestionTemplates(topicId: UUID, questionTemplateIds: UUID[]): Promise<QuestionTemplate[]>;
   subscribe(listener: () => void): () => void;
   updateQuestionTemplate(
     questionTemplateId: UUID,
@@ -33,7 +45,7 @@ export interface QuestionTemplateRepository {
   ): Promise<QuestionTemplate>;
 }
 
-export class QuestionTemplateNotFoundError extends Error {
+export class QuestionTemplateNotFoundError extends NotFoundRepositoryError {
   constructor() {
     super('未找到这个固定问题。');
     this.name = 'QuestionTemplateNotFoundError';

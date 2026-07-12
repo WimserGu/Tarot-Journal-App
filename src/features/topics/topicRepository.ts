@@ -8,6 +8,7 @@ import type {
   UUID,
 } from '../../domain/types';
 import type { JournalData } from '../../repositories/journalData';
+import { NotFoundRepositoryError } from '../../repositories/repositoryErrors';
 
 import type { TopicFormValues } from './topicSchema';
 
@@ -64,6 +65,13 @@ export interface TopicRepository {
   updateTopic(topicId: UUID, input: TopicFormValues): Promise<Topic>;
   deleteTopic(topicId: UUID): Promise<TopicDeletionSummary>;
   subscribe(listener: () => void): () => void;
+}
+
+export class TopicNotFoundError extends NotFoundRepositoryError {
+  constructor() {
+    super('未找到这个长期议题。');
+    this.name = 'TopicNotFoundError';
+  }
 }
 
 function timestamp(value: ISODateTime): number {

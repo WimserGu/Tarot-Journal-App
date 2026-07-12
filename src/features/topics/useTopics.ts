@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import type { UUID } from '@/domain/types';
 
-import { topicRepository } from './mockTopicRepository';
+import { topicRepository } from '@/repositories/repositoryFactory';
 import type { TopicDetail, TopicListItem, TopicRepository } from './topicRepository';
 
 type ResourceState<T> = {

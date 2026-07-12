@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import type { UUID } from '@/domain/types';
 
-import { readingRepository } from './mockReadingRepository';
+import { readingRepository } from '@/repositories/repositoryFactory';
 import type {
   QuestionHistory,
   QuestionHistoryQuery,

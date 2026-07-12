@@ -88,6 +88,8 @@ export type QuestionTemplate = {
   frequency: QuestionFrequency;
   is_active: boolean;
   is_pinned: boolean;
+  /** Independent ordering among templates in the same Topic. */
+  displayOrder: number;
   created_at: ISODateTime;
   updated_at: ISODateTime;
 };

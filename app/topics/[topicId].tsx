@@ -8,7 +8,7 @@ import { Text } from '@/components/Text';
 import { IconButton } from '@/features/topics/components/IconButton';
 import { TopicIcon } from '@/features/topics/components/TopicIcon';
 import { questionFrequencyLabels } from '@/features/topics/topicConstants';
-import { topicRepository } from '@/features/topics/mockTopicRepository';
+import { topicRepository } from '@/repositories/repositoryFactory';
 import {
   formatTopicDate,
   getCurrentTimeZone,

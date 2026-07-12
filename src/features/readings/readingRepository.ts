@@ -11,6 +11,10 @@ import type {
   UUID,
 } from '../../domain/types';
 import { searchTarotCards } from '../../domain/readingUtils';
+import {
+  NotFoundRepositoryError,
+  ValidationRepositoryError,
+} from '../../repositories/repositoryErrors';
 import type { JournalData } from '../../repositories/journalData';
 
 export type ReadingCardInput = {
@@ -66,6 +70,16 @@ export type TopicTimelineFilters = {
   orientation?: CardOrientation;
   question_template_id?: UUID;
   topic_id: UUID;
+};
+
+export type ReadingListFilters = {
+  topic_id?: UUID;
+  question_template_id?: UUID;
+  status?: ReadingStatus;
+  is_favorite?: boolean;
+  date_from?: ISODateTime;
+  date_to?: ISODateTime;
+  text_query?: string;
 };
 
 export type ReadingTimelineCard = {
@@ -126,18 +140,19 @@ export interface ReadingRepository {
   toggleFavorite(readingId: UUID): Promise<Reading>;
   getReadingDetail(readingId: UUID): Promise<ReadingDetail | null>;
   getTopicTimeline(filters: TopicTimelineFilters): Promise<ReadingTimelineItem[]>;
+  listReadings(filters?: ReadingListFilters): Promise<ReadingTimelineItem[]>;
   getQuestionHistory(query: QuestionHistoryQuery): Promise<QuestionHistory | null>;
   subscribe(listener: () => void): () => void;
 }
 
-export class ReadingNotFoundError extends Error {
+export class ReadingNotFoundError extends NotFoundRepositoryError {
   constructor() {
     super('未找到这条记录。');
     this.name = 'ReadingNotFoundError';
   }
 }
 
-export class ReadingValidationError extends Error {
+export class ReadingValidationError extends ValidationRepositoryError {
   constructor(message: string) {
     super(message);
     this.name = 'ReadingValidationError';

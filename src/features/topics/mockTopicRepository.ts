@@ -15,16 +15,12 @@ import {
   type TopicListItem,
   type TopicRepository,
   type TopicRepositoryData,
+  TopicNotFoundError,
 } from './topicRepository';
 
 export type MockTopicRepositoryOptions = MockJournalStoreOptions;
 
-export class TopicNotFoundError extends Error {
-  constructor() {
-    super('未找到这个长期议题。');
-    this.name = 'TopicNotFoundError';
-  }
-}
+export { TopicNotFoundError } from './topicRepository';
 
 export class MockTopicRepository implements TopicRepository {
   private readonly store: JournalStore;

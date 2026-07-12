@@ -109,6 +109,42 @@ Implementation status: remote migration and RLS deployed; two-user RLS verificat
 
 Complete two-user RLS verification before Prompt 15C.
 
+## Prompt 15C: Supabase Repositories
+
+Implementation status: complete locally; remote migration and two-user RLS verification pending.
+
+### Completed Scope
+
+- Stable Topic, QuestionTemplate, and Reading contracts with unified repository errors and test overrides.
+- Local adapters remain the default and support template display order, duplicate lookup, active toggles, bulk ordering, and Reading filters.
+- Pure database mappers and Supabase adapters return domain models only and use local mutation listeners without Realtime.
+- `0002_supabase_repositories.sql` safely backfills template display order and defines security-invoker Topic, template, and atomic Reading RPCs.
+- Pages and hooks use stable factory exports instead of importing mock repository instances.
+
+### Remote State
+
+- Prompt 15B initial migration deployed: yes.
+- Prompt 15C migration deployed: no (local file only).
+- Default adapter: local.
+- Real two-user RLS integration verification: pending.
+- Mocked Supabase tests: local test doubles only; not proof of remote RLS, email, or session behavior.
+
+### Verification
+
+- Mapper unit tests: 5 passed.
+- Local shared repository contracts: 4 passed.
+- Mocked Supabase repository tests: 6 passed.
+- Repository factory tests: 2 passed.
+- Full Vitest suite: 18 files and 83 tests passed.
+- Prettier, ESLint, and TypeScript: passed.
+- Expo Web export: passed.
+- Expo Doctor: 18 of 18 checks passed.
+- Real remote two-user/RLS integration tests: pending until `0002_supabase_repositories.sql` is deployed.
+
+### Next Step
+
+Review and run `pnpm exec supabase db push`, perform authenticated two-user RLS/RPC integration tests, then begin Prompt 16.
+
 - Manual Web check: selected three consecutive cards (The Fool, The Magician, The High Priestess); each selection retained its selected state and appended the next empty card slot.
 
 ### Next Step

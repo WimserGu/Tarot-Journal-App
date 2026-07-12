@@ -9,7 +9,7 @@ import {
   buildReadingShareText,
   deleteReadingAfterConfirmation,
 } from '@/features/readings/readingDetailActions';
-import { readingRepository } from '@/features/readings/mockReadingRepository';
+import { readingRepository } from '@/repositories/repositoryFactory';
 import { IconButton } from '@/features/topics/components/IconButton';
 import { orientationLabel } from '@/features/topics/topicPresentation';
 import { useReadingDetail } from '@/features/readings/useReadings';

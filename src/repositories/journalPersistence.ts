@@ -10,7 +10,7 @@ import type {
 
 import type { JournalData, MutableJournalData } from './journalData';
 
-export const JOURNAL_SCHEMA_VERSION = 1;
+export const JOURNAL_SCHEMA_VERSION = 2;
 
 const storagePrefix = '@tarot-journal/v1';
 const schemaKey = `${storagePrefix}/schema`;
@@ -172,6 +172,7 @@ export class JournalPersistence {
     }
 
     if (schemaVersion < JOURNAL_SCHEMA_VERSION) {
+      this.migrateData(data);
       await this.migrate(schemaVersion);
     }
 
@@ -216,11 +217,27 @@ export class JournalPersistence {
   }
 
   private async migrate(fromVersion: number): Promise<void> {
-    if (fromVersion !== 0) {
+    if (fromVersion < 0 || fromVersion > JOURNAL_SCHEMA_VERSION) {
       throw new JournalStorageError('migration_failed', '没有可用的本地数据迁移路径。');
     }
 
     await this.storage.setItem(schemaKey, JSON.stringify({ version: JOURNAL_SCHEMA_VERSION }));
+  }
+
+  private migrateData(data: MutableJournalData): void {
+    const byTopic = new Map<string, QuestionTemplate[]>();
+    data.question_templates.forEach((template) => {
+      const group = byTopic.get(template.topic_id) ?? [];
+      group.push(template);
+      byTopic.set(template.topic_id, group);
+    });
+    byTopic.forEach((templates) => {
+      templates
+        .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
+        .forEach((template, index) => {
+          template.displayOrder = index + 1;
+        });
+    });
   }
 
   private async quarantine(table: PersistedTable, raw: string): Promise<void> {

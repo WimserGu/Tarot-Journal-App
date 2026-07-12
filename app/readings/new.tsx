@@ -9,7 +9,7 @@ import { IconButton } from '@/features/topics/components/IconButton';
 import { getCurrentTimeZone } from '@/features/topics/topicPresentation';
 import { ReadingForm } from '@/features/readings/components/ReadingForm';
 import { buildInitialReadingFormValues } from '@/features/readings/readingFormState';
-import { readingRepository } from '@/features/readings/mockReadingRepository';
+import { readingRepository } from '@/repositories/repositoryFactory';
 import { toReadingCreateInput, type ReadingFormValues } from '@/features/readings/readingSchema';
 import { createSubmissionGuard } from '@/features/readings/submissionGuard';
 import { useReadingFormContext } from '@/features/readings/useReadings';

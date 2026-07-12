@@ -2,7 +2,7 @@
 
 Tarot Journal App is a private tarot journaling and trend-tracking app built with Expo, React Native, TypeScript, and Expo Router.
 
-The app currently uses a local persistence adapter by default. A Supabase client foundation is present for a later adapter, but no Supabase data access, migrations, or authentication UI is enabled yet.
+The app uses stable Topic, QuestionTemplate, and Reading repository contracts. The local AsyncStorage adapter remains the default; Supabase adapters are available when explicitly selected and an authenticated Supabase session is present.
 
 ## Tech Stack
 
@@ -68,7 +68,7 @@ EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 ```
 
-`local` is the default adapter and does not require Supabase values. Set `EXPO_PUBLIC_DATA_ADAPTER=supabase` only after a Supabase repository adapter is implemented; the app will then validate both public Supabase variables before creating a client. Public publishable keys may be present in the app, but service-role keys must never be used in Expo or committed to the repository.
+`local` is the default adapter and does not initialize Supabase or require its values. Set `EXPO_PUBLIC_DATA_ADAPTER=supabase` to use the Supabase repositories; the app validates both public variables and repository calls require an authenticated session. Public publishable keys may be present in the app, but service-role keys must never be used in Expo or committed to the repository.
 
 ## Local Data
 
@@ -80,11 +80,15 @@ Supabase MCP is optional for local development and is not required by the app ru
 
 ## Supabase Database
 
-The app still uses the local adapter by default. The initial Supabase schema,
-RLS policies, and migration are deployed to the linked remote project. A
-Supabase repository adapter and authentication UI are not implemented yet.
+The initial schema and RLS are deployed. Prompt 15C adds local-only migration
+`0002_supabase_repositories.sql`, which introduces template-level display order,
+the Topic activity query, and transactional template/Reading RPCs. It has not
+been pushed to the remote project. The adapters use RLS, never a service role,
+and notify in-process listeners after successful mutations; cross-device
+Realtime is outside this prompt.
 
-The linked project still requires two-user RLS verification before Prompt 15C.
+Two-user remote RLS verification remains pending. Mocked repository tests do
+not replace that integration check. After reviewing the migration, deploy it:
 For a future schema repair, do not edit the deployed migration; create a new
 migration and deploy it after linking and inspecting the remote project:
 
@@ -93,6 +97,12 @@ pnpm exec supabase link --project-ref <project-ref>
 pnpm exec supabase migration list
 pnpm exec supabase db push
 ```
+
+Repository and mapper tests run with `pnpm exec vitest run`. The full local
+quality gate is Prettier, ESLint, TypeScript, Vitest, Expo Web export, and Expo
+Doctor. Reading creation currently uses a database-generated UUID; a lost RPC
+response can therefore require manual reconciliation before retrying. A future
+idempotency key/client UUID can close that narrow retry window.
 
 Do not edit an already deployed migration. Create a new migration for a repair,
 then deploy it with `supabase db push`. RLS and the minimum table grants are
