@@ -60,7 +60,7 @@ Implementation status: complete and verified.
 - Documented the local-first adapter policy, public-variable boundaries, and optional Supabase MCP setup.
 - Supabase client: complete.
 - Local adapter default: complete.
-- Migration: not deployed.
+- Migration: deployed.
 - Authentication UI: not implemented.
 - MCP: optional and not blocking.
 
@@ -79,7 +79,7 @@ Prompt 15B.
 
 ## Prompt 15B: Supabase Schema and RLS
 
-Implementation status: complete locally; remote deployment requires manual Supabase CLI authentication.
+Implementation status: remote migration and RLS deployed; two-user RLS verification pending.
 
 ### Current Scope
 
@@ -87,13 +87,14 @@ Implementation status: complete locally; remote deployment requires manual Supab
 - RLS and minimum Data API grants are defined for every private business table; anonymous access is revoked.
 - Unused AI-summary storage was removed from the MVP migration.
 - The local adapter remains the default; no Supabase repository or authentication UI is enabled.
-- Remote migration deployment and two-user RLS verification are pending Supabase CLI authentication.
+- Two-user RLS verification is pending.
 
 ### Remote State
 
-- Remote migration deployed: no.
-- Manual deployment required: yes.
-- Reason: the CLI returned `Access token not provided` before the project could be linked.
+- Remote migration deployed: yes.
+- RLS deployed: yes.
+- Supabase project linked: yes.
+- Two-user RLS verification: pending.
 
 ### Verification
 
@@ -106,7 +107,7 @@ Implementation status: complete locally; remote deployment requires manual Supab
 
 ### Next Step
 
-Prompt 15C after remote deployment verification.
+Complete two-user RLS verification before Prompt 15C.
 
 - Manual Web check: selected three consecutive cards (The Fool, The Magician, The High Priestess); each selection retained its selected state and appended the next empty card slot.
 

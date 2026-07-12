@@ -80,12 +80,13 @@ Supabase MCP is optional for local development and is not required by the app ru
 
 ## Supabase Database
 
-The app still uses the local adapter by default. The prepared Supabase schema,
-RLS policies, and migration are documented in `docs/DATABASE_DESIGN.md`; a
+The app still uses the local adapter by default. The initial Supabase schema,
+RLS policies, and migration are deployed to the linked remote project. A
 Supabase repository adapter and authentication UI are not implemented yet.
 
-After installing the Supabase CLI and authenticating locally, link and inspect
-the remote project before the first deployment:
+The linked project still requires two-user RLS verification before Prompt 15C.
+For a future schema repair, do not edit the deployed migration; create a new
+migration and deploy it after linking and inspecting the remote project:
 
 ```powershell
 pnpm exec supabase link --project-ref <project-ref>
