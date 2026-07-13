@@ -34,14 +34,25 @@ export function revealCard(session: DrawSession, positionIndex: number): DrawSes
   const ritual = ritualState(session);
   if (positionIndex >= ritual.drawnCount || ritual.revealedPositionIndexes.includes(positionIndex))
     return session;
-  const revealedPositionIndexes = [...ritual.revealedPositionIndexes, positionIndex].sort(
-    (a, b) => a - b,
-  );
+  // Keep append order: this is the user's actual reveal order, not table order.
+  const revealedPositionIndexes = [...ritual.revealedPositionIndexes, positionIndex];
   return withRitual(session, {
     ...ritual,
     revealedPositionIndexes,
     stage: revealedPositionIndexes.length === session.cards.length ? 'reflection' : 'reveal',
   });
+}
+
+export function setObservationMode(session: DrawSession, isObserving: boolean): DrawSession {
+  return withRitual(session, { ...ritualState(session), isObserving });
+}
+
+export function setCardNote(session: DrawSession, cardId: string, note: string): DrawSession {
+  const ritual = ritualState(session);
+  const cardNotes = { ...(ritual.cardNotes ?? {}) };
+  if (note.trim()) cardNotes[cardId] = note;
+  else delete cardNotes[cardId];
+  return withRitual(session, { ...ritual, cardNotes });
 }
 
 export function beginReveal(session: DrawSession): DrawSession {

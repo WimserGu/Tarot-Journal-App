@@ -21,6 +21,8 @@ export type DrawConfiguration = {
     stage: 'prepare' | 'draw' | 'reveal' | 'reflection';
     drawnCount: number;
     revealedPositionIndexes: number[];
+    isObserving?: boolean;
+    cardNotes?: Record<string, string>;
   };
 };
 

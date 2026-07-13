@@ -191,6 +191,14 @@ function drawConfiguration(value: unknown): DrawConfiguration {
       stage: ritual.stage as NonNullable<DrawConfiguration['ritual']>['stage'],
       drawnCount: ritual.drawn_count as number,
       revealedPositionIndexes: ritual.revealed_position_indexes as number[],
+      isObserving: ritual.is_observing === true,
+      cardNotes: isRecord(ritual.card_notes)
+        ? Object.fromEntries(
+            Object.entries(ritual.card_notes)
+              .filter(([, note]) => typeof note === 'string')
+              .map(([key, note]) => [key, note as string]),
+          )
+        : {},
     };
   }
   return configuration;

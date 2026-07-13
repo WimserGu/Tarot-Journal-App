@@ -47,6 +47,8 @@ function configurationRow(session: Pick<DrawSession, 'configuration'>) {
           stage: value.ritual.stage,
           drawn_count: value.ritual.drawnCount,
           revealed_position_indexes: [...value.ritual.revealedPositionIndexes],
+          is_observing: value.ritual.isObserving ?? false,
+          card_notes: value.ritual.cardNotes ?? {},
         }
       : null,
   };

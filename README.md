@@ -282,6 +282,10 @@ Import Assistant copies a neutral formatting prompt, then parses pasted `[Readin
 
 The default draw flow starts with a question and stores it immediately in the draft DrawSession. The user draws from a horizontally scrollable remaining deck, can reveal any drawn card independently, and decides when to finish. The table, draw order, reveal progress, orientation, question, and remaining deck are restored from the DrawSession draft. A finished table hands its question and cards to Reading without creating a new DrawSession or inferring a spread. No AI API, migration, or sharing is involved.
 
+## Interactive Tarot Table (Phase 2)
+
+Revealed cards can be focused individually, while users may continue drawing and reveal in any order. Observation Mode hides controls until the user taps to return. Optional per-card observation notes, reveal order, and observation state remain only in DrawSession configuration and are not automatically copied to Reading. No migration or AI is used.
+
 ## Built-in Spread Engine
 
 Prompt 22 adds an immutable, domain-only `SpreadRepository` shared by draw and manual Reading entry.

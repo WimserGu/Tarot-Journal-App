@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { beginReveal, drawNextCard, revealCard, ritualState, startRitual } from '../drawRitual';
+import {
+  beginReveal,
+  drawNextCard,
+  revealCard,
+  ritualState,
+  setCardNote,
+  setObservationMode,
+  startRitual,
+} from '../drawRitual';
 import { DEFAULT_DRAW_CONFIGURATION, type DrawSession } from '../drawTypes';
 
 const session: DrawSession = {
@@ -36,5 +44,17 @@ describe('draw ritual', () => {
     expect(revealCard(started, 0)).toBe(started);
     const ready = beginReveal(drawNextCard(drawNextCard(started)));
     expect(ritualState(revealCard(revealCard(ready, 0), 1)).stage).toBe('reflection');
+  });
+  it('preserves the user reveal order, observation state, and temporary card note', () => {
+    const ready = beginReveal(drawNextCard(drawNextCard(startRitual(session))));
+    const observed = setObservationMode(
+      setCardNote(revealCard(revealCard(ready, 1), 0), 'card-2', 'Important'),
+      true,
+    );
+    expect(ritualState(observed)).toMatchObject({
+      revealedPositionIndexes: [1, 0],
+      isObserving: true,
+      cardNotes: { 'card-2': 'Important' },
+    });
   });
 });
