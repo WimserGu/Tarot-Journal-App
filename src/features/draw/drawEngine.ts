@@ -1,9 +1,13 @@
-import type { TarotCard } from '../../domain/types';
+import type { ISODateTime, TarotCard } from '../../domain/types';
 import { ValidationRepositoryError } from '../../repositories/repositoryErrors';
 import type { DrawConfiguration, DrawResult } from './drawTypes';
 
 export interface RandomProvider {
   next(): number;
+}
+
+export interface TimeProvider {
+  now(): ISODateTime;
 }
 
 export class MathRandomProvider implements RandomProvider {
@@ -12,11 +16,18 @@ export class MathRandomProvider implements RandomProvider {
   }
 }
 
+export class SystemTimeProvider implements TimeProvider {
+  now(): ISODateTime {
+    return new Date().toISOString();
+  }
+}
+
 export interface DrawEngine {
   draw(
     deck: readonly TarotCard[],
     configuration: DrawConfiguration,
     randomProvider?: RandomProvider,
+    timeProvider?: TimeProvider,
   ): DrawResult;
 }
 
@@ -63,6 +74,7 @@ export class DefaultDrawEngine implements DrawEngine {
     deck: readonly TarotCard[],
     configuration: DrawConfiguration,
     randomProvider: RandomProvider = new MathRandomProvider(),
+    timeProvider: TimeProvider = new SystemTimeProvider(),
   ): DrawResult {
     if (deck.length === 0) {
       throw new ValidationRepositoryError('The tarot deck is empty.', 'draw');
@@ -98,7 +110,11 @@ export class DefaultDrawEngine implements DrawEngine {
       };
     });
 
-    return { cards };
+    return {
+      cards,
+      configuration: values,
+      createdAt: timeProvider.now(),
+    };
   }
 }
 

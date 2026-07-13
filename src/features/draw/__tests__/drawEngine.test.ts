@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { tarotCards } from '../../../domain/tarotCards';
 import { ValidationRepositoryError } from '../../../repositories/repositoryErrors';
-import { DefaultDrawEngine, type RandomProvider } from '../drawEngine';
+import { DefaultDrawEngine, type RandomProvider, type TimeProvider } from '../drawEngine';
 import type { DrawConfiguration } from '../drawTypes';
 
 class SequenceRandom implements RandomProvider {
@@ -13,6 +13,12 @@ class SequenceRandom implements RandomProvider {
     if (value === undefined) throw new Error('Random sequence exhausted.');
     this.index += 1;
     return value;
+  }
+}
+
+class FixedTime implements TimeProvider {
+  now() {
+    return '2026-07-13T10:00:00.000Z';
   }
 }
 
@@ -75,9 +81,29 @@ describe('DrawEngine', () => {
 
   it('is deterministic for a fixed provider sequence', () => {
     const values = [0.25, 0.25, 0.5, 0.75];
-    expect(engine.draw(tarotCards, config({ cardCount: 2 }), new SequenceRandom(values))).toEqual(
-      engine.draw(tarotCards, config({ cardCount: 2 }), new SequenceRandom(values)),
+    expect(
+      engine.draw(
+        tarotCards,
+        config({ cardCount: 2 }),
+        new SequenceRandom(values),
+        new FixedTime(),
+      ),
+    ).toEqual(
+      engine.draw(
+        tarotCards,
+        config({ cardCount: 2 }),
+        new SequenceRandom(values),
+        new FixedTime(),
+      ),
     );
+  });
+
+  it('returns the effective configuration and creation time', () => {
+    const configuration = config({ reversalMode: 'disabled' });
+    const result = engine.draw(tarotCards, configuration, new SequenceRandom([0]), new FixedTime());
+
+    expect(result.configuration).toEqual(configuration);
+    expect(result.createdAt).toBe('2026-07-13T10:00:00.000Z');
   });
 
   it('never repeats a card in one result', () => {

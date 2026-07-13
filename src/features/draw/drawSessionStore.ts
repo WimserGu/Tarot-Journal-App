@@ -1,5 +1,5 @@
 import type { ReadingCardFormValue } from '../readings/readingSchema';
-import type { DrawConfiguration, DrawSession, DrawnCard } from './drawTypes';
+import type { DrawResult, DrawSession } from './drawTypes';
 
 let sequence = 0;
 let activeSession: DrawSession | null = null;
@@ -16,17 +16,14 @@ function runtimeId(now: Date): string {
   )}-${counter}`;
 }
 
-export function createDrawSession(
-  configuration: DrawConfiguration,
-  cards: Omit<DrawnCard, 'drawSessionId'>[],
-  now = new Date(),
-): DrawSession {
-  const id = runtimeId(now);
+export function createDrawSession(result: DrawResult): DrawSession {
+  const createdAt = new Date(result.createdAt);
+  const id = runtimeId(createdAt);
   return {
     id,
-    createdAt: now.toISOString(),
-    configuration: { ...configuration },
-    cards: cards.map((card) => ({ ...card, drawSessionId: id })),
+    createdAt: result.createdAt,
+    configuration: { ...result.configuration },
+    cards: result.cards.map((card) => ({ ...card, drawSessionId: id })),
     linkedReadingId: null,
   };
 }

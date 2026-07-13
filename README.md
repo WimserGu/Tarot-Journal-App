@@ -249,6 +249,8 @@ the card was entered.
 - A reversed card may optionally be `underexpressed` or `overexpressed`; these are neutral observation
   labels, not a good/bad judgment and not a claim about the user's psychology.
 - An upright card always clears `reversalExpression`.
+- `DrawResult` is a temporary domain value containing the drawn cards, the effective configuration,
+  and an ISO creation time. Random and time providers are injectable for deterministic tests.
 - DrawSession is temporary in v1. It holds configuration and editable results in memory, links to a
   Reading after save, and is discarded without creating a separate history or database table.
 - The DrawEngine prevents duplicate cards, supports 1–10 cards and disabled/standard/expression

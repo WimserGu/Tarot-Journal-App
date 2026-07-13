@@ -59,7 +59,7 @@ export default function DrawScreen() {
     try {
       const configuration = { ...DEFAULT_DRAW_CONFIGURATION, cardCount, reversalMode };
       const result = drawEngine.draw(tarotCards, configuration);
-      publish(createDrawSession(configuration, result.cards));
+      publish(createDrawSession(result));
     } catch {
       setError('暂时无法完成抽牌，请检查配置后重试。');
     }

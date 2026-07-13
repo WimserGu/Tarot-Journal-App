@@ -36,6 +36,8 @@ export type DrawSession = {
 
 export type DrawResult = {
   cards: Omit<DrawnCard, 'drawSessionId'>[];
+  configuration: DrawConfiguration;
+  createdAt: ISODateTime;
 };
 
 export const DEFAULT_DRAW_CONFIGURATION: DrawConfiguration = {

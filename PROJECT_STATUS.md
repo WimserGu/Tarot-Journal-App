@@ -56,6 +56,8 @@ Implementation status: complete locally; migration deployment and real remote ve
 
 - Added a pure, injectable DrawEngine over the canonical 78-card deck with 1–10 card validation,
   no duplicates, deterministic ordering, and disabled/standard/expression reversal modes.
+- DrawResult now owns its cards, effective configuration, and ISO creation time; random and time
+  providers can both be fixed in tests.
 - Added temporary in-memory DrawSession coordination, editable draw results, discard-without-save,
   and handoff into the existing Reading creation form.
 - Unified App-drawn and manually entered cards through `ReadingCard.source`, `drawSessionId`, and
@@ -80,7 +82,7 @@ Implementation status: complete locally; migration deployment and real remote ve
 - Prettier check: passed.
 - ESLint: passed with 0 warnings.
 - TypeScript: passed.
-- Vitest: 41 files and 247 tests passed; the focused draw/Reading/persistence/Supabase suite passed
+- Vitest: 41 files and 248 tests passed; the focused draw/Reading/persistence/Supabase suite passed
   9 files and 62 tests.
 - Expo Web export: passed (990 modules).
 - Expo Doctor: passed 18 of 18 checks.
