@@ -6,6 +6,8 @@ export type TarotSuit = 'wands' | 'cups' | 'swords' | 'pentacles';
 export type CardOrientation = 'upright' | 'reversed';
 export type QuestionFrequency = 'as_needed' | 'daily' | 'weekly';
 export type ReadingStatus = 'draft' | 'completed';
+export type FollowUpStatus = 'scheduled' | 'completed';
+export type FollowUpOutcome = 'happened' | 'partly_happened' | 'did_not_happen' | 'still_unclear';
 export type TopicIcon = 'book' | 'briefcase' | 'compass' | 'heart' | 'moon' | 'sparkles';
 
 export type MajorArcanaRank =
@@ -133,6 +135,19 @@ export type ReadingCard = {
   orientation: CardOrientation;
   created_at: ISODateTime;
   updated_at: ISODateTime;
+};
+
+/** A dated reflection linked to, and dependent on, one historical Reading. */
+export type ReadingFollowUp = {
+  id: UUID;
+  readingId: UUID;
+  scheduledFor: ISODateTime;
+  reviewedAt: ISODateTime | null;
+  status: FollowUpStatus;
+  outcome: FollowUpOutcome | null;
+  reflection: string | null;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
 };
 
 /**

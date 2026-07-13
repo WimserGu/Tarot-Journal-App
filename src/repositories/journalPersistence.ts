@@ -5,12 +5,13 @@ import type {
   QuestionTemplatePosition,
   Reading,
   ReadingCard,
+  ReadingFollowUp,
   Topic,
 } from '../domain/types';
 
 import type { JournalData, MutableJournalData } from './journalData';
 
-export const JOURNAL_SCHEMA_VERSION = 2;
+export const JOURNAL_SCHEMA_VERSION = 3;
 
 const storagePrefix = '@tarot-journal/v1';
 const schemaKey = `${storagePrefix}/schema`;
@@ -24,6 +25,7 @@ const tableKeys: Record<PersistedTable, string> = {
   question_template_positions: `${storagePrefix}/question_template_positions`,
   readings: `${storagePrefix}/readings`,
   reading_cards: `${storagePrefix}/reading_cards`,
+  reading_follow_ups: `${storagePrefix}/reading_follow_ups`,
 };
 
 export const journalStorageKeys = {
@@ -67,6 +69,7 @@ function cloneSeed(data: JournalData): MutableJournalData {
     question_template_positions: [...data.question_template_positions],
     readings: [...data.readings],
     reading_cards: [...data.reading_cards],
+    reading_follow_ups: [...data.reading_follow_ups],
     tarot_cards: [...data.tarot_cards],
   };
 }
@@ -118,6 +121,40 @@ function validReadingCard(value: unknown): value is ReadingCard {
   );
 }
 
+function validReadingFollowUp(value: unknown): value is ReadingFollowUp {
+  if (!(
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.readingId === 'string' &&
+    typeof value.scheduledFor === 'string' &&
+    (value.reviewedAt === null || typeof value.reviewedAt === 'string') &&
+    typeof value.status === 'string' &&
+    (value.outcome === null || typeof value.outcome === 'string') &&
+    (value.reflection === null || typeof value.reflection === 'string') &&
+    typeof value.createdAt === 'string' &&
+    typeof value.updatedAt === 'string'
+  ))
+    return false;
+  const validStatus = value.status === 'scheduled' || value.status === 'completed';
+  const validOutcome =
+    value.outcome === null ||
+    value.outcome === 'happened' ||
+    value.outcome === 'partly_happened' ||
+    value.outcome === 'did_not_happen' ||
+    value.outcome === 'still_unclear';
+  const validState =
+    (value.status === 'scheduled' && value.reviewedAt === null && value.outcome === null) ||
+    (value.status === 'completed' && value.reviewedAt !== null && value.outcome !== null);
+  return (
+    validStatus &&
+    validOutcome &&
+    validState &&
+    !Number.isNaN(Date.parse(value.scheduledFor)) &&
+    (value.reviewedAt === null || !Number.isNaN(Date.parse(value.reviewedAt))) &&
+    (value.reflection === null || value.reflection.length <= 5000)
+  );
+}
+
 const validators: {
   [Key in PersistedTable]: (value: unknown) => value is MutableJournalData[Key][number];
 } = {
@@ -126,6 +163,7 @@ const validators: {
   question_template_positions: validQuestionPosition,
   readings: validReading,
   reading_cards: validReadingCard,
+  reading_follow_ups: validReadingFollowUp,
 };
 
 export class JournalPersistence {

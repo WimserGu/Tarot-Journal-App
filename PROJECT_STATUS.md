@@ -242,6 +242,49 @@ Implementation status: complete locally; Review migration deployment and real RL
 Review and deploy the Prompt 18 migration, run authenticated two-user Review CRUD/RLS
 verification, then begin Prompt 19 separately.
 
+## Prompt 20: Follow-Up and Later-Outcome Reflections
+
+Implementation status: complete locally; migration deployment and real RLS verification pending.
+
+### Completed Scope
+
+- Added a stable FollowUpRepository with local and Supabase adapters, strict mapper,
+  repository factory integration, unified repository errors, and in-process mutation
+  listeners without Realtime.
+- A Reading supports multiple scheduled or completed Follow-Ups. `scheduledFor`
+  preserves the planned date while `reviewedAt` records the actual completion time.
+- Added 7-day, 30-day, and custom calendar-date scheduling using the Reading timezone,
+  explicit-now due-state calculation, DST-safe calendar arithmetic, and in-app snooze.
+- Added Reading-detail scheduling and history, home overdue/due-today reminders,
+  all/pending/completed lists, detail, completion, editing, deletion, and source
+  Reading navigation.
+- Added a neutral outcome distribution over completed Follow-Ups with source Follow-Up
+  and Reading IDs. No accuracy, prediction-success, AI, LLM, notification, or
+  background scheduling feature was added.
+- Local JournalStore schema version 3 persists Follow-Ups and loads old data without
+  the new table as an empty collection. Reading deletion cascades Follow-Ups locally;
+  Follow-Up deletion never changes the Reading.
+- Created local-only migration `20260713090039_reading_follow_ups.sql` with strict
+  state/outcome constraints, Reading `ON DELETE CASCADE`, RLS ownership checks,
+  linked-Reading ownership validation, explicit authenticated grants, indexes,
+  updated-at trigger, and pending-schedule uniqueness.
+
+### Integration Status
+
+- Default adapter: local.
+- Follow-Up migration deployed remotely: no.
+- Existing deployed migrations modified: no.
+- Mocked Supabase Follow-Up tests: local test doubles only.
+- Real authenticated Follow-Up CRUD, two-user RLS isolation, cross-user Reading-link
+  prevention, and remote Reading cascade: pending after migration deployment.
+- Prompt 19 AI implementation remains deferred; no next Sprint has started.
+
+### Next Step
+
+Review and deploy all pending migrations, perform the documented two-user Follow-Up
+RLS/cascade verification, then prepare an AI technical design separately without
+enabling a real provider.
+
 - Manual Web check: selected three consecutive cards (The Fool, The Magician, The High Priestess); each selection retained its selected state and appended the next empty card slot.
 
 ### Next Step

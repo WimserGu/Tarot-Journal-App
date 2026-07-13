@@ -10,6 +10,15 @@ import { TodayQuestionCard } from '@/features/home/components/TodayQuestionCard'
 import { TopicSummaryCard } from '@/features/home/components/TopicSummaryCard';
 import { buildHomeData, formatHomeDate } from '@/features/home/homeData';
 import { useJournalSnapshot } from '@/repositories/useJournalSnapshot';
+import { FollowUpListCard } from '@/features/followups/components/FollowUpListCard';
+import { addFollowUpCalendarDays } from '@/features/followups/followUpDate';
+import { usePendingFollowUps } from '@/features/followups/useFollowUps';
+import {
+  buildPendingFollowUpModel,
+  followUpDetailRoute,
+  followUpReadingRoute,
+} from '@/features/followups/followUpPageModel';
+import { followUpRepository } from '@/repositories/repositoryFactory';
 import { spacing } from '@/theme/tokens';
 
 export default function HomeScreen() {
@@ -17,6 +26,9 @@ export default function HomeScreen() {
   const [now] = useState(() => new Date());
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   const journalData = useJournalSnapshot();
+  const [followUpError, setFollowUpError] = useState<string | null>(null);
+  const pending = usePendingFollowUps({ now: now.toISOString(), timezone: timeZone });
+  const pendingModel = buildPendingFollowUpModel(pending.items);
   const homeData = buildHomeData({
     now,
     time_zone: timeZone,
@@ -33,6 +45,47 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <Text variant="eyebrow">{formatHomeDate(now, timeZone)}</Text>
           <Text variant="title">{homeData.greeting}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text variant="subtitle">待回顾</Text>
+          <Text variant="muted">
+            已到期 {pendingModel.overdueCount} · 今天 {pendingModel.dueTodayCount}
+          </Text>
+          {pending.loading ? <Text accessibilityRole="progressbar">正在加载待回顾…</Text> : null}
+          {pending.error ? <Text accessibilityLiveRegion="polite">{pending.error}</Text> : null}
+          {!pending.loading && !pending.error && pendingModel.isEmpty ? (
+            <Text variant="muted">目前没有到期或即将到期的回顾。</Text>
+          ) : null}
+          {pendingModel.visibleItems.map((item) => (
+            <FollowUpListCard
+              key={item.followUp.id}
+              item={item}
+              timezone={timeZone}
+              onOpen={() => router.push(followUpDetailRoute(item.followUp.id))}
+              onReading={() => router.push(followUpReadingRoute(item.followUp.readingId))}
+              onSnooze7={() => {
+                setFollowUpError(null);
+                void followUpRepository
+                  .snoozeFollowUp(
+                    item.followUp.id,
+                    addFollowUpCalendarDays(now.toISOString(), timeZone, 7),
+                  )
+                  .catch(() => setFollowUpError('暂时无法稍后提醒，请重试。'));
+              }}
+              onSnooze30={() => {
+                setFollowUpError(null);
+                void followUpRepository
+                  .snoozeFollowUp(
+                    item.followUp.id,
+                    addFollowUpCalendarDays(now.toISOString(), timeZone, 30),
+                  )
+                  .catch(() => setFollowUpError('暂时无法稍后提醒，请重试。'));
+              }}
+            />
+          ))}
+          {followUpError ? <Text accessibilityLiveRegion="polite">{followUpError}</Text> : null}
+          <Button label="查看全部回顾" onPress={() => router.push('/followups')} />
         </View>
 
         <View style={styles.section}>

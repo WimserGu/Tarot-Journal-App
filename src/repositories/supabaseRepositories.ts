@@ -108,6 +108,7 @@ abstract class SupabaseRepositoryBase {
       question_template_positions: (positions.data ?? []).map(mapQuestionTemplatePositionRow),
       readings: (readings.data ?? []).map(mapReadingRow),
       reading_cards: (cards.data ?? []).map(mapReadingCardRow),
+      reading_follow_ups: [],
       tarot_cards: tarotCards,
     };
   }
@@ -376,9 +377,18 @@ export class SupabaseReadingRepository extends SupabaseRepositoryBase implements
     await this.requireUser();
     const detail = await this.getReadingDetail(id);
     if (!detail) throw new ReadingNotFoundError();
+    const followUps = await this.client
+      .from('reading_follow_ups')
+      .select('id')
+      .eq('reading_id', id);
+    this.check(followUps.error, 'deleteReading.followUps');
     const { error } = await this.client.from('readings').delete().eq('id', id);
     this.check(error, 'deleteReading');
     this.notify();
-    return { reading_id: id, card_count: detail.cards.length };
+    return {
+      reading_id: id,
+      card_count: detail.cards.length,
+      follow_up_count: followUps.data?.length ?? 0,
+    };
   }
 }

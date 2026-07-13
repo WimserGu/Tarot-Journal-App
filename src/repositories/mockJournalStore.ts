@@ -19,7 +19,12 @@ import type { JournalData, MutableJournalData } from './journalData';
 export type JournalStoreOptions = {
   create_id?: (
     entity:
-      'topic' | 'reading' | 'reading-card' | 'question-template' | 'question-template-position',
+      | 'topic'
+      | 'reading'
+      | 'reading-card'
+      | 'reading-follow-up'
+      | 'question-template'
+      | 'question-template-position',
   ) => UUID;
   now?: () => ISODateTime;
   persistence?: JournalPersistence;
@@ -33,7 +38,13 @@ function defaultNow(): ISODateTime {
 }
 
 function defaultCreateId(
-  entity: 'topic' | 'reading' | 'reading-card' | 'question-template' | 'question-template-position',
+  entity:
+    | 'topic'
+    | 'reading'
+    | 'reading-card'
+    | 'reading-follow-up'
+    | 'question-template'
+    | 'question-template-position',
 ): UUID {
   return `local-${entity}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -45,6 +56,7 @@ function copyData(data: JournalData): MutableJournalData {
     question_template_positions: [...data.question_template_positions],
     readings: [...data.readings],
     reading_cards: [...data.reading_cards],
+    reading_follow_ups: [...data.reading_follow_ups],
     tarot_cards: [...data.tarot_cards],
   };
 }
@@ -55,6 +67,7 @@ export const journalSeedData: JournalData = {
   question_template_positions: mockQuestionTemplatePositions,
   readings: mockReadings,
   reading_cards: mockReadingCards,
+  reading_follow_ups: [],
   tarot_cards: tarotCards,
 };
 
@@ -64,7 +77,12 @@ export class JournalStore {
   private readonly hydration: Promise<void>;
   private readonly idProvider: (
     entity:
-      'topic' | 'reading' | 'reading-card' | 'question-template' | 'question-template-position',
+      | 'topic'
+      | 'reading'
+      | 'reading-card'
+      | 'reading-follow-up'
+      | 'question-template'
+      | 'question-template-position',
   ) => UUID;
   private readonly listeners = new Set<() => void>();
   private readonly nowProvider: () => ISODateTime;
@@ -97,7 +115,12 @@ export class JournalStore {
 
   createId(
     entity:
-      'topic' | 'reading' | 'reading-card' | 'question-template' | 'question-template-position',
+      | 'topic'
+      | 'reading'
+      | 'reading-card'
+      | 'reading-follow-up'
+      | 'question-template'
+      | 'question-template-position',
   ): UUID {
     return this.idProvider(entity);
   }
@@ -125,6 +148,7 @@ export class JournalStore {
       data.question_template_positions = seed.question_template_positions;
       data.readings = seed.readings;
       data.reading_cards = seed.reading_cards;
+      data.reading_follow_ups = seed.reading_follow_ups;
       data.tarot_cards = seed.tarot_cards;
     });
   }

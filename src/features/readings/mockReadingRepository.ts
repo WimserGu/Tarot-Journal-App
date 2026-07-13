@@ -215,13 +215,19 @@ export class MockReadingRepository implements ReadingRepository {
       .reading_cards.filter(
         (card) => card.reading_id === readingId && card.user_id === this.store.userId,
       ).length;
+    const followUpCount = this.store
+      .snapshot()
+      .reading_follow_ups.filter((followUp) => followUp.readingId === readingId).length;
 
     await this.store.mutate((data) => {
       data.readings = data.readings.filter((reading) => reading.id !== readingId);
       data.reading_cards = data.reading_cards.filter((card) => card.reading_id !== readingId);
+      data.reading_follow_ups = data.reading_follow_ups.filter(
+        (followUp) => followUp.readingId !== readingId,
+      );
     });
 
-    return { reading_id: readingId, card_count: cardCount };
+    return { reading_id: readingId, card_count: cardCount, follow_up_count: followUpCount };
   }
 
   async toggleFavorite(readingId: UUID): Promise<Reading> {

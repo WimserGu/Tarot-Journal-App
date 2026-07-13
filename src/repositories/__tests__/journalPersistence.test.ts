@@ -4,6 +4,7 @@ import { DEMO_USER_ID, MOCK_TOPIC_IDS } from '../../domain/mockData';
 import { MockQuestionTemplateRepository } from '../../features/questions/mockQuestionTemplateRepository';
 import { MockReadingRepository } from '../../features/readings/mockReadingRepository';
 import { MockTopicRepository } from '../../features/topics/mockTopicRepository';
+import { LocalFollowUpRepository } from '../../features/followups/followUpRepository';
 import {
   JOURNAL_SCHEMA_VERSION,
   JournalPersistence,
@@ -129,6 +130,22 @@ describe('Journal persistence', () => {
     );
     await restartedRepository.deleteReading(created.id);
     expect(await restartedRepository.getReadingDetail(created.id)).toBeNull();
+  });
+
+  it('loads legacy data without a Follow-Up table and persists new Follow-Ups', async () => {
+    const storage = new MemoryStorage();
+    const firstStore = createStore(storage);
+    const first = new LocalFollowUpRepository(firstStore, () => 'UTC');
+    expect(await first.listFollowUps()).toEqual([]);
+    const created = await first.createFollowUp({
+      readingId: journalSeedData.readings[0]!.id,
+      scheduledFor: '2026-07-20T09:00:00.000Z',
+    });
+    const restarted = new LocalFollowUpRepository(
+      createStore(storage, 'follow-up-restart'),
+      () => 'UTC',
+    );
+    expect((await restarted.getFollowUp(created.id))?.followUp.id).toBe(created.id);
   });
 
   it('writes the schema version and migrates version zero', async () => {

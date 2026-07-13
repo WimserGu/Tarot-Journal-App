@@ -24,6 +24,7 @@ function createStore() {
       question_template_positions: mockQuestionTemplatePositions,
       readings: mockReadings,
       reading_cards: mockReadingCards,
+      reading_follow_ups: [],
       tarot_cards: tarotCards,
     },
     {

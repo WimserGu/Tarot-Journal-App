@@ -188,3 +188,51 @@ snapshot construction, previous-period card/suit/orientation changes,
 factory overrides, trace navigation, empty/loading/error states, and submission guards.
 Mocked Supabase tests are not proof of real remote RLS; authenticated two-user Review
 CRUD and ownership isolation remain manual verification after migration deployment.
+
+## Reading Follow-Ups
+
+Prompt 20 adds neutral, traceable Follow-Ups for recording what happened after a
+Reading and how the user understands it now. A Reading can have multiple Follow-Ups,
+so a seven-day reflection never overwrites a later thirty-day reflection. Each record
+separates `scheduledFor` (the planned review time) from `reviewedAt` (the actual
+completion time).
+
+The Reading detail screen can schedule a Follow-Up for 7 local calendar days, 30
+local calendar days, or a custom date. Calendar calculations use the Reading's IANA
+timezone and preserve local clock time across DST rather than adding fixed
+milliseconds. Pending Follow-Ups are classified as `upcoming`, `due_today`, or
+`overdue` using an explicit current time and user timezone. The home screen shows a
+small in-app reminder list with completion, Reading trace, and 7/30-day snooze
+actions; there are no push notifications, email reminders, or background schedulers.
+
+Completed Follow-Ups use four descriptive outcome categories: happened in a similar
+way, partly similar, did not happen in a similar way, or still unclear. The outcome
+distribution counts completed Follow-Ups and retains source Follow-Up and Reading
+IDs. It intentionally contains no accuracy, prediction-success, or combined "hit
+rate" field. A user's multiline reflection is optional, is never automatically
+rewritten, and is limited to 5,000 characters.
+
+Local mode persists Follow-Ups in JournalStore schema version 3 and treats legacy
+data without a Follow-Up table as an empty collection. Supabase mode uses the same
+factory contract and the RLS-protected `reading_follow_ups` table. Deleting a Reading
+cascades its cards and Follow-Ups; deleting a Follow-Up never changes its Reading or
+other Follow-Ups.
+
+Migration `20260713090039_reading_follow_ups.sql` was created locally only. It uses a
+Reading foreign key with `ON DELETE CASCADE`, strict scheduled/completed constraints,
+an exact-pending-schedule uniqueness rule, minimum Data API grants, and ownership RLS
+that also verifies the linked Reading belongs to `auth.uid()`. Deploy only after
+reviewing all pending migrations:
+
+```powershell
+pnpm exec supabase migration list --linked
+pnpm exec supabase db push
+pnpm exec supabase migration list --linked
+```
+
+Follow-Up tests cover local-calendar dates, DST and timezone boundaries, strict
+mapping, local and mocked Supabase repository contracts, old local data, Reading
+deletion cascade, neutral outcome distribution, source IDs, factory overrides, and
+page models. Mocked Supabase tests are not proof of real RLS. Authenticated two-user
+Follow-Up CRUD, cross-user Reading-link prevention, and remote cascade remain pending
+until this migration is deployed.

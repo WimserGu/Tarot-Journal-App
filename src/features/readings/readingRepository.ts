@@ -60,6 +60,7 @@ export type ReadingDetail = {
 export type ReadingDeletionSummary = {
   reading_id: UUID;
   card_count: number;
+  follow_up_count: number;
 };
 
 export type TopicTimelineFilters = {

@@ -13,6 +13,9 @@ import { readingRepository } from '@/repositories/repositoryFactory';
 import { IconButton } from '@/features/topics/components/IconButton';
 import { orientationLabel } from '@/features/topics/topicPresentation';
 import { useReadingDetail } from '@/features/readings/useReadings';
+import { useReadingFollowUps } from '@/features/followups/useFollowUps';
+import { formatFollowUpDate } from '@/features/followups/followUpDate';
+import { outcomeLabels } from '@/features/followups/followUpPresentation';
 import { borderRadii, colors, spacing } from '@/theme/tokens';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
@@ -40,6 +43,7 @@ export default function ReadingDetailScreen() {
     is_loading: isLoading,
     reload,
   } = useReadingDetail(readingId);
+  const { items: followUps } = useReadingFollowUps(readingId);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isActing, setIsActing] = useState(false);
 
@@ -68,7 +72,7 @@ export default function ReadingDetailScreen() {
 
     Alert.alert(
       '删除这条记录？',
-      `将永久删除这条记录及其 ${detail.cards.length} 张牌面。此操作无法恢复。`,
+      `将永久删除这条记录、${detail.cards.length} 张牌面及 ${followUps.length} 条关联回顾。此操作无法恢复。`,
       [
         { text: '取消', style: 'cancel' },
         { text: '删除记录', style: 'destructive', onPress: () => void deleteReading() },
@@ -206,6 +210,12 @@ export default function ReadingDetailScreen() {
           />
         ) : null}
         <Button label="分享纯文本摘要" onPress={() => void shareReading()} />
+        <Button
+          label="安排回顾"
+          onPress={() =>
+            router.push({ pathname: '/followups/new', params: { readingId: detail.reading.id } })
+          }
+        />
       </View>
 
       <View style={styles.section}>
@@ -236,6 +246,31 @@ export default function ReadingDetailScreen() {
         <Text variant={detail.reading.reality_feedback ? 'body' : 'muted'}>
           {detail.reading.reality_feedback ?? '暂未记录后续反馈。'}
         </Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text variant="subtitle">后来发生了什么</Text>
+        {followUps.length === 0 ? (
+          <Text variant="muted">尚未安排回顾。</Text>
+        ) : (
+          followUps.map((followUp) => (
+            <View key={followUp.id} style={styles.cardRow}>
+              <Text>
+                计划：{formatFollowUpDate(followUp.scheduledFor, detail.reading.reading_timezone)}
+              </Text>
+              <Text>{followUp.outcome ? outcomeLabels[followUp.outcome] : '待回顾'}</Text>
+              <Button
+                label="查看回顾"
+                onPress={() =>
+                  router.push({
+                    pathname: '/followups/[followUpId]',
+                    params: { followUpId: followUp.id },
+                  })
+                }
+              />
+            </View>
+          ))
+        )}
       </View>
 
       <View style={styles.metadata}>

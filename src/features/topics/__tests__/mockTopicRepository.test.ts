@@ -27,6 +27,7 @@ function createRepository(data: Partial<TopicRepositoryData> = {}) {
         data.question_template_positions ?? mockQuestionTemplatePositions,
       readings: data.readings ?? mockReadings,
       reading_cards: data.reading_cards ?? mockReadingCards,
+      reading_follow_ups: data.reading_follow_ups ?? [],
       tarot_cards: data.tarot_cards ?? tarotCards,
     },
     {
