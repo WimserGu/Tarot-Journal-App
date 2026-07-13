@@ -16,6 +16,12 @@ export type DrawConfiguration = {
   reversalMode: ReversalMode;
   reversedProbability: number;
   overexpressedProbabilityWhenReversed: number;
+  questionText?: string;
+  ritual?: {
+    stage: 'prepare' | 'draw' | 'reveal' | 'reflection';
+    drawnCount: number;
+    revealedPositionIndexes: number[];
+  };
 };
 
 export type DrawnCard = {
