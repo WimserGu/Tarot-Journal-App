@@ -19,6 +19,8 @@ describe('DrawSession Supabase mappers', () => {
         reversal_mode: 'standard',
         reversed_probability: 0.5,
         overexpressed_probability_when_reversed: 0.5,
+        question_text: 'What should I notice?',
+        ritual: { stage: 'reveal', drawn_count: 1, revealed_position_indexes: [0] },
       },
     });
     const card = mapDrawSessionCardRow({
@@ -32,7 +34,14 @@ describe('DrawSession Supabase mappers', () => {
       reversal_expression: null,
       source: 'drawn',
     });
-    expect(session).toMatchObject({ status: 'saved', linkedReadingId: 'reading-1' });
+    expect(session).toMatchObject({
+      status: 'saved',
+      linkedReadingId: 'reading-1',
+      configuration: {
+        questionText: 'What should I notice?',
+        ritual: { stage: 'reveal', drawnCount: 1, revealedPositionIndexes: [0] },
+      },
+    });
     expect(card).toMatchObject({
       tarotCardId: 0,
       positionSnapshot: 'Reflection',

@@ -278,6 +278,10 @@ statistics, AI reflection, and user-configurable probabilities.
 
 Import Assistant copies a neutral formatting prompt, then parses pasted `[Reading]` blocks locally. External AI services only format text the user chooses to share; this app makes no AI API request and never uploads pasted history. Candidates are reviewed and edited before sequential import. Topic titles match exactly or are created explicitly; cards import as `manual`, without DrawSessions or inferred spreads. Partial failures remain visible and can be retried. No migration is added. App-internal navigation warns about losing an active import draft; browser refresh/close cannot be reliably intercepted.
 
+## Free Tarot Table (Phase 1)
+
+The default draw flow starts with a question and stores it immediately in the draft DrawSession. The user draws from a horizontally scrollable remaining deck, can reveal any drawn card independently, and decides when to finish. The table, draw order, reveal progress, orientation, question, and remaining deck are restored from the DrawSession draft. A finished table hands its question and cards to Reading without creating a new DrawSession or inferring a spread. No AI API, migration, or sharing is involved.
+
 ## Built-in Spread Engine
 
 Prompt 22 adds an immutable, domain-only `SpreadRepository` shared by draw and manual Reading entry.

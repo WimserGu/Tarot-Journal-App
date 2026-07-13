@@ -158,6 +158,7 @@ function drawConfiguration(value: unknown): DrawConfiguration {
   const reversalMode = value.reversal_mode;
   const reversedProbability = value.reversed_probability;
   const overexpressedProbability = value.overexpressed_probability_when_reversed;
+  const ritual = value.ritual;
   if (
     typeof cardCount !== 'number' ||
     !Number.isInteger(cardCount) ||
@@ -168,7 +169,7 @@ function drawConfiguration(value: unknown): DrawConfiguration {
     !value.spread_position_ids.every((id) => typeof id === 'string')
   )
     fail('configuration');
-  return {
+  const configuration: DrawConfiguration = {
     cardCount,
     spreadId: value.spread_id,
     spreadPositionIds: value.spread_position_ids as string[],
@@ -176,6 +177,23 @@ function drawConfiguration(value: unknown): DrawConfiguration {
     reversedProbability,
     overexpressedProbabilityWhenReversed: overexpressedProbability,
   };
+  if (typeof value.question_text === 'string') configuration.questionText = value.question_text;
+  if (ritual !== null && ritual !== undefined) {
+    if (
+      !isRecord(ritual) ||
+      !['prepare', 'draw', 'reveal', 'reflection'].includes(String(ritual.stage)) ||
+      !Number.isInteger(ritual.drawn_count) ||
+      !Array.isArray(ritual.revealed_position_indexes) ||
+      !ritual.revealed_position_indexes.every((index) => Number.isInteger(index))
+    )
+      fail('configuration.ritual');
+    configuration.ritual = {
+      stage: ritual.stage as NonNullable<DrawConfiguration['ritual']>['stage'],
+      drawnCount: ritual.drawn_count as number,
+      revealedPositionIndexes: ritual.revealed_position_indexes as number[],
+    };
+  }
+  return configuration;
 }
 
 export function mapDrawSessionRow(row: Row): DrawSession {

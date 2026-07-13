@@ -41,6 +41,14 @@ function configurationRow(session: Pick<DrawSession, 'configuration'>) {
     reversal_mode: value.reversalMode,
     reversed_probability: value.reversedProbability,
     overexpressed_probability_when_reversed: value.overexpressedProbabilityWhenReversed,
+    question_text: value.questionText,
+    ritual: value.ritual
+      ? {
+          stage: value.ritual.stage,
+          drawn_count: value.ritual.drawnCount,
+          revealed_position_indexes: [...value.ritual.revealedPositionIndexes],
+        }
+      : null,
   };
 }
 
@@ -70,11 +78,6 @@ export class SupabaseDrawSessionRepository implements DrawSessionRepository {
   }
   async create(input: CreateDrawSessionInput): Promise<DrawSession> {
     const userId = await this.userId();
-    if (input.cards.length === 0)
-      throw new ValidationRepositoryError(
-        'A draw session needs at least one card.',
-        'createDrawSession',
-      );
     if (await this.getActiveDraft())
       throw new ValidationRepositoryError(
         'Only one active draw draft is allowed.',
@@ -92,20 +95,21 @@ export class SupabaseDrawSessionRepository implements DrawSessionRepository {
       .single();
     check(error, 'createDrawSession');
     const session = mapDrawSessionRow(data as Record<string, unknown>);
-    const insert = await this.client.from('draw_session_cards').insert(
-      input.cards.map((card, index) => ({
-        user_id: userId,
-        draw_session_id: session.id,
-        tarot_card_id: card.tarotCardId,
-        position_index: card.positionIndex,
-        spread_position_id: card.spreadPositionId,
-        position_snapshot: card.positionSnapshot ?? `Card ${index + 1}`,
-        orientation: card.orientation,
-        reversal_expression: card.reversalExpression,
-        source: card.source,
-      })),
-    );
-    check(insert.error, 'createDrawSession.cards');
+    const cardRows = input.cards.map((card, index) => ({
+      user_id: userId,
+      draw_session_id: session.id,
+      tarot_card_id: card.tarotCardId,
+      position_index: card.positionIndex,
+      spread_position_id: card.spreadPositionId,
+      position_snapshot: card.positionSnapshot ?? `Card ${index + 1}`,
+      orientation: card.orientation,
+      reversal_expression: card.reversalExpression,
+      source: card.source,
+    }));
+    if (cardRows.length > 0) {
+      const insert = await this.client.from('draw_session_cards').insert(cardRows);
+      check(insert.error, 'createDrawSession.cards');
+    }
     this.notify();
     return { ...session, cards: await this.cards(session.id) };
   }
@@ -123,12 +127,12 @@ export class SupabaseDrawSessionRepository implements DrawSessionRepository {
         'updateDrawSession',
       );
     }
-    if (input.cards.length === 0)
+    const status = input.status ?? current.status;
+    if (input.cards.length === 0 && status === 'saved')
       throw new ValidationRepositoryError(
-        'A draw session needs at least one card.',
+        'A saved draw session needs at least one card.',
         'updateDrawSession',
       );
-    const status = input.status ?? current.status;
     const linkedReadingId = input.linkedReadingId ?? current.linkedReadingId;
     if (status === 'saved' && !linkedReadingId)
       throw new ValidationRepositoryError(
@@ -151,20 +155,21 @@ export class SupabaseDrawSessionRepository implements DrawSessionRepository {
     const remove = await this.client.from('draw_session_cards').delete().eq('draw_session_id', id);
     check(remove.error, 'updateDrawSession.cards');
     const userId = await this.userId();
-    const insert = await this.client.from('draw_session_cards').insert(
-      input.cards.map((card, index) => ({
-        user_id: userId,
-        draw_session_id: id,
-        tarot_card_id: card.tarotCardId,
-        position_index: card.positionIndex,
-        spread_position_id: card.spreadPositionId,
-        position_snapshot: card.positionSnapshot ?? `Card ${index + 1}`,
-        orientation: card.orientation,
-        reversal_expression: card.reversalExpression,
-        source: card.source,
-      })),
-    );
-    check(insert.error, 'updateDrawSession.cards');
+    const cardRows = input.cards.map((card, index) => ({
+      user_id: userId,
+      draw_session_id: id,
+      tarot_card_id: card.tarotCardId,
+      position_index: card.positionIndex,
+      spread_position_id: card.spreadPositionId,
+      position_snapshot: card.positionSnapshot ?? `Card ${index + 1}`,
+      orientation: card.orientation,
+      reversal_expression: card.reversalExpression,
+      source: card.source,
+    }));
+    if (cardRows.length > 0) {
+      const insert = await this.client.from('draw_session_cards').insert(cardRows);
+      check(insert.error, 'updateDrawSession.cards');
+    }
     this.notify();
     return { ...mapDrawSessionRow(data as Record<string, unknown>), cards: await this.cards(id) };
   }

@@ -14,9 +14,9 @@ function cloneCards(cards: readonly DrawnCard[]): DrawnCard[] {
   return cards.map((card) => ({ ...card }));
 }
 
-function validateCards(cards: readonly DrawnCard[]): void {
-  if (cards.length === 0)
-    throw new ValidationRepositoryError('A draw session needs at least one card.');
+function validateCards(cards: readonly DrawnCard[], allowEmpty = false): void {
+  if (cards.length === 0 && !allowEmpty)
+    throw new ValidationRepositoryError('A saved draw session needs at least one card.');
   const positions = new Set(cards.map((card) => card.positionIndex));
   if (positions.size !== cards.length || [...positions].some((position) => position < 0)) {
     throw new ValidationRepositoryError('Draw card positions must be unique and non-negative.');
@@ -44,17 +44,17 @@ export class MockDrawSessionRepository implements DrawSessionRepository {
     if (active) throw new ValidationRepositoryError('Only one active draw draft is allowed.');
     const now = this.store.now();
     const id = this.store.createId('draw-session');
-    const spread = spreadRepository.resolveSpread(
-      input.spreadId ?? input.configuration.spreadId,
-      input.configuration.spreadId === 'open' ? input.cards.length : undefined,
-    );
+    const spread =
+      input.spreadId === 'free-table'
+        ? null
+        : spreadRepository.resolveSpread(input.spreadId ?? input.configuration.spreadId);
     const cards = input.cards.map((card, index) => ({
       ...card,
       drawSessionId: id,
       positionSnapshot:
-        card.positionSnapshot ?? spread.positions[index]?.title ?? `Card ${index + 1}`,
+        card.positionSnapshot ?? spread?.positions[index]?.title ?? `Card ${index + 1}`,
     }));
-    validateCards(cards);
+    validateCards(cards, true);
     const session: DrawSession = {
       id,
       userId: this.store.userId,
@@ -84,8 +84,8 @@ export class MockDrawSessionRepository implements DrawSessionRepository {
       throw new ValidationRepositoryError('Saved draw sessions are immutable.');
     }
     const cards = input.cards.map((card) => ({ ...card, drawSessionId: current.id }));
-    validateCards(cards);
     const status = input.status ?? current.status;
+    validateCards(cards, status === 'draft');
     if (status === 'saved' && !input.linkedReadingId) {
       throw new ValidationRepositoryError('A saved draw session requires its Reading link.');
     }

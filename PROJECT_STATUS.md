@@ -1,5 +1,9 @@
 # Project Status
 
+## Prompt 27: Free Tarot Table (Phase 1)
+
+Implemented a question-first, free-table draw flow. Draft DrawSessions can begin empty and persist the question, drawn-card order, reveal state, and remaining deck. Finishing hands the stored question and cards to Reading without inferring a spread. No migration was added.
+
 ## Prompt 10: Reading Creation Flow
 
 Implementation status: complete and verified.

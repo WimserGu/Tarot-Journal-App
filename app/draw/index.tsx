@@ -1,39 +1,21 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { tarotCards } from '@/domain/tarotCards';
-import { DeckView } from '@/features/draw/components/DeckView';
 import { FaceDownCard } from '@/features/draw/components/FaceDownCard';
-import { PrepareScreen } from '@/features/draw/components/PrepareScreen';
 import { RevealCard } from '@/features/draw/components/RevealCard';
 import { RevealProgress } from '@/features/draw/components/RevealProgress';
-import {
-  beginReveal,
-  drawNextCard,
-  revealCard,
-  ritualState,
-  startRitual,
-} from '@/features/draw/drawRitual';
-import { drawEngine } from '@/features/draw/drawEngine';
+import { revealCard, ritualState } from '@/features/draw/drawRitual';
 import { setActiveDrawSession } from '@/features/draw/drawSessionStore';
-import {
-  DEFAULT_DRAW_CONFIGURATION,
-  type DrawSession,
-  type ReversalMode,
-} from '@/features/draw/drawTypes';
+import { DEFAULT_DRAW_CONFIGURATION, type DrawSession } from '@/features/draw/drawTypes';
 import { drawSessionRepository } from '@/repositories/repositoryFactory';
-import { spreadRepository } from '@/features/spreads/spreadRepository';
 import { borderRadii, colors, spacing } from '@/theme/tokens';
 
-const modeLabels: Record<ReversalMode, string> = {
-  disabled: '不使用逆位',
-  standard: '普通逆位',
-  expression: '逆位表达模式',
-};
-function orientation(card: DrawSession['cards'][number]) {
+function cardLabel(card: DrawSession['cards'][number]) {
   if (card.orientation === 'upright') return '正位';
   if (card.reversalExpression === 'underexpressed') return '逆位 · 表达不足';
   if (card.reversalExpression === 'overexpressed') return '逆位 · 表达过度';
@@ -42,66 +24,120 @@ function orientation(card: DrawSession['cards'][number]) {
 
 export default function DrawScreen() {
   const router = useRouter();
-  const [spreadId, setSpreadId] = useState('single-card');
-  const [reversalMode, setReversalMode] = useState<ReversalMode>('standard');
   const [question, setQuestion] = useState('');
   const [session, setSession] = useState<DrawSession | null>(null);
   const [draft, setDraft] = useState<DrawSession | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const version = useRef(0);
   const cardsById = useMemo(() => new Map(tarotCards.map((card) => [card.id, card])), []);
   useEffect(() => {
     void drawSessionRepository
       .getActiveDraft()
       .then(setDraft)
-      .catch(() => setError('无法加载上次抽牌。'));
+      .catch(() => setError('无法恢复上次桌面。'));
   }, []);
-  const publish = (next: DrawSession) => {
+  const persist = (next: DrawSession) => {
+    const current = ++version.current;
     setSession(next);
     setActiveDrawSession(next);
+    setBusy(true);
     void drawSessionRepository
       .update(next.id, {
         cards: next.cards,
         configuration: next.configuration,
         spreadId: next.spreadId,
       })
-      .then(setSession)
-      .catch(() => setError('无法保存抽牌草稿。'));
+      .then((saved) => {
+        if (version.current === current) {
+          setSession(saved);
+          setActiveDrawSession(saved);
+        }
+      })
+      .catch(() => setError('无法保存当前桌面；你的当前状态仍保留在屏幕上。'))
+      .finally(() => {
+        if (version.current === current) setBusy(false);
+      });
   };
-  const create = async () => {
+  const start = async () => {
+    if (!question.trim() || busy) {
+      setError('请先写下想探索的问题。');
+      return;
+    }
+    setBusy(true);
+    setError(null);
     try {
-      const resolved = spreadRepository.resolveSpread(spreadId);
-      const configuration = {
-        ...DEFAULT_DRAW_CONFIGURATION,
-        cardCount: resolved.positions.length,
-        spreadId,
-        spreadPositionIds: resolved.positions.map((p) => p.id),
-        reversalMode,
-        questionText: question,
-        ritual: { stage: 'prepare' as const, drawnCount: 0, revealedPositionIndexes: [] },
-      };
-      const result = drawEngine.draw(tarotCards, configuration);
       const created = await drawSessionRepository.create({
-        spreadId,
-        configuration,
-        cards: result.cards.map((card) => ({ ...card, drawSessionId: null })),
+        spreadId: 'free-table',
+        cards: [],
+        configuration: {
+          ...DEFAULT_DRAW_CONFIGURATION,
+          cardCount: 0,
+          spreadId: 'free-table',
+          spreadPositionIds: [],
+          questionText: question.trim(),
+          ritual: { stage: 'draw', drawnCount: 0, revealedPositionIndexes: [] },
+        },
       });
       setSession(created);
       setActiveDrawSession(created);
       setDraft(null);
-    } catch {
-      setError('暂时无法完成抽牌。');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '无法开始抽牌。');
+    } finally {
+      setBusy(false);
     }
+  };
+  const draw = () => {
+    if (!session || busy) return;
+    const used = new Set(session.cards.map((card) => card.tarotCardId));
+    const remaining = tarotCards.filter((card) => !used.has(card.id));
+    const tarotCard = remaining[Math.floor(Math.random() * remaining.length)];
+    if (!tarotCard) return;
+    const reversed =
+      session.configuration.reversalMode !== 'disabled' &&
+      Math.random() < session.configuration.reversedProbability;
+    const expression =
+      reversed && session.configuration.reversalMode === 'expression'
+        ? Math.random() < session.configuration.overexpressedProbabilityWhenReversed
+          ? 'overexpressed'
+          : 'underexpressed'
+        : null;
+    const index = session.cards.length;
+    persist({
+      ...session,
+      cards: [
+        ...session.cards,
+        {
+          id: `table-${index}`,
+          tarotCardId: tarotCard.id,
+          positionIndex: index,
+          spreadPositionId: `free-table.${index + 1}`,
+          positionSnapshot: `Card ${index + 1}`,
+          orientation: reversed ? 'reversed' : 'upright',
+          reversalExpression: expression,
+          source: 'drawn',
+          drawSessionId: session.id,
+        },
+      ],
+      configuration: {
+        ...session.configuration,
+        cardCount: index + 1,
+        spreadPositionIds: [...session.configuration.spreadPositionIds, `free-table.${index + 1}`],
+        ritual: { ...ritualState(session), stage: 'draw', drawnCount: index + 1 },
+      },
+    });
   };
   if (!session)
     return (
       <Screen scroll>
-        <Text variant="eyebrow">Intentional draw</Text>
-        <Text variant="title">准备一次抽牌</Text>
+        <Text variant="eyebrow">Free tarot table</Text>
+        <Text variant="title">What would you like to explore today?</Text>
         {draft ? (
-          <View style={styles.card}>
-            <Text>继续上次抽牌？</Text>
+          <View style={styles.panel}>
+            <Text>{draft.configuration.questionText ?? '未命名问题'}</Text>
             <Button
-              label="继续"
+              label="继续桌面"
               onPress={() => {
                 setSession(draft);
                 setActiveDrawSession(draft);
@@ -116,155 +152,115 @@ export default function DrawScreen() {
         ) : (
           <>
             <TextInput
-              accessibilityLabel="本次问题"
+              accessibilityLabel="探索的问题"
               value={question}
               onChangeText={setQuestion}
-              placeholder="写下想探索的问题（可选）"
+              multiline
+              placeholder="写下你想探索的问题"
               style={styles.input}
             />
-            {spreadRepository
-              .listSpreads()
-              .filter((item) => !item.isOpen)
-              .map((item) => (
-                <Pressable
-                  key={item.id}
-                  onPress={() => setSpreadId(item.id)}
-                  style={[styles.option, item.id === spreadId && styles.selected]}
-                >
-                  <Text>{item.name}</Text>
-                  <Text variant="muted">{item.description}</Text>
-                </Pressable>
-              ))}
-            {(Object.keys(modeLabels) as ReversalMode[]).map((mode) => (
-              <Pressable
-                key={mode}
-                onPress={() => setReversalMode(mode)}
-                style={[styles.option, mode === reversalMode && styles.selected]}
-              >
-                <Text>{modeLabels[mode]}</Text>
-              </Pressable>
-            ))}
-            <Button label="继续准备" onPress={() => void create()} />
+            <Button
+              label={busy ? '正在开始…' : 'Continue'}
+              disabled={busy}
+              onPress={() => void start()}
+            />
           </>
         )}
-        <Button label="抽牌历史" onPress={() => router.push('/draw/history' as never)} />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
       </Screen>
     );
   const ritual = ritualState(session);
-  const resolved = spreadRepository.resolveSpread(session.configuration.spreadId);
+  const remaining = tarotCards.length - session.cards.length;
   return (
     <Screen scroll>
-      <Text variant="eyebrow">Intentional draw</Text>
-      {ritual.stage === 'prepare' ? (
-        <PrepareScreen
-          question={session.configuration.questionText ?? ''}
-          spread={resolved.name}
-          count={session.cards.length}
-          reversalMode={modeLabels[session.configuration.reversalMode]}
-          onStart={() => publish(startRitual(session))}
+      <Text variant="eyebrow">Tarot Table</Text>
+      <Text variant="title">{session.configuration.questionText}</Text>
+      <RevealProgress
+        revealed={ritual.revealedPositionIndexes.length}
+        total={session.cards.length}
+      />
+      <View style={styles.table}>
+        {session.cards.map((card, index) =>
+          ritual.revealedPositionIndexes.includes(index) ? (
+            <RevealCard
+              key={card.id}
+              revealed
+              label={`Card ${index + 1}`}
+              name={cardsById.get(card.tarotCardId)?.name_zh ?? '未知牌'}
+              orientation={cardLabel(card)}
+              onReveal={() => undefined}
+            />
+          ) : (
+            <Pressable
+              key={card.id}
+              accessibilityRole="button"
+              accessibilityLabel={`揭示第 ${index + 1} 张牌`}
+              onPress={() => persist(revealCard(session, index))}
+            >
+              <FaceDownCard label={`Card ${index + 1}`} />
+            </Pressable>
+          ),
+        )}
+      </View>
+      <View style={styles.toolbar}>
+        <Button
+          label={busy ? '处理中…' : 'Draw another card'}
+          disabled={busy || remaining === 0}
+          onPress={draw}
         />
-      ) : null}
-      {ritual.stage === 'draw' ? (
+        <Button
+          label="Finish this session"
+          disabled={session.cards.length === 0 || busy}
+          onPress={() =>
+            persist({
+              ...session,
+              configuration: {
+                ...session.configuration,
+                ritual: { ...ritual, stage: 'reflection' },
+              },
+            })
+          }
+        />
+      </View>
+      {ritual.stage === 'reflection' ? (
         <>
-          <Text variant="title">Draw one card at a time</Text>
-          <DeckView remaining={session.cards.length - ritual.drawnCount} />
-          <View style={styles.row}>
-            {session.cards.map((card, index) =>
-              ritual.drawnCount > index ? (
-                <FaceDownCard
-                  key={card.id}
-                  label={resolved.positions[index]?.title ?? `Card ${index + 1}`}
-                />
-              ) : (
-                <View key={card.id} style={styles.slot}>
-                  <Text>{resolved.positions[index]?.title ?? `Card ${index + 1}`}</Text>
-                </View>
-              ),
-            )}
-          </View>
+          <Text variant="muted">Take a moment to observe the cards.</Text>
           <Button
-            label={
-              ritual.drawnCount === session.cards.length
-                ? 'Begin Reveal'
-                : `Draw Card ${ritual.drawnCount + 1}`
-            }
-            onPress={() =>
-              publish(
-                ritual.drawnCount === session.cards.length
-                  ? beginReveal(session)
-                  : drawNextCard(session),
-              )
-            }
+            label="Continue to Reading"
+            onPress={() => {
+              setActiveDrawSession(session);
+              router.push({ pathname: '/readings/new', params: { drawSessionId: session.id } });
+            }}
           />
         </>
       ) : null}
-      {ritual.stage === 'reveal' || ritual.stage === 'reflection' ? (
-        <>
-          <Text variant="title">Reveal at your own pace</Text>
-          <RevealProgress
-            revealed={ritual.revealedPositionIndexes.length}
-            total={session.cards.length}
-          />
-          <View style={styles.row}>
-            {session.cards.map((card, index) => (
-              <RevealCard
-                key={card.id}
-                revealed={ritual.revealedPositionIndexes.includes(index)}
-                label={resolved.positions[index]?.title ?? `Card ${index + 1}`}
-                name={cardsById.get(card.tarotCardId)?.name_zh ?? '未知牌'}
-                orientation={orientation(card)}
-                onReveal={() => publish(revealCard(session, index))}
-              />
-            ))}
+      <Text variant="muted">剩余 {remaining} 张</Text>
+      <FlatList
+        horizontal
+        data={Array.from({ length: remaining }, (_, index) => index)}
+        keyExtractor={(item) => String(item)}
+        renderItem={() => (
+          <View style={styles.deck}>
+            <FaceDownCard label="可抽取牌" />
           </View>
-          {ritual.stage === 'reflection' ? (
-            <>
-              <Text variant="muted">
-                Take a moment to observe the cards.{`\n`}When ready, continue to your journal.
-              </Text>
-              <Button
-                label="Continue to Reading"
-                onPress={() => {
-                  setActiveDrawSession(session);
-                  router.push({ pathname: '/readings/new', params: { drawSessionId: session.id } });
-                }}
-              />
-            </>
-          ) : null}
-        </>
-      ) : null}
+        )}
+        showsHorizontalScrollIndicator
+        accessibilityLabel="可横向滚动的剩余牌堆"
+      />
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </Screen>
   );
 }
 const styles = StyleSheet.create({
-  card: { gap: spacing.sm },
+  deck: { marginRight: -42 },
   error: { color: colors.danger },
   input: {
     borderColor: colors.border,
     borderRadius: borderRadii.sm,
     borderWidth: 1,
+    minHeight: 100,
     padding: spacing.md,
   },
-  option: {
-    borderColor: colors.border,
-    borderRadius: borderRadii.sm,
-    borderWidth: 1,
-    gap: spacing.xs,
-    padding: spacing.md,
-  },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  selected: { backgroundColor: colors.surface },
-  slot: {
-    alignItems: 'center',
-    borderColor: colors.border,
-    borderRadius: borderRadii.sm,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    height: 112,
-    justifyContent: 'center',
-    padding: spacing.xs,
-    width: 74,
-  },
+  panel: { gap: spacing.md },
+  table: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, minHeight: 160 },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

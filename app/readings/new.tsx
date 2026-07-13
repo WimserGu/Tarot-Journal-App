@@ -68,7 +68,7 @@ export default function NewReadingScreen() {
       {
         topic_id: topicId,
         question_template_id: questionTemplateId,
-        temporary_question: questionText,
+        temporary_question: drawSession?.configuration.questionText ?? questionText,
       },
       new Date(),
       timeZone,
@@ -76,7 +76,10 @@ export default function NewReadingScreen() {
     return drawSession
       ? {
           ...values,
-          spread_id: drawSession.configuration.spreadId,
+          spread_id:
+            drawSession.configuration.spreadId === 'free-table'
+              ? null
+              : drawSession.configuration.spreadId,
           cards: drawSessionCardsToForm(drawSession),
         }
       : values;
