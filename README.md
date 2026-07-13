@@ -155,3 +155,36 @@ No SQL aggregation, RPC, view, migration, AI, or network statistics service was 
 Statistics tests cover empty data, drafts, duplicate cards, date boundaries, DST,
 Topic filters, ratios, comparisons, streaks, trace IDs, repository consistency, page
 states, and Reading-detail navigation.
+
+## Weekly and monthly reviews
+
+Prompt 18 adds global Weekly and Monthly Reviews without AI interpretation. Weeks
+start on Monday in the selected IANA timezone; weekly and natural-month boundaries
+use half-open intervals `[start, end)`, so DST, leap-year February, cross-month weeks,
+and cross-year weeks do not rely on a fixed UTC duration. Drafts remain excluded by
+default through the shared `StatisticsFilter.includeDrafts` semantics.
+
+Creating a Review saves a Statistics snapshot, the source Reading IDs, a deterministic
+source fingerprint, the selected timezone and draft policy, and an optional personal
+summary. Opening a saved Review displays that snapshot rather than silently changing
+it when Readings change. A neutral notice offers explicit regeneration; regeneration
+keeps the personal summary unchanged. Every aggregate retains trace links to Reading
+detail. Reviews can be deleted without deleting Topics, templates, Readings, or cards.
+
+Local mode persists Reviews in a versioned AsyncStorage key. Supabase mode uses the
+same ReviewRepository contract and the RLS-protected `reviews` table. Migration
+`20260713073610_weekly_monthly_reviews.sql` is local-only and has not been deployed.
+It adds no statistics RPC, view, or SQL aggregation. After review, deploy manually:
+
+```powershell
+pnpm exec supabase migration list --linked
+pnpm exec supabase db push
+pnpm exec supabase migration list --linked
+```
+
+Review tests cover timezone period boundaries, DST, weekly/monthly navigation,
+snapshot construction, previous-period card/suit/orientation changes,
+`firstEverCards`, fingerprints, strict mapping, local and mocked Supabase contracts,
+factory overrides, trace navigation, empty/loading/error states, and submission guards.
+Mocked Supabase tests are not proof of real remote RLS; authenticated two-user Review
+CRUD and ownership isolation remain manual verification after migration deployment.

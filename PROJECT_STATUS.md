@@ -196,6 +196,52 @@ Implementation status: complete locally and verified.
 
 Prompt 18 may reuse StatisticsResult directly; Prompt 18 has not started.
 
+## Prompt 18: Weekly and Monthly Reviews
+
+Implementation status: complete locally; Review migration deployment and real RLS verification pending.
+
+### Completed Scope
+
+- Added stable ReviewRepository, local and Supabase adapters, strict Review mapper,
+  repository factory integration, local listeners, and unified repository errors.
+- Added pure timezone-aware weekly/monthly period utilities using Monday weeks,
+  natural calendar months, and `[start, end)` boundaries.
+- Reused Prompt 17 StatisticsService to build immutable-by-default Review snapshots,
+  active Topics, top cards, first-ever cards, fixed-question counts, previous-period
+  card/suit/orientation changes, source Reading IDs, and deterministic fingerprints.
+- Added optional personal summaries with a 5,000-character limit, preserved newlines,
+  duplicate-submit protection, failure retention, explicit regeneration, and deletion
+  that never touches journal source data.
+- Added Review list/detail routes, Weekly/Monthly and period navigation, IANA timezone,
+  include-drafts control, current-period indicator, neutral stale-data notice, and
+  traceable Reading-detail links.
+- Created local-only migration `20260713073610_weekly_monthly_reviews.sql` with the
+  `reviews` table, ownership RLS, minimum grants, database uniqueness, constraints,
+  timezone validation, and updated-at trigger. Existing migrations remain unchanged.
+
+### Integration Status
+
+- Default adapter: local.
+- Review migration deployed remotely: no.
+- Mocked Supabase Review tests: local test doubles only.
+- Real authenticated Review CRUD and two-user RLS isolation: pending after deployment.
+- No AI, LLM, interpretation, prediction, sharing, export, reminders, or Prompt 19 work.
+
+### Verification
+
+- Review-specific tests: 6 files and 42 tests passed; full suite: 30 files and 159 tests passed.
+- Prettier, ESLint with zero warnings, and TypeScript: passed.
+- Expo Web export: passed.
+- Expo Doctor: 18 of 18 checks passed.
+- Local browser regression: Weekly/Monthly switching, timezone period navigation,
+  current-period state, snapshot save, multiline summary, detail rendering, and
+  Reading trace navigation passed.
+
+### Next Step
+
+Review and deploy the Prompt 18 migration, run authenticated two-user Review CRUD/RLS
+verification, then begin Prompt 19 separately.
+
 - Manual Web check: selected three consecutive cards (The Fool, The Magician, The High Priestess); each selection retained its selected state and appended the next empty card slot.
 
 ### Next Step

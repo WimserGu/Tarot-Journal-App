@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Alert, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -41,6 +41,7 @@ export default function SettingsScreen() {
         </View>
       ) : null}
       <Button label="重新查看 onboarding" onPress={() => router.push('/onboarding-review')} />
+      <Button label="Weekly / Monthly Reviews" onPress={() => router.push('/reviews' as Href)} />
       <Button
         label={mode === 'local' ? '退出开发体验' : '退出登录'}
         onPress={() => void signOut()}

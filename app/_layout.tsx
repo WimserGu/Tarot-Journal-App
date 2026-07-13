@@ -47,6 +47,7 @@ function Navigator() {
           <Stack.Screen name="topics" />
           <Stack.Screen name="readings" />
           <Stack.Screen name="questions" />
+          <Stack.Screen name="reviews" />
           <Stack.Screen name="onboarding-review" />
         </Stack.Protected>
       </Stack>

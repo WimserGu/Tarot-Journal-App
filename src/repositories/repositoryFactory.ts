@@ -5,6 +5,9 @@ import { readingRepository as localReadings } from '../features/readings/mockRea
 import type { ReadingRepository } from '../features/readings/readingRepository';
 import { topicRepository as localTopics } from '../features/topics/mockTopicRepository';
 import type { TopicRepository } from '../features/topics/topicRepository';
+import { localReviewRepository } from '../features/reviews/reviewRepository';
+import type { ReviewRepository } from '../features/reviews/reviewRepository';
+import { SupabaseReviewRepository } from '../features/reviews/supabaseReviewRepository';
 import { getSupabaseClient } from '../lib/supabase';
 import {
   SupabaseQuestionTemplateRepository,
@@ -16,11 +19,13 @@ export type AppRepositories = {
   topics: TopicRepository;
   questionTemplates: QuestionTemplateRepository;
   readings: ReadingRepository;
+  reviews: ReviewRepository;
 };
 const local: AppRepositories = {
   topics: localTopics,
   questionTemplates: localQuestionTemplates,
   readings: localReadings,
+  reviews: localReviewRepository,
 };
 let overrides: Partial<AppRepositories> = {};
 let cachedSupabase: AppRepositories | null = null;
@@ -34,6 +39,7 @@ export function createRepositories(source?: EnvironmentSource): AppRepositories 
       topics: new SupabaseTopicRepository(client),
       questionTemplates: new SupabaseQuestionTemplateRepository(client),
       readings: new SupabaseReadingRepository(client),
+      reviews: new SupabaseReviewRepository(client),
     };
   }
   return { ...cachedSupabase, ...overrides };
@@ -64,4 +70,8 @@ export const questionTemplateRepository: QuestionTemplateRepository = new Proxy(
 export const readingRepository: ReadingRepository = new Proxy({} as ReadingRepository, {
   get: (_target, key) =>
     Reflect.get(createRepositories().readings, key).bind(createRepositories().readings),
+});
+export const reviewRepository: ReviewRepository = new Proxy({} as ReviewRepository, {
+  get: (_target, key) =>
+    Reflect.get(createRepositories().reviews, key).bind(createRepositories().reviews),
 });

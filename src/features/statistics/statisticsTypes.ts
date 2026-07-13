@@ -57,6 +57,8 @@ export type StatisticsResult = {
   orientationDistribution: Record<CardOrientation, TraceableRatio>;
   suitDistribution: Record<TarotSuit, TraceableRatio>;
   topCards: CardStatistic[];
+  /** Complete card distribution for downstream review snapshots. */
+  cardStatistics: CardStatistic[];
   questionStatistics: QuestionStatistic[];
   streaks: CardStreak[];
   recent7Days: TraceableCount;

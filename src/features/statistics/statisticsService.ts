@@ -259,6 +259,7 @@ export function calculateStatistics(
       pentacles: suit('pentacles'),
     },
     topCards: cards.slice(0, 10),
+    cardStatistics: cards,
     questionStatistics: [...questions.values()].sort(
       (a, b) => b.readingCount - a.readingCount || a.questionText.localeCompare(b.questionText),
     ),
