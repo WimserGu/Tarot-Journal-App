@@ -9,6 +9,11 @@ import { IconButton } from '@/features/topics/components/IconButton';
 import { getCurrentTimeZone } from '@/features/topics/topicPresentation';
 import { ReadingForm } from '@/features/readings/components/ReadingForm';
 import { buildInitialReadingFormValues } from '@/features/readings/readingFormState';
+import {
+  drawSessionCardsToForm,
+  getActiveDrawSession,
+  linkActiveDrawSession,
+} from '@/features/draw/drawSessionStore';
 import { readingRepository } from '@/repositories/repositoryFactory';
 import { toReadingCreateInput, type ReadingFormValues } from '@/features/readings/readingSchema';
 import { createSubmissionGuard } from '@/features/readings/submissionGuard';
@@ -26,10 +31,12 @@ export default function NewReadingScreen() {
     topicId?: string | string[];
     questionTemplateId?: string | string[];
     questionText?: string | string[];
+    drawSessionId?: string | string[];
   }>();
   const topicId = firstRouteParam(params.topicId);
   const questionTemplateId = firstRouteParam(params.questionTemplateId);
   const questionText = firstRouteParam(params.questionText);
+  const drawSessionId = firstRouteParam(params.drawSessionId);
   const {
     data: context,
     error_message: errorMessage,
@@ -47,7 +54,7 @@ export default function NewReadingScreen() {
       return null;
     }
 
-    return buildInitialReadingFormValues(
+    const values = buildInitialReadingFormValues(
       context,
       {
         topic_id: topicId,
@@ -57,7 +64,9 @@ export default function NewReadingScreen() {
       new Date(),
       timeZone,
     );
-  }, [context, questionTemplateId, questionText, timeZone, topicId]);
+    const drawSession = getActiveDrawSession(drawSessionId);
+    return drawSession ? { ...values, cards: drawSessionCardsToForm(drawSession) } : values;
+  }, [context, drawSessionId, questionTemplateId, questionText, timeZone, topicId]);
 
   const saveReading = async (values: ReadingFormValues, status: 'draft' | 'completed') => {
     await submissionGuard.current.run(async () => {
@@ -68,6 +77,7 @@ export default function NewReadingScreen() {
         const reading = await readingRepository.createReading(
           toReadingCreateInput(values, status, timeZone),
         );
+        if (drawSessionId) linkActiveDrawSession(reading.id);
         allowNextNavigation();
         router.replace({ pathname: '/readings/[readingId]', params: { readingId: reading.id } });
       } catch (error) {
@@ -88,7 +98,7 @@ export default function NewReadingScreen() {
           <View style={styles.header}>
             <IconButton accessibilityLabel="返回" icon="arrow-back" onPress={() => router.back()} />
             <View style={styles.headerCopy}>
-              <Text variant="eyebrow">实体牌记录</Text>
+              <Text variant="eyebrow">{drawSessionId ? 'App 抽牌结果' : '实体牌记录'}</Text>
               <Text variant="title">新增牌阵记录</Text>
             </View>
           </View>

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { ReadingStatus } from '../../domain/types';
+import type { CardEntrySource, ReadingStatus, ReversalExpression, UUID } from '../../domain/types';
 
 import type { CreateReadingInput, ReadingCardInput } from './readingRepository';
 
@@ -10,6 +10,9 @@ export type ReadingCardFormValue = {
   tarot_card_id: number | null;
   position_name: string;
   orientation: 'upright' | 'reversed';
+  reversalExpression?: ReversalExpression;
+  source?: CardEntrySource;
+  drawSessionId?: UUID | null;
 };
 
 function isValidLocalDate(value: string): boolean {
@@ -40,11 +43,31 @@ function isValidLocalTime(value: string): boolean {
   return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
 }
 
-export const readingCardFormSchema = z.object({
-  tarot_card_id: z.number().int().positive().nullable(),
-  position_name: z.string().trim().max(120, '牌阵位置不能超过 120 个字符。'),
-  orientation: z.enum(['upright', 'reversed']),
-});
+export const readingCardFormSchema = z
+  .object({
+    tarot_card_id: z.number().int().positive().nullable(),
+    position_name: z.string().trim().max(120, '牌阵位置不能超过 120 个字符。'),
+    orientation: z.enum(['upright', 'reversed']),
+    reversalExpression: z.enum(['underexpressed', 'overexpressed']).nullable().optional(),
+    source: z.enum(['drawn', 'manual']).optional(),
+    drawSessionId: z.string().nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.orientation === 'upright' && value.reversalExpression !== null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '正位牌不能设置逆位表达状态。',
+        path: ['reversalExpression'],
+      });
+    }
+    if ((value.source ?? 'manual') === 'manual' && (value.drawSessionId ?? null) !== null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '手动添加的牌不能关联抽牌会话。',
+        path: ['drawSessionId'],
+      });
+    }
+  });
 
 export const readingFormSchema = z
   .object({
@@ -82,6 +105,9 @@ export function createEmptyReadingCard(): ReadingCardFormValue {
     tarot_card_id: null,
     position_name: '',
     orientation: 'upright',
+    reversalExpression: null,
+    source: 'manual',
+    drawSessionId: null,
   };
 }
 
@@ -126,6 +152,9 @@ export function toReadingCreateInput(
     tarot_card_id: card.tarot_card_id,
     position_name: card.position_name.trim() || null,
     orientation: card.orientation,
+    reversalExpression: card.reversalExpression ?? null,
+    source: card.source ?? 'manual',
+    drawSessionId: card.drawSessionId ?? null,
     position_order: index + 1,
   }));
 

@@ -1,11 +1,13 @@
 import type {
   CardOrientation,
+  CardEntrySource,
   QuestionFrequency,
   QuestionTemplate,
   QuestionTemplatePosition,
   Reading,
   ReadingCard,
   ReadingStatus,
+  ReversalExpression,
   Topic,
   TopicIcon,
 } from '../domain/types';
@@ -21,6 +23,9 @@ function string(row: Row, key: string): string {
 }
 function nullableString(row: Row, key: string): string | null {
   return row[key] === null ? null : string(row, key);
+}
+function optionalNullableString(row: Row, key: string): string | null {
+  return row[key] === undefined || row[key] === null ? null : string(row, key);
 }
 function boolean(row: Row, key: string): boolean {
   return typeof row[key] === 'boolean' ? row[key] : fail(key);
@@ -108,6 +113,22 @@ export function mapReadingRow(row: Row): Reading {
 
 export function mapReadingCardRow(row: Row): ReadingCard {
   const tarotCardId = row.tarot_card_id;
+  const source =
+    row.source === undefined
+      ? 'manual'
+      : enumValue<CardEntrySource>(row, 'source', ['drawn', 'manual']);
+  const reversalExpression =
+    row.reversal_expression === undefined || row.reversal_expression === null
+      ? null
+      : enumValue<Exclude<ReversalExpression, null>>(row, 'reversal_expression', [
+          'underexpressed',
+          'overexpressed',
+        ]);
+  const orientation = enumValue<CardOrientation>(row, 'orientation', ['upright', 'reversed']);
+  if (orientation === 'upright' && reversalExpression !== null) fail('reversal_expression');
+  const drawSessionId = optionalNullableString(row, 'draw_session_id');
+  if (source === 'manual' && drawSessionId !== null) fail('draw_session_id');
+  if (source === 'drawn' && drawSessionId === null) fail('draw_session_id');
   return {
     id: string(row, 'id'),
     user_id: string(row, 'user_id'),
@@ -115,7 +136,10 @@ export function mapReadingCardRow(row: Row): ReadingCard {
     tarot_card_id: tarotCardId === null ? null : integer(row, 'tarot_card_id', true),
     position_order: integer(row, 'position_order', true),
     position_name: nullableString(row, 'position_name'),
-    orientation: enumValue<CardOrientation>(row, 'orientation', ['upright', 'reversed']),
+    orientation,
+    reversalExpression,
+    source,
+    drawSessionId,
     created_at: iso(row, 'created_at'),
     updated_at: iso(row, 'updated_at'),
   };

@@ -48,6 +48,50 @@ Implementation status: complete and verified.
 - Vitest: 9 test files and 35 tests passed.
 - Expo Web: `expo export --platform web --clear` completed successfully.
 
+## Prompt 21: Unified Draw Engine and Manual Card Entry
+
+Implementation status: complete locally; migration deployment and real remote verification pending.
+
+### Completed Scope
+
+- Added a pure, injectable DrawEngine over the canonical 78-card deck with 1–10 card validation,
+  no duplicates, deterministic ordering, and disabled/standard/expression reversal modes.
+- Added temporary in-memory DrawSession coordination, editable draw results, discard-without-save,
+  and handoff into the existing Reading creation form.
+- Unified App-drawn and manually entered cards through `ReadingCard.source`, `drawSessionId`, and
+  neutral optional `reversalExpression` fields. Existing manual Reading creation/editing remains available.
+- Added manual and draw-result controls for upright, ordinary reversed, underexpressed, and
+  overexpressed states; upright cards always clear the expression.
+- Upgraded local persistence to schema version 4 with safe legacy defaults and strict validation.
+- Added strict Supabase mapping and updated atomic Reading RPC payloads.
+- Created local-only migration `20260713103538_unified_card_entry.sql`; no existing migration was modified.
+- Statistics and Reviews continue using the unified card orientation and require no separate draw logic.
+
+### Integration Status
+
+- Default adapter: local.
+- Prompt 21 migration deployed remotely: no.
+- Existing RLS policies/grants expanded: no.
+- Real authenticated Supabase create/update and remote legacy-row verification: pending after deployment.
+- DrawSession persistence, complex spreads, animations, custom probabilities, AI, sharing, and export: not started.
+
+### Verification
+
+- Prettier check: passed.
+- ESLint: passed with 0 warnings.
+- TypeScript: passed.
+- Vitest: 41 files and 247 tests passed; the focused draw/Reading/persistence/Supabase suite passed
+  9 files and 62 tests.
+- Expo Web export: passed (990 modules).
+- Expo Doctor: passed 18 of 18 checks.
+- Browser regression: all three reversal modes, result editing, manual card addition, Reading save/detail,
+  Statistics consumption, pure manual entry, and legacy Reading detail/edit passed in local mode.
+
+### Next Step
+
+Review and deploy the pending migrations, verify manual/drawn Reading CRUD with an authenticated user,
+and confirm older remote Reading cards read as manual before planning a later visual draw experience.
+
 ## Prompt 15A: Supabase Client Foundation
 
 Implementation status: complete and verified.

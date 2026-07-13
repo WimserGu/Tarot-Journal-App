@@ -23,6 +23,9 @@ function getTemplateCards(context: ReadingFormContext, template: QuestionTemplat
         tarot_card_id: null,
         position_name: position.position_name,
         orientation: 'upright' as const,
+        reversalExpression: null,
+        source: 'manual' as const,
+        drawSessionId: null,
       }))
     : [createEmptyReadingCard()];
 }
@@ -78,6 +81,9 @@ export function buildReadingFormValuesFromDetail(
             tarot_card_id: card.tarot_card_id,
             position_name: card.position_name ?? '',
             orientation: card.orientation,
+            reversalExpression: card.reversalExpression,
+            source: card.source,
+            drawSessionId: card.drawSessionId,
           }))
         : [createEmptyReadingCard()],
     interpretation: detail.reading.interpretation ?? '',

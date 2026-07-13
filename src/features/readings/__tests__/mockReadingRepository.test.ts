@@ -67,7 +67,15 @@ describe('MockReadingRepository', () => {
       interpretation: '先写出一个可交付版本。',
       status: 'completed',
       cards: [
-        { tarot_card_id: 57, position_name: '阻碍', orientation: 'reversed', position_order: 1 },
+        {
+          tarot_card_id: 57,
+          position_name: '阻碍',
+          orientation: 'reversed',
+          position_order: 1,
+          reversalExpression: 'underexpressed',
+          source: 'drawn',
+          drawSessionId: '40000000-0000-4000-8000-000000000009',
+        },
         { tarot_card_id: 71, position_name: '建议', orientation: 'upright', position_order: 2 },
       ],
     });
@@ -80,6 +88,16 @@ describe('MockReadingRepository', () => {
       'swords_eight',
       'pentacles_eight',
     ]);
+    expect(detail?.cards[0]?.reading_card).toMatchObject({
+      source: 'drawn',
+      reversalExpression: 'underexpressed',
+      drawSessionId: '40000000-0000-4000-8000-000000000009',
+    });
+    expect(detail?.cards[1]?.reading_card).toMatchObject({
+      source: 'manual',
+      reversalExpression: null,
+      drawSessionId: null,
+    });
     expect(topicDetail?.record_count).toBe(4);
   });
 

@@ -11,7 +11,7 @@ import type {
 
 import type { JournalData, MutableJournalData } from './journalData';
 
-export const JOURNAL_SCHEMA_VERSION = 3;
+export const JOURNAL_SCHEMA_VERSION = 4;
 
 const storagePrefix = '@tarot-journal/v1';
 const schemaKey = `${storagePrefix}/schema`;
@@ -113,12 +113,31 @@ function validReading(value: unknown): value is Reading {
 }
 
 function validReadingCard(value: unknown): value is ReadingCard {
-  return (
+  if (!(
     hasIdentity(value) &&
     typeof value.reading_id === 'string' &&
     typeof value.position_order === 'number' &&
     typeof value.orientation === 'string'
-  );
+  ))
+    return false;
+  const source = value.source;
+  const expression = value.reversalExpression;
+  const drawSessionId = value.drawSessionId;
+  const sourceValid = source === undefined || source === 'drawn' || source === 'manual';
+  const expressionValid =
+    expression === undefined ||
+    expression === null ||
+    expression === 'underexpressed' ||
+    expression === 'overexpressed';
+  const drawSessionValid =
+    drawSessionId === undefined || drawSessionId === null || typeof drawSessionId === 'string';
+  const stateValid =
+    value.orientation !== 'upright' || expression === undefined || expression === null;
+  const sourceLinkValid =
+    source === undefined ||
+    (source === 'manual' && (drawSessionId === undefined || drawSessionId === null)) ||
+    (source === 'drawn' && typeof drawSessionId === 'string');
+  return sourceValid && expressionValid && drawSessionValid && stateValid && sourceLinkValid;
 }
 
 function validReadingFollowUp(value: unknown): value is ReadingFollowUp {
@@ -209,6 +228,8 @@ export class JournalPersistence {
       }
     }
 
+    this.normalizeReadingCards(data);
+
     if (schemaVersion < JOURNAL_SCHEMA_VERSION) {
       this.migrateData(data);
       await this.migrate(schemaVersion);
@@ -275,6 +296,14 @@ export class JournalPersistence {
         .forEach((template, index) => {
           template.displayOrder = index + 1;
         });
+    });
+  }
+
+  private normalizeReadingCards(data: MutableJournalData): void {
+    data.reading_cards.forEach((card) => {
+      card.source ??= 'manual';
+      card.reversalExpression ??= null;
+      card.drawSessionId ??= null;
     });
   }
 

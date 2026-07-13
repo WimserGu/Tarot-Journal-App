@@ -17,6 +17,9 @@ type ReadingCardEditorProps = {
   onMoveDown: () => void;
   onMoveUp: () => void;
   onOrientationChange: (orientation: ReadingCardFormValue['orientation']) => void;
+  onReversalExpressionChange: (
+    expression: NonNullable<ReadingCardFormValue['reversalExpression']> | null,
+  ) => void;
   onPositionNameChange: (value: string) => void;
   onRemove: () => void;
   selectedCard: TarotCard | null;
@@ -62,6 +65,7 @@ export function ReadingCardEditor({
   onMoveDown,
   onMoveUp,
   onOrientationChange,
+  onReversalExpressionChange,
   onPositionNameChange,
   onRemove,
   selectedCard,
@@ -172,6 +176,44 @@ export function ReadingCardEditor({
           </Text>
         </Pressable>
       </View>
+
+      {value.orientation === 'reversed' ? (
+        <View style={styles.field}>
+          <Text variant="muted">逆位表达</Text>
+          <View style={styles.expressionOptions}>
+            {(
+              [
+                [null, '普通逆位'],
+                ['underexpressed', '表达不足'],
+                ['overexpressed', '表达过度'],
+              ] as const
+            ).map(([expression, label]) => {
+              const selected = (value.reversalExpression ?? null) === expression;
+              return (
+                <Pressable
+                  accessibilityLabel={`设置为${label}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  disabled={disabled}
+                  key={expression ?? 'standard'}
+                  onPress={() => onReversalExpressionChange(expression)}
+                  style={({ pressed }) => [
+                    styles.expressionOption,
+                    selected ? styles.segmentSelected : null,
+                    pressed && !disabled ? styles.pressed : null,
+                  ]}
+                >
+                  <Text style={selected ? styles.segmentTextSelected : undefined}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
+      <Text variant="muted">
+        来源：{(value.source ?? 'manual') === 'drawn' ? 'App 抽取' : '手动添加'}
+      </Text>
     </View>
   );
 }
@@ -201,6 +243,21 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   field: {
+    gap: spacing.xs,
+  },
+  expressionOption: {
+    alignItems: 'center',
+    borderColor: colors.border,
+    borderRadius: borderRadii.sm,
+    borderWidth: 1,
+    flexGrow: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: spacing.sm,
+  },
+  expressionOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.xs,
   },
   header: {

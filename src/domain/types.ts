@@ -4,6 +4,14 @@ export type ISODateTime = string;
 export type TarotArcana = 'major' | 'minor';
 export type TarotSuit = 'wands' | 'cups' | 'swords' | 'pentacles';
 export type CardOrientation = 'upright' | 'reversed';
+export type CardEntrySource = 'drawn' | 'manual';
+export type ReversalExpression = 'underexpressed' | 'overexpressed' | null;
+export type ReadingCardState =
+  | { orientation: 'upright'; reversalExpression: null }
+  | {
+      orientation: 'reversed';
+      reversalExpression: ReversalExpression;
+    };
 export type QuestionFrequency = 'as_needed' | 'daily' | 'weekly';
 export type ReadingStatus = 'draft' | 'completed';
 export type FollowUpStatus = 'scheduled' | 'completed';
@@ -133,6 +141,9 @@ export type ReadingCard = {
   position_order: number;
   position_name: string | null;
   orientation: CardOrientation;
+  reversalExpression: ReversalExpression;
+  source: CardEntrySource;
+  drawSessionId: UUID | null;
   created_at: ISODateTime;
   updated_at: ISODateTime;
 };

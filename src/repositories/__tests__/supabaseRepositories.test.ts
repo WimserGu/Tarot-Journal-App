@@ -119,11 +119,31 @@ describe('mocked Supabase repositories', () => {
       interpretation: null,
       status: 'draft',
       cards: [
-        { tarot_card_id: null, position_name: null, orientation: 'upright', position_order: 1 },
+        {
+          tarot_card_id: 1,
+          position_name: null,
+          orientation: 'reversed',
+          position_order: 1,
+          reversalExpression: 'overexpressed',
+          source: 'drawn',
+          drawSessionId: '40000000-0000-4000-8000-000000000009',
+        },
       ],
     });
     expect(result.id).toBe('reading');
     expect(fake.rpc).toHaveBeenCalledWith('create_reading_with_cards', expect.any(Object));
+    expect(fake.rpc).toHaveBeenCalledWith(
+      'create_reading_with_cards',
+      expect.objectContaining({
+        p_cards: [
+          expect.objectContaining({
+            source: 'drawn',
+            draw_session_id: '40000000-0000-4000-8000-000000000009',
+            reversal_expression: 'overexpressed',
+          }),
+        ],
+      }),
+    );
     expect(listener).toHaveBeenCalledOnce();
   });
   it('uses the atomic template reorder RPC and notifies listeners', async () => {

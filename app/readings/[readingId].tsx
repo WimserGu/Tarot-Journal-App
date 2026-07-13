@@ -226,6 +226,16 @@ export default function ReadingDetailScreen() {
               <Text>第 {readingCard.position_order} 张牌</Text>
               <Text>{tarotCard?.name_zh ?? '尚未选择牌面'}</Text>
               <Text variant="muted">{orientationLabel(readingCard.orientation)}</Text>
+              {readingCard.orientation === 'reversed' && readingCard.reversalExpression ? (
+                <Text variant="muted">
+                  {readingCard.reversalExpression === 'underexpressed'
+                    ? '逆位 · 表达不足'
+                    : '逆位 · 表达过度'}
+                </Text>
+              ) : null}
+              <Text variant="muted">
+                来源：{readingCard.source === 'drawn' ? 'App 抽取' : '手动添加'}
+              </Text>
               <Text variant="muted">牌阵位置：{readingCard.position_name ?? '未填写'}</Text>
             </View>
           ))

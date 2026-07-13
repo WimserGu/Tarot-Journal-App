@@ -159,6 +159,25 @@ describe('Journal persistence', () => {
     );
   });
 
+  it('migrates legacy Reading cards to manual unified card entry', async () => {
+    const storage = new MemoryStorage();
+    const legacyCard = {
+      ...journalSeedData.reading_cards[0]!,
+      source: undefined,
+      reversalExpression: undefined,
+      drawSessionId: undefined,
+    };
+    storage.values.set(journalStorageKeys.schema, JSON.stringify({ version: 3 }));
+    storage.values.set(journalStorageKeys.tables.reading_cards, JSON.stringify([legacyCard]));
+    const store = createStore(storage, 'card-migration');
+    await store.ready();
+    expect(store.snapshot().reading_cards[0]).toMatchObject({
+      source: 'manual',
+      reversalExpression: null,
+      drawSessionId: null,
+    });
+  });
+
   it('safely recovers from malformed JSON and skips malformed records', async () => {
     const storage = new MemoryStorage();
     storage.values.set(journalStorageKeys.tables.topics, '{not-json');

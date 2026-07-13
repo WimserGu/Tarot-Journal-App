@@ -350,6 +350,15 @@ export function ReadingForm({
               onMoveUp={() => move(index, index - 1)}
               onOrientationChange={(orientation) => {
                 setValue(`cards.${index}.orientation`, orientation, { shouldDirty: true });
+                if (orientation === 'upright') {
+                  setValue(`cards.${index}.reversalExpression`, null, { shouldDirty: true });
+                }
+              }}
+              onReversalExpressionChange={(expression) => {
+                setValue(`cards.${index}.reversalExpression`, expression, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
               }}
               onPositionNameChange={(positionName) => {
                 setValue(`cards.${index}.position_name`, positionName, { shouldDirty: true });

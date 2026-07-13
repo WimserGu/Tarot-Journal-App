@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -45,6 +45,12 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <Text variant="eyebrow">{formatHomeDate(now, timeZone)}</Text>
           <Text variant="title">{homeData.greeting}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text variant="subtitle">创建 Reading</Text>
+          <Button label="即时抽牌" onPress={() => router.push('/draw' as Href)} />
+          <Button label="手动录入实体牌" onPress={() => router.push('/readings/new')} />
         </View>
 
         <View style={styles.section}>

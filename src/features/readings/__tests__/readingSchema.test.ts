@@ -49,10 +49,81 @@ describe('readingFormSchema', () => {
     );
 
     expect(input.cards).toEqual([
-      { tarot_card_id: 71, position_name: '现状', orientation: 'upright', position_order: 1 },
-      { tarot_card_id: 57, position_name: '阻碍', orientation: 'reversed', position_order: 2 },
+      {
+        tarot_card_id: 71,
+        position_name: '现状',
+        orientation: 'upright',
+        position_order: 1,
+        reversalExpression: null,
+        source: 'manual',
+        drawSessionId: null,
+      },
+      {
+        tarot_card_id: 57,
+        position_name: '阻碍',
+        orientation: 'reversed',
+        position_order: 2,
+        reversalExpression: null,
+        source: 'manual',
+        drawSessionId: null,
+      },
     ]);
     expect(input.interpretation).toBe('先缩小范围。');
+  });
+
+  it('rejects reversal expression on an upright card', () => {
+    const result = readingFormSchema.safeParse({
+      topic_id: 'topic',
+      question_mode: 'temporary',
+      question_template_id: null,
+      temporary_question: 'Question',
+      reading_date: '2026-07-13',
+      reading_time: '12:00',
+      cards: [
+        {
+          tarot_card_id: 1,
+          position_name: '',
+          orientation: 'upright',
+          reversalExpression: 'overexpressed',
+          source: 'manual',
+          drawSessionId: null,
+        },
+      ],
+      interpretation: '',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts mixed drawn and manually added cards', () => {
+    const result = readingFormSchema.safeParse({
+      topic_id: 'topic',
+      question_mode: 'temporary',
+      question_template_id: null,
+      temporary_question: 'Unified entry',
+      reading_date: '2026-07-13',
+      reading_time: '14:01',
+      cards: [
+        {
+          tarot_card_id: 1,
+          position_name: 'Current',
+          orientation: 'reversed',
+          reversalExpression: 'overexpressed',
+          source: 'drawn',
+          drawSessionId: '40000000-0000-4000-8000-000000000001',
+        },
+        {
+          tarot_card_id: 2,
+          position_name: 'Next',
+          orientation: 'upright',
+          reversalExpression: null,
+          source: 'manual',
+          drawSessionId: null,
+        },
+      ],
+      interpretation: '',
+    });
+
+    expect(result.success).toBe(true);
   });
 
   it('renumbers the remaining cards after the middle card is removed', () => {

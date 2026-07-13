@@ -81,6 +81,52 @@ describe('Supabase mappers', () => {
       }).orientation,
     ).toBe('reversed');
   });
+  it('maps unified card-entry fields and defaults legacy rows to manual', () => {
+    const base = {
+      id: 'c',
+      user_id: 'u',
+      reading_id: 'r',
+      tarot_card_id: 1,
+      position_order: 1,
+      position_name: null,
+      orientation: 'reversed',
+      ...timestamps,
+    };
+    expect(mapReadingCardRow(base)).toMatchObject({
+      source: 'manual',
+      drawSessionId: null,
+      reversalExpression: null,
+    });
+    expect(
+      mapReadingCardRow({
+        ...base,
+        source: 'drawn',
+        draw_session_id: '40000000-0000-4000-8000-000000000001',
+        reversal_expression: 'underexpressed',
+      }),
+    ).toMatchObject({
+      source: 'drawn',
+      drawSessionId: '40000000-0000-4000-8000-000000000001',
+      reversalExpression: 'underexpressed',
+    });
+  });
+  it('rejects illegal card-entry combinations', () => {
+    expect(() =>
+      mapReadingCardRow({
+        id: 'c',
+        user_id: 'u',
+        reading_id: 'r',
+        tarot_card_id: 1,
+        position_order: 1,
+        position_name: null,
+        orientation: 'upright',
+        source: 'drawn',
+        draw_session_id: null,
+        reversal_expression: 'overexpressed',
+        ...timestamps,
+      }),
+    ).toThrow(ValidationRepositoryError);
+  });
   it.each([
     [
       'unknown enum',

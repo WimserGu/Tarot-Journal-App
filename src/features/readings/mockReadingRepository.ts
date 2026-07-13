@@ -60,6 +60,9 @@ export class MockReadingRepository implements ReadingRepository {
       position_order: card.position_order,
       position_name: card.position_name,
       orientation: card.orientation,
+      reversalExpression: card.reversalExpression,
+      source: card.source,
+      drawSessionId: card.drawSessionId,
       created_at: now,
       updated_at: now,
     }));
@@ -177,6 +180,9 @@ export class MockReadingRepository implements ReadingRepository {
       position_order: card.position_order,
       position_name: card.position_name,
       orientation: card.orientation,
+      reversalExpression: card.reversalExpression,
+      source: card.source,
+      drawSessionId: card.drawSessionId,
       created_at: now,
       updated_at: now,
     }));

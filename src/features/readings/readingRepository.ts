@@ -1,11 +1,13 @@
 import type {
   CardOrientation,
+  CardEntrySource,
   ISODateTime,
   QuestionTemplate,
   QuestionTemplatePosition,
   Reading,
   ReadingCard,
   ReadingStatus,
+  ReversalExpression,
   TarotCard,
   Topic,
   UUID,
@@ -22,6 +24,15 @@ export type ReadingCardInput = {
   position_name: string | null;
   orientation: CardOrientation;
   position_order: number;
+  reversalExpression?: ReversalExpression;
+  source?: CardEntrySource;
+  drawSessionId?: UUID | null;
+};
+
+export type NormalizedReadingCardInput = ReadingCardInput & {
+  reversalExpression: ReversalExpression;
+  source: CardEntrySource;
+  drawSessionId: UUID | null;
 };
 
 export type CreateReadingInput = {
@@ -207,13 +218,39 @@ function validateCardInput(
   card: ReadingCardInput,
   tarotCardIds: ReadonlySet<number>,
   status: ReadingStatus,
-): ReadingCardInput {
+): NormalizedReadingCardInput {
+  const source = card.source ?? 'manual';
+  const reversalExpression = card.reversalExpression ?? null;
+  const drawSessionId = card.drawSessionId ?? null;
   if (!Number.isInteger(card.position_order) || card.position_order < 1) {
     throw new ReadingValidationError('牌序必须是从 1 开始的正整数。');
   }
 
   if (card.orientation !== 'upright' && card.orientation !== 'reversed') {
     throw new ReadingValidationError('每张牌都需要选择正位或逆位。');
+  }
+
+  if (source !== 'drawn' && source !== 'manual') {
+    throw new ReadingValidationError('牌面来源无效。');
+  }
+
+  if (source === 'manual' && drawSessionId !== null) {
+    throw new ReadingValidationError('手动添加的牌不能关联抽牌会话。');
+  }
+  if (source === 'drawn' && drawSessionId === null) {
+    throw new ReadingValidationError('App 抽取的牌必须保留抽牌会话来源。');
+  }
+
+  if (
+    reversalExpression !== null &&
+    reversalExpression !== 'underexpressed' &&
+    reversalExpression !== 'overexpressed'
+  ) {
+    throw new ReadingValidationError('逆位表达状态无效。');
+  }
+
+  if (card.orientation === 'upright' && reversalExpression !== null) {
+    throw new ReadingValidationError('正位牌不能带有逆位表达状态。');
   }
 
   if (card.tarot_card_id !== null && !tarotCardIds.has(card.tarot_card_id)) {
@@ -233,6 +270,9 @@ function validateCardInput(
   return {
     ...card,
     position_name: positionName,
+    reversalExpression,
+    source,
+    drawSessionId,
   };
 }
 
@@ -240,7 +280,7 @@ export type ValidatedReadingCreateInput = Omit<
   CreateReadingInput,
   'cards' | 'temporary_question'
 > & {
-  cards: ReadingCardInput[];
+  cards: NormalizedReadingCardInput[];
   question_text_snapshot: string;
 };
 

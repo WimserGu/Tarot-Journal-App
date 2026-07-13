@@ -236,3 +236,38 @@ deletion cascade, neutral outcome distribution, source IDs, factory overrides, a
 page models. Mocked Supabase tests are not proof of real RLS. Authenticated two-user
 Follow-Up CRUD, cross-user Reading-link prevention, and remote cascade remain pending
 until this migration is deployed.
+
+## Instant Draw and Unified Card Entry
+
+Prompt 21 adds two equal Reading entry paths: **即时抽牌** uses a pure DrawEngine, while
+**手动录入实体牌** keeps the existing Reading form. Both paths persist the same `Reading` and
+`ReadingCard` models, so Statistics, Reviews, Follow-Ups, and future features do not branch on how
+the card was entered.
+
+- `ReadingCard.source` is `drawn` for cards produced by the App and `manual` for physical-card entry.
+- Legacy cards safely load as `source = manual`, `reversalExpression = null`, and `drawSessionId = null`.
+- A reversed card may optionally be `underexpressed` or `overexpressed`; these are neutral observation
+  labels, not a good/bad judgment and not a claim about the user's psychology.
+- An upright card always clears `reversalExpression`.
+- DrawSession is temporary in v1. It holds configuration and editable results in memory, links to a
+  Reading after save, and is discarded without creating a separate history or database table.
+- The DrawEngine prevents duplicate cards, supports 1–10 cards and disabled/standard/expression
+  reversal modes, and accepts an injectable RandomProvider for deterministic tests. Within the draw
+  feature, `Math.random()` is isolated to the default infrastructure provider.
+- Cards manually added on the draw result page are persisted as `manual`; editing an engine-produced
+  card preserves `drawn` provenance.
+
+The local-only migration is `20260713103538_unified_card_entry.sql`. It adds `source`,
+`draw_session_id`, and `reversal_expression` to `reading_cards`, adds consistency constraints, and
+updates the existing security-invoker atomic Reading create/update RPCs. It does not add a
+`draw_sessions` table, change RLS policies, or expand grants. Deploy manually after review:
+
+```powershell
+pnpm exec supabase migration list --linked
+pnpm exec supabase db push --dry-run
+pnpm exec supabase db push
+pnpm exec supabase migration list --linked
+```
+
+Known deferred work includes spread systems, DrawSession persistence, animations, expression-specific
+statistics, AI reflection, and user-configurable probabilities.

@@ -302,7 +302,15 @@ export class SupabaseReadingRepository extends SupabaseRepositoryBase implements
       p_reading_timezone: input.reading_timezone,
       p_interpretation: input.interpretation,
       p_status: input.status,
-      p_cards: input.cards,
+      p_cards: input.cards.map((card) => ({
+        tarot_card_id: card.tarot_card_id,
+        position_name: card.position_name,
+        orientation: card.orientation,
+        position_order: card.position_order,
+        reversal_expression: card.reversalExpression,
+        source: card.source,
+        draw_session_id: card.drawSessionId,
+      })),
     };
   }
   async createReading(input: CreateReadingInput): Promise<Reading> {
