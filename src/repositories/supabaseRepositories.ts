@@ -109,6 +109,7 @@ abstract class SupabaseRepositoryBase {
       readings: (readings.data ?? []).map(mapReadingRow),
       reading_cards: (cards.data ?? []).map(mapReadingCardRow),
       reading_follow_ups: [],
+      draw_sessions: [],
       tarot_cards: tarotCards,
     };
   }

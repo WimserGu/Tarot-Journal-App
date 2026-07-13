@@ -94,6 +94,45 @@ Implementation status: complete locally; migration deployment and real remote ve
 Review and deploy the pending migrations, verify manual/drawn Reading CRUD with an authenticated user,
 and confirm older remote Reading cards read as manual before planning a later visual draw experience.
 
+## Prompt 25: Import Assistant Phase 1
+
+Implementation status: complete locally; no migration created.
+
+- External AI is optional and only formats user-selected text; the app parses pasted blocks locally and makes no AI API or text-upload request.
+- Candidates are editable, topics use exact title matching or explicit creation, and imported cards are manual with no DrawSession or inferred spread.
+- Sequential import reports partial failures and supports retrying only failed candidates; app-internal back navigation warns before an import draft is discarded. Web refresh/close interception is not implemented.
+
+## Prompt 24: Draw Session Detail & Historical Experience
+
+Implementation status: complete locally; no migration created.
+
+### Completed Scope
+
+- Added a dedicated Draw Session Detail page that renders the persisted card and position snapshots, rather than regenerating labels from the current spread metadata.
+- Added Reading-to-original-draw navigation, related Reading lists, deleted-link messaging, and the ability to create another Reading from a saved DrawSession.
+- Added Draw History status filters and newest/oldest ordering.
+- Extended `DrawSessionRepository` with `listRelatedReadings`, implemented from the existing Reading-card provenance marker in local and Supabase adapters.
+- Statistics and Reviews remain Reading-only.
+
+## Prompt 23: Draw Session Persistence (Phase 1)
+
+Implementation status: complete locally; Supabase migration deployment remains pending.
+
+### Completed Scope
+
+- Added persistent, user-owned DrawSession and DrawSessionCard models independent from Reading snapshots.
+- Added local AsyncStorage persistence (schema version 6), strict single-draft validation, and repository adapters for local and Supabase data modes.
+- Drawing now creates a draft immediately; reopening Draw offers the active draft for continuation or deletion.
+- Saving a Reading marks its DrawSession as `saved` and links the new Reading without changing the original draw cards.
+- Added Draw History with draft continuation/deletion and navigation to saved Readings.
+- Added local-only migration `20260713163935_draw_session_persistence.sql` with RLS, user ownership, one-active-draft indexing, card position uniqueness, and no migration of legacy Readings.
+
+### Intentional Limits
+
+- Phase 1 permanently deletes discarded drafts. Recycle/recovery UI is deferred.
+- Statistics and Reviews remain Reading-only; a standalone DrawSession never contributes to either.
+- The new migration is not deployed remotely and must follow the already-pending Prompt 21/22 migrations.
+
 ## Prompt 22: Spread Engine Phase 1
 
 Implementation status: complete locally; migration deployment and real remote verification pending.

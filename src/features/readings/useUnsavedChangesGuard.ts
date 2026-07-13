@@ -2,7 +2,17 @@ import { useNavigation } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 
-export function useUnsavedChangesGuard(hasUnsavedChanges: boolean) {
+import {
+  defaultUnsavedChangesGuardCopy,
+  type UnsavedChangesGuardCopy,
+} from './unsavedChangesGuardCopy';
+
+export { defaultUnsavedChangesGuardCopy, type UnsavedChangesGuardCopy };
+
+export function useUnsavedChangesGuard(
+  hasUnsavedChanges: boolean,
+  copy = defaultUnsavedChangesGuardCopy,
+) {
   const navigation = useNavigation();
   const allowNextRemoval = useRef(false);
 
@@ -12,15 +22,13 @@ export function useUnsavedChangesGuard(hasUnsavedChanges: boolean) {
 
   useEffect(() => {
     return navigation.addListener('beforeRemove', (event) => {
-      if (!hasUnsavedChanges || allowNextRemoval.current) {
-        return;
-      }
+      if (!hasUnsavedChanges || allowNextRemoval.current) return;
 
       event.preventDefault();
-      Alert.alert('放弃未保存的记录？', '离开后，本次输入的牌面和解读将丢失。', [
-        { text: '继续编辑', style: 'cancel' },
+      Alert.alert(copy.title, copy.message, [
+        { text: copy.cancel, style: 'cancel' },
         {
-          text: '放弃修改',
+          text: copy.discard,
           style: 'destructive',
           onPress: () => {
             allowNextRemoval.current = true;
@@ -29,7 +37,7 @@ export function useUnsavedChangesGuard(hasUnsavedChanges: boolean) {
         },
       ]);
     });
-  }, [hasUnsavedChanges, navigation]);
+  }, [copy, hasUnsavedChanges, navigation]);
 
   return { allowNextNavigation };
 }

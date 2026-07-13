@@ -24,7 +24,8 @@ export type JournalStoreOptions = {
       | 'reading-card'
       | 'reading-follow-up'
       | 'question-template'
-      | 'question-template-position',
+      | 'question-template-position'
+      | 'draw-session',
   ) => UUID;
   now?: () => ISODateTime;
   persistence?: JournalPersistence;
@@ -44,7 +45,8 @@ function defaultCreateId(
     | 'reading-card'
     | 'reading-follow-up'
     | 'question-template'
-    | 'question-template-position',
+    | 'question-template-position'
+    | 'draw-session',
 ): UUID {
   return `local-${entity}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -57,6 +59,7 @@ function copyData(data: JournalData): MutableJournalData {
     readings: [...data.readings],
     reading_cards: [...data.reading_cards],
     reading_follow_ups: [...data.reading_follow_ups],
+    draw_sessions: [...(data.draw_sessions ?? [])],
     tarot_cards: [...data.tarot_cards],
   };
 }
@@ -68,6 +71,7 @@ export const journalSeedData: JournalData = {
   readings: mockReadings,
   reading_cards: mockReadingCards,
   reading_follow_ups: [],
+  draw_sessions: [],
   tarot_cards: tarotCards,
 };
 
@@ -82,7 +86,8 @@ export class JournalStore {
       | 'reading-card'
       | 'reading-follow-up'
       | 'question-template'
-      | 'question-template-position',
+      | 'question-template-position'
+      | 'draw-session',
   ) => UUID;
   private readonly listeners = new Set<() => void>();
   private readonly nowProvider: () => ISODateTime;
@@ -120,7 +125,8 @@ export class JournalStore {
       | 'reading-card'
       | 'reading-follow-up'
       | 'question-template'
-      | 'question-template-position',
+      | 'question-template-position'
+      | 'draw-session',
   ): UUID {
     return this.idProvider(entity);
   }
@@ -149,6 +155,7 @@ export class JournalStore {
       data.readings = seed.readings;
       data.reading_cards = seed.reading_cards;
       data.reading_follow_ups = seed.reading_follow_ups;
+      data.draw_sessions = seed.draw_sessions;
       data.tarot_cards = seed.tarot_cards;
     });
   }

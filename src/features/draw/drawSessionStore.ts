@@ -22,9 +22,17 @@ export function createDrawSession(result: DrawResult): DrawSession {
   const id = runtimeId(createdAt);
   return {
     id,
+    userId: 'runtime-user',
     createdAt: result.createdAt,
+    updatedAt: result.createdAt,
+    spreadId: result.configuration.spreadId,
     configuration: { ...result.configuration },
-    cards: result.cards.map((card) => ({ ...card, drawSessionId: id })),
+    status: 'draft',
+    cards: result.cards.map((card, index) => ({
+      ...card,
+      drawSessionId: id,
+      positionSnapshot: `Card ${index + 1}`,
+    })),
     linkedReadingId: null,
   };
 }
@@ -53,6 +61,6 @@ export function drawSessionCardsToForm(session: DrawSession): ReadingCardFormVal
     orientation: card.orientation,
     reversalExpression: card.reversalExpression,
     source: card.source,
-    drawSessionId: card.drawSessionId,
+    drawSessionId: card.source === 'drawn' ? card.drawSessionId : null,
   }));
 }

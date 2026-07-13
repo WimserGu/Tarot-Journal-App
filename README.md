@@ -274,6 +274,10 @@ pnpm exec supabase migration list --linked
 Known deferred work includes spread systems, DrawSession persistence, animations, expression-specific
 statistics, AI reflection, and user-configurable probabilities.
 
+## Import Assistant (Phase 1)
+
+Import Assistant copies a neutral formatting prompt, then parses pasted `[Reading]` blocks locally. External AI services only format text the user chooses to share; this app makes no AI API request and never uploads pasted history. Candidates are reviewed and edited before sequential import. Topic titles match exactly or are created explicitly; cards import as `manual`, without DrawSessions or inferred spreads. Partial failures remain visible and can be retried. No migration is added. App-internal navigation warns about losing an active import draft; browser refresh/close cannot be reliably intercepted.
+
 ## Built-in Spread Engine
 
 Prompt 22 adds an immutable, domain-only `SpreadRepository` shared by draw and manual Reading entry.

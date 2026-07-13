@@ -149,6 +149,9 @@ export default function ReadingDetailScreen() {
         detail.reading.spread_id === 'open' ? detail.cards.length : undefined,
       )
     : null;
+  const originalDrawSessionId = detail.cards.find(
+    ({ reading_card: card }) => card.source === 'drawn' && card.drawSessionId !== null,
+  )?.reading_card.drawSessionId;
 
   return (
     <Screen scroll>
@@ -223,6 +226,14 @@ export default function ReadingDetailScreen() {
             router.push({ pathname: '/followups/new', params: { readingId: detail.reading.id } })
           }
         />
+        {originalDrawSessionId ? (
+          <Button
+            label="查看原始抽牌"
+            onPress={() =>
+              router.push(`/draw/${originalDrawSessionId}` as never)
+            }
+          />
+        ) : null}
       </View>
 
       <View style={styles.section}>

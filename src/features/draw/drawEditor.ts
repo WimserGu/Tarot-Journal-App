@@ -7,6 +7,7 @@ function reindex(cards: readonly DrawnCard[]): DrawnCard[] {
     ...card,
     positionIndex,
     spreadPositionId: `open.card.${positionIndex + 1}`,
+    positionSnapshot: `Card ${positionIndex + 1}`,
   }));
 }
 
@@ -54,6 +55,7 @@ export function appendManualDrawCard(
       tarotCardId: tarotCard.id,
       positionIndex: cards.length,
       spreadPositionId: `open.card.${cards.length + 1}`,
+      positionSnapshot: `Card ${cards.length + 1}`,
       orientation: 'upright',
       reversalExpression: null,
       source: 'manual',

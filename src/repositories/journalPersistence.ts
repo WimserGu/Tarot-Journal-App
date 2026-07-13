@@ -8,10 +8,11 @@ import type {
   ReadingFollowUp,
   Topic,
 } from '../domain/types';
+import type { DrawSession } from '../features/draw/drawTypes';
 
 import type { JournalData, MutableJournalData } from './journalData';
 
-export const JOURNAL_SCHEMA_VERSION = 5;
+export const JOURNAL_SCHEMA_VERSION = 6;
 
 const storagePrefix = '@tarot-journal/v1';
 const schemaKey = `${storagePrefix}/schema`;
@@ -26,6 +27,7 @@ const tableKeys: Record<PersistedTable, string> = {
   readings: `${storagePrefix}/readings`,
   reading_cards: `${storagePrefix}/reading_cards`,
   reading_follow_ups: `${storagePrefix}/reading_follow_ups`,
+  draw_sessions: `${storagePrefix}/draw_sessions`,
 };
 
 export const journalStorageKeys = {
@@ -70,6 +72,7 @@ function cloneSeed(data: JournalData): MutableJournalData {
     readings: [...data.readings],
     reading_cards: [...data.reading_cards],
     reading_follow_ups: [...data.reading_follow_ups],
+    draw_sessions: [...(data.draw_sessions ?? [])],
     tarot_cards: [...data.tarot_cards],
   };
 }
@@ -191,6 +194,36 @@ function validReadingFollowUp(value: unknown): value is ReadingFollowUp {
   );
 }
 
+function validDrawSession(value: unknown): value is DrawSession {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'string' ||
+    typeof value.userId !== 'string' ||
+    typeof value.createdAt !== 'string' ||
+    typeof value.updatedAt !== 'string' ||
+    (value.spreadId !== null && typeof value.spreadId !== 'string') ||
+    !isRecord(value.configuration) ||
+    !Array.isArray(value.cards) ||
+    !['draft', 'saved', 'discarded'].includes(String(value.status)) ||
+    (value.linkedReadingId !== null && typeof value.linkedReadingId !== 'string')
+  )
+    return false;
+  return value.cards.every(
+    (card) =>
+      isRecord(card) &&
+      typeof card.id === 'string' &&
+      typeof card.tarotCardId === 'number' &&
+      Number.isInteger(card.positionIndex) &&
+      typeof card.spreadPositionId === 'string' &&
+      (card.orientation === 'upright' || card.orientation === 'reversed') &&
+      (card.reversalExpression === null ||
+        card.reversalExpression === 'underexpressed' ||
+        card.reversalExpression === 'overexpressed') &&
+      card.source === 'drawn' &&
+      typeof card.drawSessionId === 'string',
+  );
+}
+
 const validators: {
   [Key in PersistedTable]: (value: unknown) => value is MutableJournalData[Key][number];
 } = {
@@ -200,6 +233,7 @@ const validators: {
   readings: validReading,
   reading_cards: validReadingCard,
   reading_follow_ups: validReadingFollowUp,
+  draw_sessions: validDrawSession,
 };
 
 export class JournalPersistence {

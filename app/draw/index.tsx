@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -15,7 +15,7 @@ import {
   setDrawnCardOrientation,
 } from '@/features/draw/drawEditor';
 import { drawEngine } from '@/features/draw/drawEngine';
-import { createDrawSession, setActiveDrawSession } from '@/features/draw/drawSessionStore';
+import { setActiveDrawSession } from '@/features/draw/drawSessionStore';
 import {
   DEFAULT_DRAW_CONFIGURATION,
   type DrawSession,
@@ -23,6 +23,7 @@ import {
 } from '@/features/draw/drawTypes';
 import { TarotCardPickerModal } from '@/features/readings/components/TarotCardPickerModal';
 import { spreadRepository } from '@/features/spreads/spreadRepository';
+import { drawSessionRepository } from '@/repositories/repositoryFactory';
 import { borderRadii, colors, spacing } from '@/theme/tokens';
 
 type PickerTarget = { kind: 'replace'; index: number } | { kind: 'append' } | null;
@@ -47,18 +48,34 @@ export default function DrawScreen() {
   const [reversalMode, setReversalMode] = useState<ReversalMode>('standard');
   const [spreadId, setSpreadId] = useState('single-card');
   const [session, setSession] = useState<DrawSession | null>(null);
+  const [recoveryDraft, setRecoveryDraft] = useState<DrawSession | null>(null);
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
   const [error, setError] = useState<string | null>(null);
   const cardsById = useMemo(() => new Map(tarotCards.map((card) => [card.id, card])), []);
   const selectedSpread = spreadRepository.getSpread(spreadId)!;
 
+  useEffect(() => {
+    void drawSessionRepository
+      .getActiveDraft()
+      .then(setRecoveryDraft)
+      .catch(() => setError('无法加载上次抽牌。'));
+  }, []);
+
   const publish = (next: DrawSession) => {
     setSession(next);
     setActiveDrawSession(next);
     setError(null);
+    void drawSessionRepository
+      .update(next.id, {
+        cards: next.cards,
+        configuration: next.configuration,
+        spreadId: next.spreadId,
+      })
+      .then((updated) => setSession(updated))
+      .catch(() => setError('无法保存抽牌草稿。'));
   };
 
-  const startDraw = () => {
+  const startDraw = async () => {
     try {
       const spread = spreadRepository.resolveSpread(
         spreadId,
@@ -72,7 +89,14 @@ export default function DrawScreen() {
         spreadPositionIds: spread.positions.map((position) => position.id),
       };
       const result = drawEngine.draw(tarotCards, configuration);
-      publish(createDrawSession(result));
+      const created = await drawSessionRepository.create({
+        spreadId: configuration.spreadId,
+        configuration,
+        cards: result.cards.map((card) => ({ ...card, drawSessionId: null })),
+      });
+      setRecoveryDraft(null);
+      setSession(created);
+      setActiveDrawSession(created);
     } catch {
       setError('暂时无法完成抽牌，请检查配置后重试。');
     }
@@ -120,6 +144,33 @@ export default function DrawScreen() {
 
       {!session ? (
         <>
+          {recoveryDraft ? (
+            <View style={styles.resultCard}>
+              <Text variant="subtitle">继续上次抽牌？</Text>
+              <Text variant="muted">
+                草稿包含 {recoveryDraft.cards.length} 张牌，尚未保存为 Reading。
+              </Text>
+              <View style={styles.options}>
+                <Button
+                  label="继续"
+                  onPress={() => {
+                    setSession(recoveryDraft);
+                    setActiveDrawSession(recoveryDraft);
+                    setRecoveryDraft(null);
+                  }}
+                />
+                <Button
+                  label="丢弃草稿"
+                  onPress={() =>
+                    void drawSessionRepository
+                      .delete(recoveryDraft.id)
+                      .then(() => setRecoveryDraft(null))
+                      .catch(() => setError('无法丢弃草稿。'))
+                  }
+                />
+              </View>
+            </View>
+          ) : null}
           <View style={styles.section}>
             <Text variant="subtitle">牌阵</Text>
             {spreadRepository.listSpreads().map((spread) => (
@@ -177,7 +228,8 @@ export default function DrawScreen() {
               </Pressable>
             ))}
           </View>
-          <Button label="开始抽牌" onPress={startDraw} />
+          <Button label="开始抽牌" onPress={() => void startDraw()} />
+          <Button label="抽牌历史" onPress={() => router.push('/draw/history' as never)} />
           <Button
             label="退出且不保存"
             onPress={() => {
@@ -279,12 +331,14 @@ export default function DrawScreen() {
             onPress={() => {
               setSession(null);
               setActiveDrawSession(null);
+              void drawSessionRepository.delete(session.id);
             }}
           />
           <Button
             label="退出且不保存"
             onPress={() => {
               setActiveDrawSession(null);
+              void drawSessionRepository.delete(session.id);
               router.back();
             }}
           />

@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,12 +9,9 @@ import { IconButton } from '@/features/topics/components/IconButton';
 import { getCurrentTimeZone } from '@/features/topics/topicPresentation';
 import { ReadingForm } from '@/features/readings/components/ReadingForm';
 import { buildInitialReadingFormValues } from '@/features/readings/readingFormState';
-import {
-  drawSessionCardsToForm,
-  getActiveDrawSession,
-  linkActiveDrawSession,
-} from '@/features/draw/drawSessionStore';
-import { readingRepository } from '@/repositories/repositoryFactory';
+import { drawSessionCardsToForm } from '@/features/draw/drawSessionStore';
+import { drawSessionRepository, readingRepository } from '@/repositories/repositoryFactory';
+import type { DrawSession } from '@/features/draw/drawTypes';
 import { toReadingCreateInput, type ReadingFormValues } from '@/features/readings/readingSchema';
 import { createSubmissionGuard } from '@/features/readings/submissionGuard';
 import { useReadingFormContext } from '@/features/readings/useReadings';
@@ -46,9 +43,21 @@ export default function NewReadingScreen() {
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [drawSession, setDrawSession] = useState<DrawSession | null>(null);
+  const [drawSessionLoaded, setDrawSessionLoaded] = useState(!drawSessionId);
   const submissionGuard = useRef(createSubmissionGuard());
   const { allowNextNavigation } = useUnsavedChangesGuard(isDirty);
   const timeZone = getCurrentTimeZone();
+  useEffect(() => {
+    if (!drawSessionId) return;
+    void drawSessionRepository
+      .get(drawSessionId)
+      .then((session) => {
+        setDrawSession(session);
+        setDrawSessionLoaded(true);
+      })
+      .catch(() => setDrawSessionLoaded(true));
+  }, [drawSessionId]);
   const initialValues = useMemo(() => {
     if (!context) {
       return null;
@@ -64,7 +73,6 @@ export default function NewReadingScreen() {
       new Date(),
       timeZone,
     );
-    const drawSession = getActiveDrawSession(drawSessionId);
     return drawSession
       ? {
           ...values,
@@ -72,7 +80,7 @@ export default function NewReadingScreen() {
           cards: drawSessionCardsToForm(drawSession),
         }
       : values;
-  }, [context, drawSessionId, questionTemplateId, questionText, timeZone, topicId]);
+  }, [context, drawSession, questionTemplateId, questionText, timeZone, topicId]);
 
   const saveReading = async (values: ReadingFormValues, status: 'draft' | 'completed') => {
     await submissionGuard.current.run(async () => {
@@ -83,7 +91,15 @@ export default function NewReadingScreen() {
         const reading = await readingRepository.createReading(
           toReadingCreateInput(values, status, timeZone),
         );
-        if (drawSessionId) linkActiveDrawSession(reading.id);
+        if (drawSession?.status === 'draft') {
+          await drawSessionRepository.update(drawSession.id, {
+            cards: drawSession.cards,
+            configuration: drawSession.configuration,
+            spreadId: drawSession.spreadId,
+            status: 'saved',
+            linkedReadingId: reading.id,
+          });
+        }
         allowNextNavigation();
         router.replace({ pathname: '/readings/[readingId]', params: { readingId: reading.id } });
       } catch (error) {
@@ -118,7 +134,7 @@ export default function NewReadingScreen() {
             </View>
           ) : null}
 
-          {!isLoading && !errorMessage && context && initialValues ? (
+          {!isLoading && !errorMessage && context && initialValues && drawSessionLoaded ? (
             <ReadingForm
               context={context}
               initialValues={initialValues}

@@ -3,6 +3,8 @@ import { questionTemplateRepository as localQuestionTemplates } from '../feature
 import type { QuestionTemplateRepository } from '../features/questions/questionTemplateRepository';
 import { readingRepository as localReadings } from '../features/readings/mockReadingRepository';
 import type { ReadingRepository } from '../features/readings/readingRepository';
+import { drawSessionRepository as localDrawSessions } from '../features/draw/mockDrawSessionRepository';
+import type { DrawSessionRepository } from '../features/draw/drawSessionRepository';
 import { topicRepository as localTopics } from '../features/topics/mockTopicRepository';
 import type { TopicRepository } from '../features/topics/topicRepository';
 import { localReviewRepository } from '../features/reviews/reviewRepository';
@@ -13,6 +15,7 @@ import {
   type FollowUpRepository,
 } from '../features/followups/followUpRepository';
 import { SupabaseFollowUpRepository } from '../features/followups/supabaseFollowUpRepository';
+import { SupabaseDrawSessionRepository } from './supabaseDrawSessionRepository';
 import { getSupabaseClient } from '../lib/supabase';
 import {
   SupabaseQuestionTemplateRepository,
@@ -26,6 +29,7 @@ export type AppRepositories = {
   readings: ReadingRepository;
   reviews: ReviewRepository;
   followUps: FollowUpRepository;
+  drawSessions: DrawSessionRepository;
 };
 const local: AppRepositories = {
   topics: localTopics,
@@ -33,6 +37,7 @@ const local: AppRepositories = {
   readings: localReadings,
   reviews: localReviewRepository,
   followUps: localFollowUpRepository,
+  drawSessions: localDrawSessions,
 };
 let overrides: Partial<AppRepositories> = {};
 let cachedSupabase: AppRepositories | null = null;
@@ -49,6 +54,7 @@ export function createRepositories(source?: EnvironmentSource): AppRepositories 
       readings,
       reviews: new SupabaseReviewRepository(client),
       followUps: new SupabaseFollowUpRepository(client, readings),
+      drawSessions: new SupabaseDrawSessionRepository(client),
     };
   }
   return { ...cachedSupabase, ...overrides };
@@ -87,4 +93,8 @@ export const reviewRepository: ReviewRepository = new Proxy({} as ReviewReposito
 export const followUpRepository: FollowUpRepository = new Proxy({} as FollowUpRepository, {
   get: (_target, key) =>
     Reflect.get(createRepositories().followUps, key).bind(createRepositories().followUps),
+});
+export const drawSessionRepository: DrawSessionRepository = new Proxy({} as DrawSessionRepository, {
+  get: (_target, key) =>
+    Reflect.get(createRepositories().drawSessions, key).bind(createRepositories().drawSessions),
 });

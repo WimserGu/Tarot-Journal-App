@@ -23,6 +23,7 @@ export type DrawnCard = {
   tarotCardId: TarotCard['id'];
   positionIndex: number;
   spreadPositionId: string;
+  positionSnapshot?: string;
   orientation: CardOrientation;
   reversalExpression: ReversalExpression;
   source: CardEntrySource;
@@ -31,8 +32,12 @@ export type DrawnCard = {
 
 export type DrawSession = {
   id: UUID;
+  userId: UUID;
   createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+  spreadId: string | null;
   configuration: DrawConfiguration;
+  status: 'draft' | 'saved' | 'discarded';
   cards: DrawnCard[];
   linkedReadingId: UUID | null;
 };
