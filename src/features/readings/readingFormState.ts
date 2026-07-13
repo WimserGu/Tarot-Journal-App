@@ -26,6 +26,7 @@ function getTemplateCards(context: ReadingFormContext, template: QuestionTemplat
         reversalExpression: null,
         source: 'manual' as const,
         drawSessionId: null,
+        spreadPositionId: `open.card.${position.position_order}`,
       }))
     : [createEmptyReadingCard()];
 }
@@ -45,6 +46,7 @@ export function buildInitialReadingFormValues(
   const { reading_date: readingDate, reading_time: readingTime } = getDateTimeFields(now, timeZone);
 
   return {
+    spread_id: 'open',
     topic_id: topicIdFromTemplate ?? (hasPrefilledTopic ? (prefill.topic_id ?? '') : ''),
     question_mode: temporaryQuestion.length > 0 ? 'temporary' : template ? 'template' : 'temporary',
     question_template_id: temporaryQuestion.length > 0 ? null : (template?.id ?? null),
@@ -69,6 +71,7 @@ export function buildReadingFormValuesFromDetail(
   );
 
   return {
+    spread_id: detail.reading.spread_id,
     topic_id: detail.topic.id,
     question_mode: templateIsAvailable ? 'template' : 'temporary',
     question_template_id: templateIsAvailable ? (detail.question_template?.id ?? null) : null,
@@ -84,8 +87,9 @@ export function buildReadingFormValuesFromDetail(
             reversalExpression: card.reversalExpression,
             source: card.source,
             drawSessionId: card.drawSessionId,
+            spreadPositionId: card.spreadPositionId,
           }))
-        : [createEmptyReadingCard()],
+        : [{ ...createEmptyReadingCard(), spreadPositionId: null }],
     interpretation: detail.reading.interpretation ?? '',
   };
 }

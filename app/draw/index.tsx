@@ -22,6 +22,7 @@ import {
   type ReversalMode,
 } from '@/features/draw/drawTypes';
 import { TarotCardPickerModal } from '@/features/readings/components/TarotCardPickerModal';
+import { spreadRepository } from '@/features/spreads/spreadRepository';
 import { borderRadii, colors, spacing } from '@/theme/tokens';
 
 type PickerTarget = { kind: 'replace'; index: number } | { kind: 'append' } | null;
@@ -44,10 +45,12 @@ export default function DrawScreen() {
   const router = useRouter();
   const [cardCount, setCardCount] = useState(1);
   const [reversalMode, setReversalMode] = useState<ReversalMode>('standard');
+  const [spreadId, setSpreadId] = useState('single-card');
   const [session, setSession] = useState<DrawSession | null>(null);
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
   const [error, setError] = useState<string | null>(null);
   const cardsById = useMemo(() => new Map(tarotCards.map((card) => [card.id, card])), []);
+  const selectedSpread = spreadRepository.getSpread(spreadId)!;
 
   const publish = (next: DrawSession) => {
     setSession(next);
@@ -57,7 +60,17 @@ export default function DrawScreen() {
 
   const startDraw = () => {
     try {
-      const configuration = { ...DEFAULT_DRAW_CONFIGURATION, cardCount, reversalMode };
+      const spread = spreadRepository.resolveSpread(
+        spreadId,
+        spreadId === 'open' ? cardCount : undefined,
+      );
+      const configuration = {
+        ...DEFAULT_DRAW_CONFIGURATION,
+        cardCount: spread.positions.length,
+        reversalMode,
+        spreadId: spread.id,
+        spreadPositionIds: spread.positions.map((position) => position.id),
+      };
       const result = drawEngine.draw(tarotCards, configuration);
       publish(createDrawSession(result));
     } catch {
@@ -108,22 +121,46 @@ export default function DrawScreen() {
       {!session ? (
         <>
           <View style={styles.section}>
-            <Text variant="subtitle">抽取数量</Text>
-            <View style={styles.options}>
-              {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
-                <Pressable
-                  accessibilityLabel={`抽取 ${count} 张牌`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: cardCount === count }}
-                  key={count}
-                  onPress={() => setCardCount(count)}
-                  style={[styles.countOption, cardCount === count ? styles.selected : null]}
-                >
-                  <Text style={cardCount === count ? styles.selectedText : undefined}>{count}</Text>
-                </Pressable>
-              ))}
-            </View>
+            <Text variant="subtitle">牌阵</Text>
+            {spreadRepository.listSpreads().map((spread) => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: spreadId === spread.id }}
+                key={spread.id}
+                onPress={() => {
+                  setSpreadId(spread.id);
+                  if (!spread.isOpen) setCardCount(spread.positions.length);
+                }}
+                style={[styles.modeOption, spreadId === spread.id ? styles.selected : null]}
+              >
+                <Text style={spreadId === spread.id ? styles.selectedText : undefined}>
+                  {spread.name}
+                </Text>
+                <Text variant="muted">{spread.description}</Text>
+              </Pressable>
+            ))}
           </View>
+          {selectedSpread.isOpen ? (
+            <View style={styles.section}>
+              <Text variant="subtitle">抽取数量</Text>
+              <View style={styles.options}>
+                {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
+                  <Pressable
+                    accessibilityLabel={`抽取 ${count} 张牌`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: cardCount === count }}
+                    key={count}
+                    onPress={() => setCardCount(count)}
+                    style={[styles.countOption, cardCount === count ? styles.selected : null]}
+                  >
+                    <Text style={cardCount === count ? styles.selectedText : undefined}>
+                      {count}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
           <View style={styles.section}>
             <Text variant="subtitle">逆位模式</Text>
             {(Object.keys(modeLabels) as ReversalMode[]).map((mode) => (
@@ -152,6 +189,7 @@ export default function DrawScreen() {
       ) : (
         <>
           <Text variant="muted">
+            {spreadRepository.getSpread(session.configuration.spreadId)?.name} ·{' '}
             {session.cards.length} 张 · {modeLabels[session.configuration.reversalMode]}
           </Text>
           {session.cards.map((card, index) => {
@@ -159,7 +197,11 @@ export default function DrawScreen() {
             return (
               <View key={card.id} style={styles.resultCard}>
                 <Text variant="subtitle">
-                  第 {index + 1} 张 · {tarotCard?.name_zh ?? '未知牌'}
+                  {spreadRepository.resolveSpread(
+                    session.configuration.spreadId,
+                    session.configuration.spreadId === 'open' ? session.cards.length : undefined,
+                  ).positions[index]?.title ?? `Card ${index + 1}`}{' '}
+                  · {tarotCard?.name_zh ?? '未知牌'}
                 </Text>
                 <Text variant="muted">{tarotCard?.name_en}</Text>
                 <Text>{expressionLabel(session, index)}</Text>
@@ -208,17 +250,19 @@ export default function DrawScreen() {
                       />
                     </>
                   ) : null}
-                  <Button
-                    label="删除"
-                    onPress={() =>
-                      publish({ ...session, cards: removeDrawnCard(session.cards, index) })
-                    }
-                  />
+                  {session.configuration.spreadId === 'open' ? (
+                    <Button
+                      label="删除"
+                      onPress={() =>
+                        publish({ ...session, cards: removeDrawnCard(session.cards, index) })
+                      }
+                    />
+                  ) : null}
                 </View>
               </View>
             );
           })}
-          {session.cards.length < 10 ? (
+          {session.configuration.spreadId === 'open' && session.cards.length < 10 ? (
             <Button label="手动补加一张牌" onPress={() => setPickerTarget({ kind: 'append' })} />
           ) : null}
           {session.cards.length > 0 ? (

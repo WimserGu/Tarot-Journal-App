@@ -1,4 +1,5 @@
 import type { ReadingCardFormValue } from '../readings/readingSchema';
+import { spreadRepository } from '../spreads/spreadRepository';
 import type { DrawResult, DrawSession } from './drawTypes';
 
 let sequence = 0;
@@ -41,9 +42,14 @@ export function linkActiveDrawSession(readingId: string): void {
 }
 
 export function drawSessionCardsToForm(session: DrawSession): ReadingCardFormValue[] {
-  return session.cards.map((card) => ({
+  const spread = spreadRepository.resolveSpread(
+    session.configuration.spreadId,
+    session.configuration.spreadId === 'open' ? session.cards.length : undefined,
+  );
+  return session.cards.map((card, index) => ({
     tarot_card_id: card.tarotCardId,
-    position_name: '',
+    position_name: spread.positions[index]?.title ?? '',
+    spreadPositionId: card.spreadPositionId,
     orientation: card.orientation,
     reversalExpression: card.reversalExpression,
     source: card.source,

@@ -31,6 +31,7 @@ describe('readingFormSchema', () => {
   it('normalizes visible card order into continuous persistence order', () => {
     const input = toReadingCreateInput(
       {
+        spread_id: null,
         topic_id: 'topic-id',
         question_mode: 'temporary',
         question_template_id: null,
@@ -57,6 +58,7 @@ describe('readingFormSchema', () => {
         reversalExpression: null,
         source: 'manual',
         drawSessionId: null,
+        spreadPositionId: null,
       },
       {
         tarot_card_id: 57,
@@ -66,6 +68,7 @@ describe('readingFormSchema', () => {
         reversalExpression: null,
         source: 'manual',
         drawSessionId: null,
+        spreadPositionId: null,
       },
     ]);
     expect(input.interpretation).toBe('先缩小范围。');
@@ -73,6 +76,7 @@ describe('readingFormSchema', () => {
 
   it('rejects reversal expression on an upright card', () => {
     const result = readingFormSchema.safeParse({
+      spread_id: 'open',
       topic_id: 'topic',
       question_mode: 'temporary',
       question_template_id: null,
@@ -96,6 +100,7 @@ describe('readingFormSchema', () => {
 
   it('accepts mixed drawn and manually added cards', () => {
     const result = readingFormSchema.safeParse({
+      spread_id: 'open',
       topic_id: 'topic',
       question_mode: 'temporary',
       question_template_id: null,
@@ -110,6 +115,7 @@ describe('readingFormSchema', () => {
           reversalExpression: 'overexpressed',
           source: 'drawn',
           drawSessionId: '40000000-0000-4000-8000-000000000001',
+          spreadPositionId: 'open.card.1',
         },
         {
           tarot_card_id: 2,
@@ -118,6 +124,7 @@ describe('readingFormSchema', () => {
           reversalExpression: null,
           source: 'manual',
           drawSessionId: null,
+          spreadPositionId: 'open.card.2',
         },
       ],
       interpretation: '',
@@ -129,6 +136,7 @@ describe('readingFormSchema', () => {
   it('renumbers the remaining cards after the middle card is removed', () => {
     const input = toReadingCreateInput(
       {
+        spread_id: null,
         topic_id: 'topic-id',
         question_mode: 'temporary',
         question_template_id: null,

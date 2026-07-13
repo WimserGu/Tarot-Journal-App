@@ -273,3 +273,25 @@ pnpm exec supabase migration list --linked
 
 Known deferred work includes spread systems, DrawSession persistence, animations, expression-specific
 statistics, AI reflection, and user-configurable probabilities.
+
+## Built-in Spread Engine
+
+Prompt 22 adds an immutable, domain-only `SpreadRepository` shared by draw and manual Reading entry.
+It provides exactly four built-ins: Single Card (Reflection), Three Card
+(Past/Present/Future), Situation (Situation/Challenge/Advice), and Open. Open supports 1–10 numbered
+positions; the other spreads derive their card count from their position definitions.
+
+- `Reading.spread_id` identifies the selected spread and `ReadingCard.spreadPositionId` identifies the
+  semantic position. Legacy rows keep both values `null` and remain editable.
+- Position order remains derived from `position_order`; position IDs and fixed-spread card counts are
+  strictly validated before persistence.
+- Changing a spread preserves cards by index, creates empty positions when growing, and requires an
+  explicit destructive confirmation before filled cards would be removed.
+- Draw results and manual entry save through the existing Reading model and repositories. Statistics,
+  Reviews, and Follow-Ups continue to consume Reading cards without spread-specific calculations.
+- Built-in spreads are application metadata: there is no spread table, Supabase CRUD, custom-spread
+  persistence, animation, AI interpretation, or draw-session history in this phase.
+
+Local migration `20260713121140_spread_engine.sql` adds nullable `spread_id` and
+`spread_position_id` markers and updates the existing atomic Reading RPCs. It has not been deployed.
+After review, deploy it with the normal linked-project migration workflow.

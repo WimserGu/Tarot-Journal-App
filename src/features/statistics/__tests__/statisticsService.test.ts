@@ -24,6 +24,7 @@ function item(
     topic_id: options.topic ?? 'topic',
     question_template_id: options.question === null ? null : 'question',
     question_text_snapshot: 'Q',
+    spread_id: null,
     reading_at: at,
     reading_timezone: options.timezone ?? 'America/New_York',
     interpretation: null,

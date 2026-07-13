@@ -11,7 +11,7 @@ import type {
 
 import type { JournalData, MutableJournalData } from './journalData';
 
-export const JOURNAL_SCHEMA_VERSION = 4;
+export const JOURNAL_SCHEMA_VERSION = 5;
 
 const storagePrefix = '@tarot-journal/v1';
 const schemaKey = `${storagePrefix}/schema`;
@@ -108,7 +108,12 @@ function validQuestionPosition(value: unknown): value is QuestionTemplatePositio
 
 function validReading(value: unknown): value is Reading {
   return (
-    hasIdentity(value) && typeof value.reading_at === 'string' && typeof value.status === 'string'
+    hasIdentity(value) &&
+    typeof value.reading_at === 'string' &&
+    typeof value.status === 'string' &&
+    (value.spread_id === undefined ||
+      value.spread_id === null ||
+      typeof value.spread_id === 'string')
   );
 }
 
@@ -123,6 +128,7 @@ function validReadingCard(value: unknown): value is ReadingCard {
   const source = value.source;
   const expression = value.reversalExpression;
   const drawSessionId = value.drawSessionId;
+  const spreadPositionId = value.spreadPositionId;
   const sourceValid = source === undefined || source === 'drawn' || source === 'manual';
   const expressionValid =
     expression === undefined ||
@@ -131,13 +137,24 @@ function validReadingCard(value: unknown): value is ReadingCard {
     expression === 'overexpressed';
   const drawSessionValid =
     drawSessionId === undefined || drawSessionId === null || typeof drawSessionId === 'string';
+  const spreadPositionValid =
+    spreadPositionId === undefined ||
+    spreadPositionId === null ||
+    typeof spreadPositionId === 'string';
   const stateValid =
     value.orientation !== 'upright' || expression === undefined || expression === null;
   const sourceLinkValid =
     source === undefined ||
     (source === 'manual' && (drawSessionId === undefined || drawSessionId === null)) ||
     (source === 'drawn' && typeof drawSessionId === 'string');
-  return sourceValid && expressionValid && drawSessionValid && stateValid && sourceLinkValid;
+  return (
+    sourceValid &&
+    expressionValid &&
+    drawSessionValid &&
+    spreadPositionValid &&
+    stateValid &&
+    sourceLinkValid
+  );
 }
 
 function validReadingFollowUp(value: unknown): value is ReadingFollowUp {
@@ -300,10 +317,14 @@ export class JournalPersistence {
   }
 
   private normalizeReadingCards(data: MutableJournalData): void {
+    data.readings.forEach((reading) => {
+      reading.spread_id ??= null;
+    });
     data.reading_cards.forEach((card) => {
       card.source ??= 'manual';
       card.reversalExpression ??= null;
       card.drawSessionId ??= null;
+      card.spreadPositionId ??= null;
     });
   }
 

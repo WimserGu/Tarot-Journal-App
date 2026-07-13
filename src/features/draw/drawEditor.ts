@@ -3,7 +3,11 @@ import { ValidationRepositoryError } from '../../repositories/repositoryErrors';
 import type { DrawnCard } from './drawTypes';
 
 function reindex(cards: readonly DrawnCard[]): DrawnCard[] {
-  return cards.map((card, positionIndex) => ({ ...card, positionIndex }));
+  return cards.map((card, positionIndex) => ({
+    ...card,
+    positionIndex,
+    spreadPositionId: `open.card.${positionIndex + 1}`,
+  }));
 }
 
 export function setDrawnCardOrientation(
@@ -49,6 +53,7 @@ export function appendManualDrawCard(
       id,
       tarotCardId: tarotCard.id,
       positionIndex: cards.length,
+      spreadPositionId: `open.card.${cards.length + 1}`,
       orientation: 'upright',
       reversalExpression: null,
       source: 'manual',

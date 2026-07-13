@@ -2,12 +2,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
 import type { TarotCard } from '@/domain/types';
 import { borderRadii, colors, fontSizes, spacing } from '@/theme/tokens';
+import { cardsForSpread } from '@/features/spreads/spreadMapping';
+import { spreadRepository } from '@/features/spreads/spreadRepository';
 
 import { ReadingCardEditor } from './ReadingCardEditor';
 import { SelectionModal, type SelectionOption } from './SelectionModal';
@@ -32,7 +34,7 @@ type ReadingFormProps = {
 };
 
 function isBlankCard(card: ReadingFormValues['cards'][number]): boolean {
-  return card.tarot_card_id === null && card.position_name.trim().length === 0;
+  return card.tarot_card_id === null;
 }
 
 export function ReadingForm({
@@ -56,13 +58,15 @@ export function ReadingForm({
     defaultValues: initialValues,
     resolver: zodResolver(readingFormSchema),
   });
-  const { append, fields, move, remove, replace } = useFieldArray({ control, name: 'cards' });
+  const { append, fields, move, replace } = useFieldArray({ control, name: 'cards' });
   const cards = useWatch({ control, name: 'cards' }) ?? [];
   const selectedTopicId = useWatch({ control, name: 'topic_id' });
+  const selectedSpreadId = useWatch({ control, name: 'spread_id' });
   const questionMode = useWatch({ control, name: 'question_mode' });
   const selectedTemplateId = useWatch({ control, name: 'question_template_id' });
   const [isTopicPickerVisible, setTopicPickerVisible] = useState(false);
   const [isQuestionPickerVisible, setQuestionPickerVisible] = useState(false);
+  const [isSpreadPickerVisible, setSpreadPickerVisible] = useState(false);
   const [activeCardIndex, setActiveCardIndex] = useState<number | null>(null);
   const tarotCardsById = useMemo(
     () => new Map(context.tarot_cards.map((card) => [card.id, card])),
@@ -75,6 +79,7 @@ export function ReadingForm({
   const availableQuestions = context.question_templates.filter(
     (template) => template.topic_id === selectedTopicId,
   );
+  const selectedSpread = selectedSpreadId ? spreadRepository.getSpread(selectedSpreadId) : null;
 
   useEffect(() => {
     onDirtyChange(isDirty);
@@ -99,6 +104,11 @@ export function ReadingForm({
     label: template.question_text,
     description:
       template.frequency === 'daily' ? '每日' : template.frequency === 'weekly' ? '每周' : '按需',
+  }));
+  const spreadOptions: SelectionOption[] = spreadRepository.listSpreads().map((spread) => ({
+    id: spread.id,
+    label: spread.name,
+    description: spread.description,
   }));
   const disabled = isSaving || isSubmitting;
 
@@ -133,6 +143,37 @@ export function ReadingForm({
     setQuestionPickerVisible(false);
   };
 
+  const applySpread = (spreadId: string) => {
+    const current = getValues('cards');
+    const spread = spreadRepository.resolveSpread(
+      spreadId,
+      spreadId === 'open' ? Math.max(1, Math.min(10, current.length)) : undefined,
+    );
+    setValue('spread_id', spreadId, { shouldDirty: true, shouldValidate: true });
+    replace(cardsForSpread(spread, current));
+    setSpreadPickerVisible(false);
+  };
+
+  const selectSpread = (spreadId: string) => {
+    const current = getValues('cards');
+    const next = spreadRepository.resolveSpread(
+      spreadId,
+      spreadId === 'open' ? Math.max(1, Math.min(10, current.length)) : undefined,
+    );
+    const removed = current
+      .slice(next.positions.length)
+      .some((card) => card.tarot_card_id !== null);
+    if (!removed) return applySpread(spreadId);
+    Alert.alert(
+      '更换牌阵会移除牌面',
+      `新牌阵只有 ${next.positions.length} 个位置。确认移除多出的已选牌吗？`,
+      [
+        { text: '取消', style: 'cancel' },
+        { text: '确认更换', style: 'destructive', onPress: () => applySpread(spreadId) },
+      ],
+    );
+  };
+
   const selectTarotCard = (tarotCard: TarotCard) => {
     if (activeCardIndex === null) {
       return;
@@ -145,8 +186,9 @@ export function ReadingForm({
     });
     clearErrors('cards');
 
-    if (activeCardIndex === cardCount - 1) {
-      append(createEmptyReadingCard());
+    if (activeCardIndex === cardCount - 1 && selectedSpread?.isOpen && cardCount < 10) {
+      const spread = spreadRepository.resolveSpread('open', cardCount + 1);
+      append(cardsForSpread(spread)[cardCount]!);
     }
 
     setActiveCardIndex(null);
@@ -175,6 +217,23 @@ export function ReadingForm({
 
   return (
     <View style={styles.form}>
+      <View style={styles.field}>
+        <Text variant="subtitle">牌阵</Text>
+        <Pressable
+          accessibilityLabel="选择牌阵"
+          accessibilityRole="button"
+          disabled={disabled}
+          onPress={() => setSpreadPickerVisible(true)}
+          style={({ pressed }) => [
+            styles.selector,
+            pressed && styles.pressed,
+            disabled && styles.disabled,
+          ]}
+        >
+          <Text>{selectedSpread?.name ?? '旧记录（未指定牌阵）'}</Text>
+          <Ionicons color={colors.textMuted} name="chevron-down" size={18} />
+        </Pressable>
+      </View>
       <View style={styles.field}>
         <Text variant="subtitle">长期议题</Text>
         <Pressable
@@ -340,8 +399,9 @@ export function ReadingForm({
 
           return (
             <ReadingCardEditor
-              canMoveDown={index < fields.length - 1}
-              canMoveUp={index > 0}
+              canRemove={selectedSpread?.isOpen === true || selectedSpreadId === null}
+              canMoveDown={selectedSpreadId === null && index < fields.length - 1}
+              canMoveUp={selectedSpreadId === null && index > 0}
               disabled={disabled}
               index={index}
               key={field.id}
@@ -361,31 +421,50 @@ export function ReadingForm({
                 });
               }}
               onPositionNameChange={(positionName) => {
-                setValue(`cards.${index}.position_name`, positionName, { shouldDirty: true });
+                if (selectedSpreadId === null)
+                  setValue(`cards.${index}.position_name`, positionName, { shouldDirty: true });
               }}
               onRemove={() => {
-                remove(index);
-                clearErrors('cards');
+                if (selectedSpread?.isOpen || selectedSpreadId === null) {
+                  const remaining = getValues('cards').filter(
+                    (_, candidate) => candidate !== index,
+                  );
+                  if (selectedSpread?.isOpen) {
+                    const spread = spreadRepository.resolveSpread(
+                      'open',
+                      Math.max(1, remaining.length),
+                    );
+                    replace(cardsForSpread(spread, remaining));
+                  } else {
+                    replace(remaining);
+                  }
+                  clearErrors('cards');
+                }
               }}
               selectedCard={selectedCard}
               value={value}
             />
           );
         })}
-        <Pressable
-          accessibilityLabel="添加一张牌"
-          accessibilityRole="button"
-          disabled={disabled}
-          onPress={() => append(createEmptyReadingCard())}
-          style={({ pressed }) => [
-            styles.addCardButton,
-            pressed && !disabled ? styles.pressed : null,
-            disabled ? styles.disabled : null,
-          ]}
-        >
-          <Ionicons color={colors.accent} name="add" size={20} />
-          <Text style={styles.addCardLabel}>添加一张牌</Text>
-        </Pressable>
+        {selectedSpread?.isOpen && fields.length < 10 ? (
+          <Pressable
+            accessibilityLabel="添加一张牌"
+            accessibilityRole="button"
+            disabled={disabled}
+            onPress={() => {
+              const spread = spreadRepository.resolveSpread('open', fields.length + 1);
+              append(cardsForSpread(spread)[fields.length]!);
+            }}
+            style={({ pressed }) => [
+              styles.addCardButton,
+              pressed && !disabled ? styles.pressed : null,
+              disabled ? styles.disabled : null,
+            ]}
+          >
+            <Ionicons color={colors.accent} name="add" size={20} />
+            <Text style={styles.addCardLabel}>添加一张牌</Text>
+          </Pressable>
+        ) : null}
         {errors.cards?.message ? (
           <Text style={styles.errorText}>{errors.cards.message}</Text>
         ) : null}
@@ -448,6 +527,14 @@ export function ReadingForm({
         </Pressable>
       </View>
 
+      <SelectionModal
+        emptyMessage="没有可用牌阵。"
+        onClose={() => setSpreadPickerVisible(false)}
+        onSelect={selectSpread}
+        options={spreadOptions}
+        title="选择牌阵"
+        visible={isSpreadPickerVisible}
+      />
       <SelectionModal
         emptyMessage="还没有长期议题。"
         onClose={() => setTopicPickerVisible(false)}

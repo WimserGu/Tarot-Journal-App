@@ -122,6 +122,7 @@ export type Reading = {
   topic_id: UUID | null;
   question_template_id: UUID | null;
   question_text_snapshot: string | null;
+  spread_id: string | null;
   reading_at: ISODateTime;
   reading_timezone: string;
   interpretation: string | null;
@@ -140,6 +141,7 @@ export type ReadingCard = {
   tarot_card_id: TarotCard['id'] | null;
   position_order: number;
   position_name: string | null;
+  spreadPositionId: string | null;
   orientation: CardOrientation;
   reversalExpression: ReversalExpression;
   source: CardEntrySource;

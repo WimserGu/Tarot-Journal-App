@@ -17,6 +17,7 @@ import { useReadingFollowUps } from '@/features/followups/useFollowUps';
 import { formatFollowUpDate } from '@/features/followups/followUpDate';
 import { outcomeLabels } from '@/features/followups/followUpPresentation';
 import { borderRadii, colors, spacing } from '@/theme/tokens';
+import { spreadRepository } from '@/features/spreads/spreadRepository';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -142,6 +143,12 @@ export default function ReadingDetailScreen() {
   const templateSource = detail.question_template
     ? `固定问题：${detail.question_template.question_text}`
     : '临时问题';
+  const spread = detail.reading.spread_id
+    ? spreadRepository.resolveSpread(
+        detail.reading.spread_id,
+        detail.reading.spread_id === 'open' ? detail.cards.length : undefined,
+      )
+    : null;
 
   return (
     <Screen scroll>
@@ -221,24 +228,36 @@ export default function ReadingDetailScreen() {
       <View style={styles.section}>
         <Text variant="subtitle">牌面</Text>
         {detail.cards.length > 0 ? (
-          detail.cards.map(({ reading_card: readingCard, tarot_card: tarotCard }) => (
-            <View key={readingCard.id} style={styles.cardRow}>
-              <Text>第 {readingCard.position_order} 张牌</Text>
-              <Text>{tarotCard?.name_zh ?? '尚未选择牌面'}</Text>
-              <Text variant="muted">{orientationLabel(readingCard.orientation)}</Text>
-              {readingCard.orientation === 'reversed' && readingCard.reversalExpression ? (
-                <Text variant="muted">
-                  {readingCard.reversalExpression === 'underexpressed'
-                    ? '逆位 · 表达不足'
-                    : '逆位 · 表达过度'}
+          detail.cards.map(({ reading_card: readingCard, tarot_card: tarotCard }) => {
+            const spreadPosition = spread?.positions.find(
+              (position) => position.id === readingCard.spreadPositionId,
+            );
+            return (
+              <View key={readingCard.id} style={styles.cardRow}>
+                <Text variant="subtitle">
+                  {spreadPosition?.title ??
+                    readingCard.position_name ??
+                    `第 ${readingCard.position_order} 张牌`}
                 </Text>
-              ) : null}
-              <Text variant="muted">
-                来源：{readingCard.source === 'drawn' ? 'App 抽取' : '手动添加'}
-              </Text>
-              <Text variant="muted">牌阵位置：{readingCard.position_name ?? '未填写'}</Text>
-            </View>
-          ))
+                {spreadPosition?.description ? (
+                  <Text variant="muted">{spreadPosition.description}</Text>
+                ) : null}
+                <Text>{tarotCard?.name_zh ?? '尚未选择牌面'}</Text>
+                <Text variant="muted">{orientationLabel(readingCard.orientation)}</Text>
+                {readingCard.orientation === 'reversed' && readingCard.reversalExpression ? (
+                  <Text variant="muted">
+                    {readingCard.reversalExpression === 'underexpressed'
+                      ? '逆位 · 表达不足'
+                      : '逆位 · 表达过度'}
+                  </Text>
+                ) : null}
+                <Text variant="muted">
+                  来源：{readingCard.source === 'drawn' ? 'App 抽取' : '手动添加'}
+                </Text>
+                <Text variant="muted">牌阵位置：{readingCard.position_name ?? '未填写'}</Text>
+              </View>
+            );
+          })
         ) : (
           <Text variant="muted">这个草稿还没有牌面。</Text>
         )}

@@ -18,12 +18,14 @@ import {
   ValidationRepositoryError,
 } from '../../repositories/repositoryErrors';
 import type { JournalData } from '../../repositories/journalData';
+import { spreadRepository } from '../spreads/spreadRepository';
 
 export type ReadingCardInput = {
   tarot_card_id: number | null;
   position_name: string | null;
   orientation: CardOrientation;
   position_order: number;
+  spreadPositionId?: string | null;
   reversalExpression?: ReversalExpression;
   source?: CardEntrySource;
   drawSessionId?: UUID | null;
@@ -33,12 +35,14 @@ export type NormalizedReadingCardInput = ReadingCardInput & {
   reversalExpression: ReversalExpression;
   source: CardEntrySource;
   drawSessionId: UUID | null;
+  spreadPositionId: string | null;
 };
 
 export type CreateReadingInput = {
   topic_id: UUID;
   question_template_id: UUID | null;
   temporary_question: string | null;
+  spread_id?: string | null;
   reading_at: ISODateTime;
   reading_timezone: string;
   interpretation: string | null;
@@ -214,6 +218,26 @@ function validateCardOrders(cards: readonly ReadingCardInput[]): void {
   }
 }
 
+function validateSpreadCards(spreadId: string | null, cards: NormalizedReadingCardInput[]): void {
+  if (spreadId === null) {
+    if (cards.some((card) => card.spreadPositionId !== null))
+      throw new ReadingValidationError('没有牌阵的记录不能包含牌阵位置。');
+    return;
+  }
+  const spread = spreadRepository.resolveSpread(
+    spreadId,
+    spreadId === 'open' ? cards.length : undefined,
+  );
+  if (cards.length !== spread.positions.length)
+    throw new ReadingValidationError('牌数必须与所选牌阵的位置数量一致。');
+  cards.forEach((card, index) => {
+    const position = spread.positions[index]!;
+    if (card.spreadPositionId !== position.id)
+      throw new ReadingValidationError('牌阵位置与牌序不一致。');
+    card.position_name = position.title;
+  });
+}
+
 function validateCardInput(
   card: ReadingCardInput,
   tarotCardIds: ReadonlySet<number>,
@@ -222,6 +246,7 @@ function validateCardInput(
   const source = card.source ?? 'manual';
   const reversalExpression = card.reversalExpression ?? null;
   const drawSessionId = card.drawSessionId ?? null;
+  const spreadPositionId = card.spreadPositionId ?? null;
   if (!Number.isInteger(card.position_order) || card.position_order < 1) {
     throw new ReadingValidationError('牌序必须是从 1 开始的正整数。');
   }
@@ -273,6 +298,7 @@ function validateCardInput(
     reversalExpression,
     source,
     drawSessionId,
+    spreadPositionId,
   };
 }
 
@@ -282,6 +308,7 @@ export type ValidatedReadingCreateInput = Omit<
 > & {
   cards: NormalizedReadingCardInput[];
   question_text_snapshot: string;
+  spread_id: string | null;
 };
 
 /** Validates the persistence boundary for both form and future API clients. */
@@ -347,11 +374,14 @@ export function validateReadingCreateInput(
   validateCardOrders(input.cards);
   const tarotCardIds = new Set(data.tarot_cards.map((card) => card.id));
   const cards = input.cards.map((card) => validateCardInput(card, tarotCardIds, input.status));
+  const spreadId = input.spread_id ?? null;
+  validateSpreadCards(spreadId, cards);
 
   return {
     topic_id: topic.id,
     question_template_id: input.question_template_id,
     question_text_snapshot: questionText,
+    spread_id: spreadId,
     reading_at: input.reading_at,
     reading_timezone: readingTimezone,
     interpretation,

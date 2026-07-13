@@ -14,6 +14,7 @@ const drawn: DrawnCard = {
   id: 'card-1',
   tarotCardId: 0,
   positionIndex: 0,
+  spreadPositionId: 'open.card.1',
   orientation: 'reversed',
   reversalExpression: 'overexpressed',
   source: 'drawn',

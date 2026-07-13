@@ -65,7 +65,13 @@ export default function NewReadingScreen() {
       timeZone,
     );
     const drawSession = getActiveDrawSession(drawSessionId);
-    return drawSession ? { ...values, cards: drawSessionCardsToForm(drawSession) } : values;
+    return drawSession
+      ? {
+          ...values,
+          spread_id: drawSession.configuration.spreadId,
+          cards: drawSessionCardsToForm(drawSession),
+        }
+      : values;
   }, [context, drawSessionId, questionTemplateId, questionText, timeZone, topicId]);
 
   const saveReading = async (values: ReadingFormValues, status: 'draft' | 'completed') => {

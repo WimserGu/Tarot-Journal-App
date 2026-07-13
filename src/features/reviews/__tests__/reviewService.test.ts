@@ -31,6 +31,7 @@ function item(
     topic_id: options.topic?.id ?? 'a',
     question_template_id: options.question === null ? null : 'q',
     question_text_snapshot: options.question ?? 'Fixed snapshot',
+    spread_id: null,
     reading_at: at,
     reading_timezone: 'UTC',
     interpretation: null,

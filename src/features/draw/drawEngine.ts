@@ -47,6 +47,13 @@ export function validateDrawConfiguration(
   if (configuration.cardCount > 10) {
     throw new ValidationRepositoryError('Card count cannot exceed 10.', 'draw');
   }
+  if (
+    !configuration.spreadId.trim() ||
+    configuration.spreadPositionIds.length !== configuration.cardCount ||
+    new Set(configuration.spreadPositionIds).size !== configuration.cardCount
+  ) {
+    throw new ValidationRepositoryError('Spread positions must match card count.', 'draw');
+  }
   if (deckSize !== undefined && configuration.cardCount > deckSize) {
     throw new ValidationRepositoryError('Card count cannot exceed the available deck.', 'draw');
   }
@@ -104,6 +111,7 @@ export class DefaultDrawEngine implements DrawEngine {
         id: `drawn-${positionIndex + 1}`,
         tarotCardId: selected.id,
         positionIndex,
+        spreadPositionId: values.spreadPositionIds[positionIndex]!,
         orientation,
         reversalExpression,
         source: 'drawn' as const,

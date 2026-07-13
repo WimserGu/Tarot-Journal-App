@@ -14,6 +14,7 @@ const cards = [
     id: 'drawn-1' as const,
     tarotCardId: 0,
     positionIndex: 0,
+    spreadPositionId: 'single-card.reflection',
     orientation: 'reversed' as const,
     reversalExpression: 'underexpressed' as const,
     source: 'drawn' as const,

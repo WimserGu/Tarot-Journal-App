@@ -43,6 +43,7 @@ export class MockReadingRepository implements ReadingRepository {
       topic_id: values.topic_id,
       question_template_id: values.question_template_id,
       question_text_snapshot: values.question_text_snapshot,
+      spread_id: values.spread_id,
       reading_at: values.reading_at,
       reading_timezone: values.reading_timezone,
       interpretation: values.interpretation,
@@ -63,6 +64,7 @@ export class MockReadingRepository implements ReadingRepository {
       reversalExpression: card.reversalExpression,
       source: card.source,
       drawSessionId: card.drawSessionId,
+      spreadPositionId: card.spreadPositionId,
       created_at: now,
       updated_at: now,
     }));
@@ -166,6 +168,7 @@ export class MockReadingRepository implements ReadingRepository {
       topic_id: values.topic_id,
       question_template_id: values.question_template_id,
       question_text_snapshot: questionTextSnapshot,
+      spread_id: values.spread_id,
       reading_at: values.reading_at,
       reading_timezone: values.reading_timezone,
       interpretation: values.interpretation,
@@ -183,6 +186,7 @@ export class MockReadingRepository implements ReadingRepository {
       reversalExpression: card.reversalExpression,
       source: card.source,
       drawSessionId: card.drawSessionId,
+      spreadPositionId: card.spreadPositionId,
       created_at: now,
       updated_at: now,
     }));

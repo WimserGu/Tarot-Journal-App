@@ -94,6 +94,33 @@ Implementation status: complete locally; migration deployment and real remote ve
 Review and deploy the pending migrations, verify manual/drawn Reading CRUD with an authenticated user,
 and confirm older remote Reading cards read as manual before planning a later visual draw experience.
 
+## Prompt 22: Spread Engine Phase 1
+
+Implementation status: complete locally; migration deployment and real remote verification pending.
+
+### Completed Scope
+
+- Added a pure immutable Spread domain and repository with Single Card, Three Card, Situation, and
+  1–10 card Open spreads.
+- Integrated semantic spread positions into both Draw and manual Reading entry without creating a
+  second Reading workflow.
+- Added strict fixed-count/position validation, safe spread changes, legacy-null compatibility, and
+  position-aware Reading detail rendering.
+- Upgraded local persistence to schema version 5 and added strict Supabase mapping/RPC payloads.
+- Created local-only migration `20260713121140_spread_engine.sql`; no deployed migration was changed.
+- Statistics, Reviews, Follow-Ups, authentication, and the default local adapter remain unchanged.
+
+### Verification
+
+- TypeScript: passed.
+- Vitest: 42 files and 255 tests passed.
+- Migration deployment: pending; real authenticated Supabase Reading CRUD verification is pending.
+
+### Next Step
+
+Review and deploy the Prompt 21 and Prompt 22 migrations in order, verify legacy and spread Reading
+CRUD with an authenticated user, then plan Prompt 23. Prompt 23 has not started.
+
 ## Prompt 15A: Supabase Client Foundation
 
 Implementation status: complete and verified.

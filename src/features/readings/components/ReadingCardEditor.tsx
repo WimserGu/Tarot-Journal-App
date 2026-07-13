@@ -9,6 +9,7 @@ import { borderRadii, colors, fontSizes, spacing } from '@/theme/tokens';
 import { toggleCardOrientation } from '../tarotCardPickerState';
 
 type ReadingCardEditorProps = {
+  canRemove?: boolean;
   canMoveDown: boolean;
   canMoveUp: boolean;
   disabled: boolean;
@@ -57,6 +58,7 @@ function ToolButton({
 }
 
 export function ReadingCardEditor({
+  canRemove = true,
   canMoveDown,
   canMoveUp,
   disabled,
@@ -90,7 +92,7 @@ export function ReadingCardEditor({
           />
           <ToolButton
             accessibilityLabel="删除这张牌"
-            disabled={disabled}
+            disabled={disabled || !canRemove}
             icon="trash-outline"
             onPress={onRemove}
             tone="danger"

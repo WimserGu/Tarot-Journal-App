@@ -13,6 +13,7 @@ export type ReadingCardFormValue = {
   reversalExpression?: ReversalExpression;
   source?: CardEntrySource;
   drawSessionId?: UUID | null;
+  spreadPositionId?: string | null;
 };
 
 function isValidLocalDate(value: string): boolean {
@@ -51,6 +52,7 @@ export const readingCardFormSchema = z
     reversalExpression: z.enum(['underexpressed', 'overexpressed']).nullable().optional(),
     source: z.enum(['drawn', 'manual']).optional(),
     drawSessionId: z.string().nullable().optional(),
+    spreadPositionId: z.string().nullable().optional(),
   })
   .superRefine((value, context) => {
     if (value.orientation === 'upright' && value.reversalExpression !== null) {
@@ -71,6 +73,7 @@ export const readingCardFormSchema = z
 
 export const readingFormSchema = z
   .object({
+    spread_id: z.string().trim().nullable(),
     topic_id: z.string().trim().min(1, '请选择长期议题。'),
     question_mode: z.enum(['template', 'temporary']),
     question_template_id: z.string().trim().nullable(),
@@ -108,6 +111,7 @@ export function createEmptyReadingCard(): ReadingCardFormValue {
     reversalExpression: null,
     source: 'manual',
     drawSessionId: null,
+    spreadPositionId: 'open.card.1',
   };
 }
 
@@ -155,10 +159,12 @@ export function toReadingCreateInput(
     reversalExpression: card.reversalExpression ?? null,
     source: card.source ?? 'manual',
     drawSessionId: card.drawSessionId ?? null,
+    spreadPositionId: card.spreadPositionId ?? null,
     position_order: index + 1,
   }));
 
   return {
+    spread_id: values.spread_id,
     topic_id: values.topic_id,
     question_template_id: values.question_mode === 'template' ? values.question_template_id : null,
     temporary_question:

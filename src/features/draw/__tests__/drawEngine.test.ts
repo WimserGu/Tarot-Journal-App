@@ -23,13 +23,18 @@ class FixedTime implements TimeProvider {
 }
 
 const engine = new DefaultDrawEngine();
-const config = (value: Partial<DrawConfiguration> = {}): DrawConfiguration => ({
-  cardCount: 1,
-  reversalMode: 'standard',
-  reversedProbability: 0.5,
-  overexpressedProbabilityWhenReversed: 0.5,
-  ...value,
-});
+const config = (value: Partial<DrawConfiguration> = {}): DrawConfiguration => {
+  const cardCount = value.cardCount ?? 1;
+  return {
+    cardCount,
+    spreadId: 'open',
+    spreadPositionIds: Array.from({ length: cardCount }, (_, index) => `open.card.${index + 1}`),
+    reversalMode: 'standard',
+    reversedProbability: 0.5,
+    overexpressedProbabilityWhenReversed: 0.5,
+    ...value,
+  };
+};
 
 describe('DrawEngine', () => {
   it('draws only upright cards when reversals are disabled', () => {
