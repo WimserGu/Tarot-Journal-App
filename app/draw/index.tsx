@@ -28,6 +28,7 @@ import {
   resolveFreeTableReversal,
   reversalModeForDraw,
 } from '@/features/draw/freeTableReversal';
+import { reversalAccessibilityLabel } from '@/features/draw/reversalPresentation';
 import {
   revealCard,
   ritualState,
@@ -182,9 +183,7 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
     const currentSession = sessionRef.current ?? session;
     if (!currentSession) return;
     if (currentSession.cards.some((card) => card.tarotCardId === tarotCardId)) return;
-    const { orientation, reversalExpression } = resolveFreeTableReversal(
-      currentSession.configuration,
-    );
+    const { orientation, reversalVariant } = resolveFreeTableReversal(currentSession.configuration);
     const index = currentSession.cards.length;
     const maximumCards =
       currentSession.configuration.spreadId === 'single-card'
@@ -218,7 +217,7 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
               : (spreadRepository.getSpread(currentSession.configuration.spreadId)?.positions[index]
                   ?.title ?? `Card ${index + 1}`),
           orientation,
-          reversalExpression,
+          reversalVariant,
           source: 'drawn',
           drawSessionId: currentSession.id,
         },
@@ -311,32 +310,27 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
               placeholder="Write your question"
               style={styles.input}
             />
-            {mode === 'table' ? (
-              <View style={styles.reversalSection}>
-                <Text variant="subtitle">逆位设置</Text>
-                {FREE_TABLE_REVERSAL_OPTIONS.map((option) => {
-                  const selected = reversalMode === option.value;
-                  return (
-                    <Pressable
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected }}
-                      key={option.value}
-                      onPress={() => setReversalMode(option.value)}
-                      style={[
-                        styles.reversalOption,
-                        selected ? styles.reversalOptionSelected : null,
-                      ]}
-                    >
-                      <View style={styles.reversalOptionHeader}>
-                        <Text variant="subtitle">{option.label}</Text>
-                        {selected ? <Text variant="muted">已选择</Text> : null}
-                      </View>
-                      <Text variant="muted">{option.description}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : null}
+            <View style={styles.reversalSection}>
+              <Text variant="subtitle">逆位设置</Text>
+              {FREE_TABLE_REVERSAL_OPTIONS.map((option) => {
+                const selected = reversalMode === option.value;
+                return (
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    key={option.value}
+                    onPress={() => setReversalMode(option.value)}
+                    style={[styles.reversalOption, selected ? styles.reversalOptionSelected : null]}
+                  >
+                    <View style={styles.reversalOptionHeader}>
+                      <Text variant="subtitle">{option.label}</Text>
+                      {selected ? <Text variant="muted">已选择</Text> : null}
+                    </View>
+                    <Text variant="muted">{option.description}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             <Button
               label={busy ? 'Starting…' : 'Continue'}
               disabled={busy}
@@ -398,7 +392,7 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
             <DraggableTableCard
               accessibilityLabel={
                 revealed
-                  ? `${cardName}，${card.orientation === 'reversed' ? '逆位' : '正位'}，双击查看详情`
+                  ? `${cardName}，${reversalAccessibilityLabel(card.orientation, card.reversalVariant)}，双击查看详情`
                   : '桌面上的未揭示牌，双击揭示'
               }
               cardBounds={{ width: CARD_TABLE_WIDTH, height: CARD_TABLE_HEIGHT }}
@@ -419,7 +413,7 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
                   cardId={card.tarotCardId}
                   name={cardName}
                   orientation={card.orientation}
-                  reversalExpression={card.reversalExpression}
+                  reversalVariant={card.reversalVariant}
                 />
               ) : (
                 <FaceDownCard label={positionTitle(index)} size="table" />
@@ -474,7 +468,7 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
           name={cardsById.get(focused.tarotCardId)?.name_zh ?? 'Unknown'}
           englishName={cardsById.get(focused.tarotCardId)?.name_en}
           orientation={focused.orientation}
-          reversalExpression={focused.reversalExpression}
+          reversalVariant={focused.reversalVariant}
           note={ritual.cardNotes?.[focused.id] ?? ''}
           onNoteChange={(note) => persist(setCardNote(session, focused.id, note))}
           onDismiss={() => setFocusedId(null)}

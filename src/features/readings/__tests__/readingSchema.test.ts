@@ -55,7 +55,7 @@ describe('readingFormSchema', () => {
         position_name: '现状',
         orientation: 'upright',
         position_order: 1,
-        reversalExpression: null,
+        reversalVariant: null,
         source: 'manual',
         drawSessionId: null,
         spreadPositionId: null,
@@ -65,7 +65,7 @@ describe('readingFormSchema', () => {
         position_name: '阻碍',
         orientation: 'reversed',
         position_order: 2,
-        reversalExpression: null,
+        reversalVariant: null,
         source: 'manual',
         drawSessionId: null,
         spreadPositionId: null,
@@ -74,7 +74,7 @@ describe('readingFormSchema', () => {
     expect(input.interpretation).toBe('先缩小范围。');
   });
 
-  it('rejects reversal expression on an upright card', () => {
+  it('rejects a reversal variant on an upright card', () => {
     const result = readingFormSchema.safeParse({
       spread_id: 'open',
       topic_id: 'topic',
@@ -88,7 +88,7 @@ describe('readingFormSchema', () => {
           tarot_card_id: 1,
           position_name: '',
           orientation: 'upright',
-          reversalExpression: 'overexpressed',
+          reversalVariant: 'right',
           source: 'manual',
           drawSessionId: null,
         },
@@ -112,7 +112,7 @@ describe('readingFormSchema', () => {
           tarot_card_id: 1,
           position_name: 'Current',
           orientation: 'reversed',
-          reversalExpression: 'overexpressed',
+          reversalVariant: 'right',
           source: 'drawn',
           drawSessionId: '40000000-0000-4000-8000-000000000001',
           spreadPositionId: 'open.card.1',
@@ -121,7 +121,7 @@ describe('readingFormSchema', () => {
           tarot_card_id: 2,
           position_name: 'Next',
           orientation: 'upright',
-          reversalExpression: null,
+          reversalVariant: null,
           source: 'manual',
           drawSessionId: null,
           spreadPositionId: 'open.card.2',

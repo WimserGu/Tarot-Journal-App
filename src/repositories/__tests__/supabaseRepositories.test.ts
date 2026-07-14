@@ -124,7 +124,7 @@ describe('mocked Supabase repositories', () => {
           position_name: null,
           orientation: 'reversed',
           position_order: 1,
-          reversalExpression: 'overexpressed',
+          reversalVariant: 'right',
           source: 'drawn',
           drawSessionId: '40000000-0000-4000-8000-000000000009',
         },

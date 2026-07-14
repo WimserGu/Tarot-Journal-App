@@ -25,7 +25,7 @@ const input = () => ({
       positionIndex: 0,
       spreadPositionId: 'single-card.reflection',
       orientation: 'upright' as const,
-      reversalExpression: null,
+      reversalVariant: null,
       source: 'drawn' as const,
       drawSessionId: null,
     },

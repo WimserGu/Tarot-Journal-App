@@ -32,7 +32,7 @@ import { readingRepository, topicRepository } from '@/repositories/repositoryFac
 import { colors, spacing } from '@/theme/tokens';
 import { useUnsavedChangesGuard } from '@/features/readings/useUnsavedChangesGuard';
 
-const SAMPLE = `[Reading]\nDate: 2026-07-13\nTopic: 关系\nQuestion: 她现在想对我说什么？\nCards:\n- 星币国王 | upright\n- 权杖七 | reversed\n- 星币四 | reversed | underexpressed\nNotes:\n这是多行备注的第一行。\n这是第二行。`;
+const SAMPLE = `[Reading]\nDate: 2026-07-13\nTopic: 关系\nQuestion: 她现在想对我说什么？\nCards:\n- 星币国王 | upright\n- 权杖七 | reversed\n- 星币四 | reversed | left\nNotes:\n这是多行备注的第一行。\n这是第二行。`;
 export default function ImportScreen() {
   const router = useRouter();
   const [raw, setRaw] = useState('');
@@ -293,31 +293,31 @@ export default function ImportScreen() {
                           }
                         />
                         <Button
-                          label="普通逆位"
+                          label="逆位"
                           onPress={() =>
                             change(c.importId, (x) =>
-                              editCard(x, i, { orientation: 'reversed', reversalExpression: null }),
+                              editCard(x, i, { orientation: 'reversed', reversalVariant: null }),
                             )
                           }
                         />
                         <Button
-                          label="表达不足"
+                          label="逆位・左旋"
                           onPress={() =>
                             change(c.importId, (x) =>
                               editCard(x, i, {
                                 orientation: 'reversed',
-                                reversalExpression: 'underexpressed',
+                                reversalVariant: 'left',
                               }),
                             )
                           }
                         />
                         <Button
-                          label="表达过度"
+                          label="逆位・右旋"
                           onPress={() =>
                             change(c.importId, (x) =>
                               editCard(x, i, {
                                 orientation: 'reversed',
-                                reversalExpression: 'overexpressed',
+                                reversalVariant: 'right',
                               }),
                             )
                           }

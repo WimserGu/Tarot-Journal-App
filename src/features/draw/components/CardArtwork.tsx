@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
-import type { CardOrientation } from '@/domain/types';
+import { Animated, Image, StyleSheet, View } from 'react-native';
+import type { CardOrientation, ReversalVariant } from '@/domain/types';
 import { RWS_FALLBACK_FRONT_ASSET } from '@/features/tarot/artwork/rwsAssets';
 import {
   artworkRotation,
@@ -27,6 +27,8 @@ export const TarotCardArtworkImage = memo(function TarotCardArtworkImage({
   tarotCardId,
   side,
   orientation = 'upright',
+  reversalVariant = null,
+  animatedRotation,
   size = 'table',
   accessibilityLabel,
 }: {
@@ -34,6 +36,8 @@ export const TarotCardArtworkImage = memo(function TarotCardArtworkImage({
   tarotCardId?: number;
   side: 'front' | 'back';
   orientation?: CardOrientation;
+  reversalVariant?: ReversalVariant;
+  animatedRotation?: Animated.AnimatedInterpolation<string | number>;
   size?: ArtworkSize;
   accessibilityLabel?: string;
 }) {
@@ -49,8 +53,11 @@ export const TarotCardArtworkImage = memo(function TarotCardArtworkImage({
     accessibilityLabel ?? (side === 'back' ? '未揭示的塔罗牌' : `塔罗牌 ${tarotCardId ?? '未知'}`);
 
   return (
-    <View style={[styles.frame, dimensions[size]]} testID={`tarot-artwork-${side}`}>
-      <Image
+    <View
+      style={[styles.frame, side === 'front' ? styles.frontFrame : null, dimensions[size]]}
+      testID={`tarot-artwork-${side}`}
+    >
+      <Animated.Image
         accessibilityLabel={label}
         fadeDuration={0}
         onError={() => setFailed(true)}
@@ -58,7 +65,13 @@ export const TarotCardArtworkImage = memo(function TarotCardArtworkImage({
         source={source}
         style={[
           styles.image,
-          side === 'front' ? { transform: artworkRotation(orientation) } : null,
+          side === 'front'
+            ? {
+                transform: animatedRotation
+                  ? [{ rotate: animatedRotation }]
+                  : artworkRotation(orientation, reversalVariant),
+              }
+            : null,
         ]}
       />
     </View>
@@ -78,18 +91,24 @@ export const DeckCardBack = memo(function DeckCardBack({
 export const CardArtwork = memo(function CardArtwork({
   cardId,
   orientation,
+  reversalVariant = null,
+  animatedRotation,
   size = 'table',
   accessibilityLabel,
 }: {
   cardId: number;
   orientation: CardOrientation;
+  reversalVariant?: ReversalVariant;
+  animatedRotation?: Animated.AnimatedInterpolation<string | number>;
   size?: ArtworkSize;
   accessibilityLabel?: string;
 }) {
   return (
     <TarotCardArtworkImage
       accessibilityLabel={accessibilityLabel}
+      animatedRotation={animatedRotation}
       orientation={orientation}
+      reversalVariant={reversalVariant}
       side="front"
       size={size}
       tarotCardId={cardId}
@@ -131,6 +150,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     overflow: 'hidden',
+  },
+  frontFrame: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    overflow: 'visible',
   },
   image: { height: '100%', width: '100%' },
   preloadImage: { height: 1, width: 1 },

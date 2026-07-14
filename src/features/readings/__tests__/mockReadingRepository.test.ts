@@ -72,7 +72,7 @@ describe('MockReadingRepository', () => {
           position_name: '阻碍',
           orientation: 'reversed',
           position_order: 1,
-          reversalExpression: 'underexpressed',
+          reversalVariant: 'left',
           source: 'drawn',
           drawSessionId: '40000000-0000-4000-8000-000000000009',
         },
@@ -90,12 +90,12 @@ describe('MockReadingRepository', () => {
     ]);
     expect(detail?.cards[0]?.reading_card).toMatchObject({
       source: 'drawn',
-      reversalExpression: 'underexpressed',
+      reversalVariant: 'left',
       drawSessionId: '40000000-0000-4000-8000-000000000009',
     });
     expect(detail?.cards[1]?.reading_card).toMatchObject({
       source: 'manual',
-      reversalExpression: null,
+      reversalVariant: null,
       drawSessionId: null,
     });
     expect(topicDetail?.record_count).toBe(4);

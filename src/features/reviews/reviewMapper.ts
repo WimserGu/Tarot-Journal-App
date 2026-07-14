@@ -23,6 +23,7 @@ const STATISTICS_KEYS = [
   'majorArcanaRatio',
   'minorArcanaRatio',
   'orientationDistribution',
+  'dualReversalDistribution',
   'suitDistribution',
   'topCards',
   'cardStatistics',
@@ -34,6 +35,7 @@ const STATISTICS_KEYS = [
   'trace',
   'filterError',
 ] as const;
+const LEGACY_STATISTICS_KEYS = STATISTICS_KEYS.filter((key) => key !== 'dualReversalDistribution');
 
 function fail(field: string): never {
   throw new ValidationRepositoryError(`Invalid database value for ${field}.`, 'mapReview');
@@ -77,8 +79,16 @@ function snapshot(value: unknown): ReviewStatisticsSnapshot {
   exactKeys(result, SNAPSHOT_KEYS, 'statistics_snapshot');
   const current = record(result.current, 'statistics_snapshot.current');
   const previous = record(result.previous, 'statistics_snapshot.previous');
-  exactKeys(current, STATISTICS_KEYS, 'statistics_snapshot.current');
-  exactKeys(previous, STATISTICS_KEYS, 'statistics_snapshot.previous');
+  const normalizeStatistics = (statistics: Row, field: string) => {
+    const isLegacy = !Object.keys(statistics).includes('dualReversalDistribution');
+    exactKeys(statistics, isLegacy ? LEGACY_STATISTICS_KEYS : STATISTICS_KEYS, field);
+    statistics.dualReversalDistribution ??= {
+      left: { count: 0, total: 0, ratio: 0, readingIds: [] },
+      right: { count: 0, total: 0, ratio: 0, readingIds: [] },
+    };
+  };
+  normalizeStatistics(current, 'statistics_snapshot.current');
+  normalizeStatistics(previous, 'statistics_snapshot.previous');
   for (const key of [
     'activeTopics',
     'topCards',

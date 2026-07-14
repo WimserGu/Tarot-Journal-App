@@ -143,6 +143,7 @@ export default function NewReadingScreen() {
               context={context}
               initialValues={initialValues}
               isSaving={isSaving}
+              reversalMode={drawSession?.configuration.reversalMode}
               onCreateTopic={() => router.push('/topics/new')}
               onDirtyChange={setIsDirty}
               onSave={saveReading}

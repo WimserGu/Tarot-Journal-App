@@ -33,7 +33,7 @@ function sessionWithCards(): DrawSession {
       spreadPositionId: `free-table.${positionIndex + 1}`,
       positionSnapshot: `Card ${positionIndex + 1}`,
       orientation: 'upright' as const,
-      reversalExpression: null,
+      reversalVariant: null,
       source: 'drawn' as const,
       drawSessionId: 'session',
     })),

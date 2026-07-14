@@ -57,14 +57,11 @@ export function validateDrawConfiguration(
   if (deckSize !== undefined && configuration.cardCount > deckSize) {
     throw new ValidationRepositoryError('Card count cannot exceed the available deck.', 'draw');
   }
-  if (!['disabled', 'standard', 'expression'].includes(configuration.reversalMode)) {
+  if (!['disabled', 'standard', 'dual'].includes(configuration.reversalMode)) {
     throw new ValidationRepositoryError('Reversal mode is invalid.', 'draw');
   }
   validateProbability(configuration.reversedProbability, 'Reversed probability');
-  validateProbability(
-    configuration.overexpressedProbabilityWhenReversed,
-    'Overexpressed probability',
-  );
+  validateProbability(configuration.rightProbabilityWhenReversed, 'Right probability');
   return { ...configuration };
 }
 
@@ -92,18 +89,16 @@ export class DefaultDrawEngine implements DrawEngine {
       const selectedIndex = Math.floor(nextRandom(randomProvider) * available.length);
       const selected = available.splice(selectedIndex, 1)[0]!;
       let orientation: 'upright' | 'reversed' = 'upright';
-      let reversalExpression: 'underexpressed' | 'overexpressed' | null = null;
+      let reversalVariant: 'left' | 'right' | null = null;
 
       if (
         values.reversalMode !== 'disabled' &&
         nextRandom(randomProvider) < values.reversedProbability
       ) {
         orientation = 'reversed';
-        if (values.reversalMode === 'expression') {
-          reversalExpression =
-            nextRandom(randomProvider) < values.overexpressedProbabilityWhenReversed
-              ? 'overexpressed'
-              : 'underexpressed';
+        if (values.reversalMode === 'dual') {
+          reversalVariant =
+            nextRandom(randomProvider) < values.rightProbabilityWhenReversed ? 'right' : 'left';
         }
       }
 
@@ -113,7 +108,7 @@ export class DefaultDrawEngine implements DrawEngine {
         positionIndex,
         spreadPositionId: values.spreadPositionIds[positionIndex]!,
         orientation,
-        reversalExpression,
+        reversalVariant,
         source: 'drawn' as const,
       };
     });

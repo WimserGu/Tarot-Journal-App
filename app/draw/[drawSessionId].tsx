@@ -11,6 +11,11 @@ import type { DrawSession } from '@/features/draw/drawTypes';
 import { drawSessionRepository } from '@/repositories/repositoryFactory';
 import { tarotCards } from '@/domain/tarotCards';
 import { CardArtwork } from '@/features/draw/components/CardArtwork';
+import {
+  reversalAccessibilityLabel,
+  reversalModeLabel,
+  reversalStateLabel,
+} from '@/features/draw/reversalPresentation';
 import { borderRadii, colors, spacing } from '@/theme/tokens';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
@@ -18,10 +23,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
 }
 
 function orientationLabel(session: DrawSession['cards'][number]): string {
-  if (session.orientation === 'upright') return '正位';
-  if (session.reversalExpression === 'underexpressed') return '逆位 · 表达不足';
-  if (session.reversalExpression === 'overexpressed') return '逆位 · 表达过度';
-  return '逆位';
+  return reversalStateLabel(session.orientation, session.reversalVariant);
 }
 
 export default function DrawSessionDetailScreen() {
@@ -78,7 +80,8 @@ export default function DrawSessionDetailScreen() {
       <View style={styles.section}>
         <Text variant="subtitle">配置</Text>
         <Text>
-          抽取 {session.configuration.cardCount} 张 · {session.configuration.reversalMode} 逆位模式
+          抽取 {session.configuration.cardCount} 张 ·{' '}
+          {reversalModeLabel(session.configuration.reversalMode)}
         </Text>
       </View>
       <View style={styles.section}>
@@ -88,9 +91,10 @@ export default function DrawSessionDetailScreen() {
           return (
             <View key={card.id} style={styles.card}>
               <CardArtwork
-                accessibilityLabel={`${tarotCard?.name_zh ?? '未知牌面'}，${orientationLabel(card)}`}
+                accessibilityLabel={`${tarotCard?.name_zh ?? '未知牌面'}，${reversalAccessibilityLabel(card.orientation, card.reversalVariant)}`}
                 cardId={card.tarotCardId}
                 orientation={card.orientation}
+                reversalVariant={card.reversalVariant}
                 size="table"
               />
               <Text variant="subtitle">

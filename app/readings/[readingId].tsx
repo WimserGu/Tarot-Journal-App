@@ -11,7 +11,10 @@ import {
 } from '@/features/readings/readingDetailActions';
 import { readingRepository } from '@/repositories/repositoryFactory';
 import { IconButton } from '@/features/topics/components/IconButton';
-import { orientationLabel } from '@/features/topics/topicPresentation';
+import {
+  reversalAccessibilityLabel,
+  reversalStateLabel,
+} from '@/features/draw/reversalPresentation';
 import { useReadingDetail } from '@/features/readings/useReadings';
 import { useReadingFollowUps } from '@/features/followups/useFollowUps';
 import { formatFollowUpDate } from '@/features/followups/followUpDate';
@@ -246,9 +249,10 @@ export default function ReadingDetailScreen() {
               <View key={readingCard.id} style={styles.cardRow}>
                 {readingCard.tarot_card_id !== null ? (
                   <CardArtwork
-                    accessibilityLabel={`${tarotCard?.name_zh ?? '未知牌面'}，${orientationLabel(readingCard.orientation)}`}
+                    accessibilityLabel={`${tarotCard?.name_zh ?? '未知牌面'}，${reversalAccessibilityLabel(readingCard.orientation, readingCard.reversalVariant)}`}
                     cardId={readingCard.tarot_card_id}
                     orientation={readingCard.orientation}
+                    reversalVariant={readingCard.reversalVariant}
                     size="table"
                   />
                 ) : null}
@@ -261,14 +265,9 @@ export default function ReadingDetailScreen() {
                   <Text variant="muted">{spreadPosition.description}</Text>
                 ) : null}
                 <Text>{tarotCard?.name_zh ?? '尚未选择牌面'}</Text>
-                <Text variant="muted">{orientationLabel(readingCard.orientation)}</Text>
-                {readingCard.orientation === 'reversed' && readingCard.reversalExpression ? (
-                  <Text variant="muted">
-                    {readingCard.reversalExpression === 'underexpressed'
-                      ? '逆位 · 表达不足'
-                      : '逆位 · 表达过度'}
-                  </Text>
-                ) : null}
+                <Text variant="muted">
+                  {reversalStateLabel(readingCard.orientation, readingCard.reversalVariant)}
+                </Text>
                 <Text variant="muted">
                   来源：{readingCard.source === 'drawn' ? 'App 抽取' : '手动添加'}
                 </Text>

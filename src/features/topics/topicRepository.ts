@@ -32,6 +32,7 @@ export type TopicRecentReading = {
   cards: {
     tarot_card: TarotCard;
     orientation: ReadingCard['orientation'];
+    reversalVariant: ReadingCard['reversalVariant'];
     position_name: string | null;
     position_order: number;
   }[];
@@ -244,6 +245,7 @@ export function buildTopicDetail(
                 {
                   tarot_card: tarotCard,
                   orientation: readingCard.orientation,
+                  reversalVariant: readingCard.reversalVariant,
                   position_name: readingCard.position_name,
                   position_order: readingCard.position_order,
                 },

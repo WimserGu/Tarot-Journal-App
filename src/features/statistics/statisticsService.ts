@@ -207,6 +207,20 @@ export function calculateStatistics(
       readingIds: unique(events.map((x) => x.readingId)),
     };
   };
+  const reversalVariant = (kind: 'left' | 'right') => {
+    const variantEvents = cardEvents.filter(
+      (event) =>
+        event.card.orientation === 'reversed' &&
+        (event.card.reversalVariant === 'left' || event.card.reversalVariant === 'right'),
+    );
+    const events = variantEvents.filter((event) => event.card.reversalVariant === kind);
+    return {
+      count: events.length,
+      total: variantEvents.length,
+      ratio: ratio(events.length, variantEvents.length),
+      readingIds: unique(events.map((event) => event.readingId)),
+    };
+  };
   const suit = (kind: TarotSuit) => {
     const events = cardEvents.filter((x) => x.card.tarotCard.suit === kind);
     const minor = cardEvents.filter((x) => x.card.tarotCard.arcana === 'minor').length;
@@ -252,6 +266,10 @@ export function calculateStatistics(
     majorArcanaRatio: arcana('major'),
     minorArcanaRatio: arcana('minor'),
     orientationDistribution: { upright: orientation('upright'), reversed: orientation('reversed') },
+    dualReversalDistribution: {
+      left: reversalVariant('left'),
+      right: reversalVariant('right'),
+    },
     suitDistribution: {
       wands: suit('wands'),
       cups: suit('cups'),

@@ -25,7 +25,7 @@ const session: DrawSession = {
     positionIndex,
     spreadPositionId: 'single-card.reflection',
     orientation: 'upright' as const,
-    reversalExpression: null,
+    reversalVariant: null,
     source: 'drawn' as const,
     drawSessionId: 'session',
   })),

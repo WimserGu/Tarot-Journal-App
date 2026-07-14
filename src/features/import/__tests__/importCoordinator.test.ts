@@ -14,7 +14,7 @@ const candidate = (importId: string, sourceOrder: number): ImportReadingCandidat
       tarotCardId: 1,
       rawCardName: '愚者',
       orientation: 'upright',
-      reversalExpression: null,
+      reversalVariant: null,
       warnings: [],
     },
   ],

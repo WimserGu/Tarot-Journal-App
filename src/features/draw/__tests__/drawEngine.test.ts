@@ -31,7 +31,7 @@ const config = (value: Partial<DrawConfiguration> = {}): DrawConfiguration => {
     spreadPositionIds: Array.from({ length: cardCount }, (_, index) => `open.card.${index + 1}`),
     reversalMode: 'standard',
     reversedProbability: 0.5,
-    overexpressedProbabilityWhenReversed: 0.5,
+    rightProbabilityWhenReversed: 0.5,
     ...value,
   };
 };
@@ -52,22 +52,44 @@ describe('DrawEngine', () => {
       config({ cardCount: 2 }),
       new SequenceRandom([0, 0.2, 0, 0.8]),
     );
-    expect(result.cards.map((card) => [card.orientation, card.reversalExpression])).toEqual([
+    expect(result.cards.map((card) => [card.orientation, card.reversalVariant])).toEqual([
       ['reversed', null],
       ['upright', null],
     ]);
   });
 
-  it('creates underexpressed and overexpressed reversed cards in expression mode', () => {
+  it('creates left and right reversed cards in dual mode', () => {
     const result = engine.draw(
       tarotCards,
-      config({ cardCount: 2, reversalMode: 'expression' }),
+      config({ cardCount: 2, reversalMode: 'dual' }),
       new SequenceRandom([0, 0, 0.8, 0, 0, 0.2]),
     );
-    expect(result.cards.map((card) => card.reversalExpression)).toEqual([
-      'underexpressed',
-      'overexpressed',
-    ]);
+    expect(result.cards.map((card) => card.reversalVariant)).toEqual(['left', 'right']);
+  });
+
+  it('uses the configured right probability after a dual-mode reversal', () => {
+    expect(
+      engine.draw(
+        tarotCards,
+        config({
+          reversalMode: 'dual',
+          reversedProbability: 1,
+          rightProbabilityWhenReversed: 0,
+        }),
+        new SequenceRandom([0, 0, 0.999]),
+      ).cards[0]?.reversalVariant,
+    ).toBe('left');
+    expect(
+      engine.draw(
+        tarotCards,
+        config({
+          reversalMode: 'dual',
+          reversedProbability: 1,
+          rightProbabilityWhenReversed: 1,
+        }),
+        new SequenceRandom([0, 0, 0.999]),
+      ).cards[0]?.reversalVariant,
+    ).toBe('right');
   });
 
   it('respects reversed probability zero', () => {
@@ -158,14 +180,14 @@ describe('DrawEngine', () => {
     expect(cards.map((card) => card.positionIndex)).toEqual([0, 1, 2]);
   });
 
-  it('never attaches an expression to an upright card', () => {
+  it('never attaches a reversal variant to an upright card', () => {
     const cards = engine.draw(
       tarotCards,
-      config({ cardCount: 3, reversalMode: 'expression', reversedProbability: 0 }),
+      config({ cardCount: 3, reversalMode: 'dual', reversedProbability: 0 }),
       new SequenceRandom([0, 0.9, 0, 0.9, 0, 0.9]),
     ).cards;
     expect(
-      cards.every((card) => card.orientation === 'upright' && card.reversalExpression === null),
+      cards.every((card) => card.orientation === 'upright' && card.reversalVariant === null),
     ).toBe(true);
   });
 

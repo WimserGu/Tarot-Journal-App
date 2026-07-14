@@ -14,7 +14,7 @@ describe('unified card-entry migration', () => {
     expect(sql).toContain('add column reversal_expression text');
     expect(sql).not.toMatch(/create table\s+public\.draw_sessions/i);
   });
-  it('constrains source, expression and orientation combinations', () => {
+  it('constrains source, stored variant and orientation combinations', () => {
     expect(sql).toContain("source in ('drawn', 'manual')");
     expect(sql).toContain("orientation = 'reversed' or reversal_expression is null");
     expect(sql).toContain("source = 'manual' and draw_session_id is null");

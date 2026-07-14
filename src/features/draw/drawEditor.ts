@@ -18,18 +18,18 @@ export function setDrawnCardOrientation(
   return {
     ...card,
     orientation,
-    reversalExpression: orientation === 'upright' ? null : card.reversalExpression,
+    reversalVariant: orientation === 'upright' ? null : card.reversalVariant,
   };
 }
 
-export function setDrawnCardExpression(
+export function setDrawnCardVariant(
   card: DrawnCard,
-  reversalExpression: DrawnCard['reversalExpression'],
+  reversalVariant: DrawnCard['reversalVariant'],
 ): DrawnCard {
-  if (card.orientation === 'upright' && reversalExpression !== null) {
-    throw new ValidationRepositoryError('Upright cards cannot have reversal expression.', 'draw');
+  if (card.orientation === 'upright' && reversalVariant !== null) {
+    throw new ValidationRepositoryError('Upright cards cannot have a reversal variant.', 'draw');
   }
-  return { ...card, reversalExpression };
+  return { ...card, reversalVariant };
 }
 
 export function replaceDrawnCard(card: DrawnCard, tarotCard: TarotCard): DrawnCard {
@@ -57,7 +57,7 @@ export function appendManualDrawCard(
       spreadPositionId: `open.card.${cards.length + 1}`,
       positionSnapshot: `Card ${cards.length + 1}`,
       orientation: 'upright',
-      reversalExpression: null,
+      reversalVariant: null,
       source: 'manual',
       drawSessionId: null,
     },

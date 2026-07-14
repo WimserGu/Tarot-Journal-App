@@ -2,12 +2,12 @@ import type {
   CardEntrySource,
   CardOrientation,
   ISODateTime,
-  ReversalExpression,
+  ReversalVariant,
   TarotCard,
   UUID,
 } from '../../domain/types';
 
-export type ReversalMode = 'disabled' | 'standard' | 'expression';
+export type ReversalMode = 'disabled' | 'standard' | 'dual';
 
 export type NormalizedTablePlacement = {
   x: number;
@@ -25,7 +25,7 @@ export type DrawConfiguration = {
   spreadPositionIds: readonly string[];
   reversalMode: ReversalMode;
   reversedProbability: number;
-  overexpressedProbabilityWhenReversed: number;
+  rightProbabilityWhenReversed: number;
   questionText?: string;
   hiddenDeckCardIds?: number[];
   table?: TarotTableState;
@@ -45,7 +45,7 @@ export type DrawnCard = {
   spreadPositionId: string;
   positionSnapshot?: string;
   orientation: CardOrientation;
-  reversalExpression: ReversalExpression;
+  reversalVariant: ReversalVariant;
   source: CardEntrySource;
   drawSessionId: UUID | null;
 };
@@ -74,5 +74,5 @@ export const DEFAULT_DRAW_CONFIGURATION: DrawConfiguration = {
   spreadPositionIds: ['single-card.reflection'],
   reversalMode: 'standard',
   reversedProbability: 0.5,
-  overexpressedProbabilityWhenReversed: 0.5,
+  rightProbabilityWhenReversed: 0.5,
 };

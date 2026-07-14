@@ -5,7 +5,7 @@ import {
   appendManualDrawCard,
   removeDrawnCard,
   replaceDrawnCard,
-  setDrawnCardExpression,
+  setDrawnCardVariant,
   setDrawnCardOrientation,
 } from '../drawEditor';
 import type { DrawnCard } from '../drawTypes';
@@ -16,7 +16,7 @@ const drawn: DrawnCard = {
   positionIndex: 0,
   spreadPositionId: 'open.card.1',
   orientation: 'reversed',
-  reversalExpression: 'overexpressed',
+  reversalVariant: 'right',
   source: 'drawn',
   drawSessionId: 'session-1',
 };
@@ -25,22 +25,18 @@ describe('draw result editing', () => {
   it('keeps drawn source when changing the selected card', () => {
     expect(replaceDrawnCard(drawn, tarotCards[1]!).source).toBe('drawn');
   });
-  it('clears expression when changed to upright', () => {
+  it('clears the variant when changed to upright', () => {
     expect(setDrawnCardOrientation(drawn, 'upright')).toMatchObject({
       orientation: 'upright',
-      reversalExpression: null,
+      reversalVariant: null,
     });
   });
-  it('sets both reversal expression variants', () => {
-    expect(setDrawnCardExpression(drawn, 'underexpressed').reversalExpression).toBe(
-      'underexpressed',
-    );
-    expect(setDrawnCardExpression(drawn, 'overexpressed').reversalExpression).toBe('overexpressed');
+  it('sets both reversal variants', () => {
+    expect(setDrawnCardVariant(drawn, 'left').reversalVariant).toBe('left');
+    expect(setDrawnCardVariant(drawn, 'right').reversalVariant).toBe('right');
   });
-  it('rejects an expression on an upright card', () => {
-    expect(() =>
-      setDrawnCardExpression(setDrawnCardOrientation(drawn, 'upright'), 'overexpressed'),
-    ).toThrow();
+  it('rejects a variant on an upright card', () => {
+    expect(() => setDrawnCardVariant(setDrawnCardOrientation(drawn, 'upright'), 'right')).toThrow();
   });
   it('reindexes remaining cards after deletion', () => {
     const cards = [

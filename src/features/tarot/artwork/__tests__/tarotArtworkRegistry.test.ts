@@ -8,6 +8,8 @@ import {
   defaultDeckThemeId,
   getCardBackSource,
   getCardFrontSource,
+  getCardRevealRotation,
+  getTraditionalReversalInspectionRotation,
   getDeckTheme,
   getTarotFrontArtwork,
   registeredDeckThemes,
@@ -81,9 +83,29 @@ describe('RWS tarot artwork registry', () => {
     });
   });
 
-  it('rotates only reversed front artwork', () => {
-    expect(artworkRotation('upright')).toBeUndefined();
-    expect(artworkRotation('reversed')).toEqual([{ rotate: '180deg' }]);
+  it('maps ordinary and dual reversals to their visual angles', () => {
+    expect(artworkRotation('upright', null)).toEqual([{ rotate: '0deg' }]);
+    expect(artworkRotation('reversed', null)).toEqual([{ rotate: '180deg' }]);
+    expect(artworkRotation('reversed', 'left')).toEqual([{ rotate: '-30deg' }]);
+    expect(artworkRotation('reversed', 'right')).toEqual([{ rotate: '30deg' }]);
+  });
+
+  it('uses the final angle immediately when reduced motion is enabled', () => {
+    expect(getCardRevealRotation('reversed', 'left', true)).toEqual({
+      from: -30,
+      to: -30,
+      duration: 0,
+    });
+    expect(getCardRevealRotation('reversed', null, false)).toEqual({
+      from: 0,
+      to: 180,
+      duration: 320,
+    });
+  });
+
+  it('continues dual reversals toward traditional reversal in their original direction', () => {
+    expect(getTraditionalReversalInspectionRotation('left')).toBe(-180);
+    expect(getTraditionalReversalInspectionRotation('right')).toBe(180);
   });
 
   it('uses stable IDs rather than translated display names', () => {

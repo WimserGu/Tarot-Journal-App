@@ -2,7 +2,11 @@ import { Modal, Pressable, StyleSheet, TextInput } from 'react-native';
 import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
 import { colors, spacing } from '@/theme/tokens';
-import type { CardOrientation } from '@/domain/types';
+import type { CardOrientation, ReversalVariant } from '@/domain/types';
+import {
+  reversalAccessibilityLabel,
+  reversalStateLabel,
+} from '@/features/draw/reversalPresentation';
 import { CardArtwork } from './CardArtwork';
 export function FocusCardModal({
   visible,
@@ -11,7 +15,7 @@ export function FocusCardModal({
   name,
   englishName,
   orientation,
-  reversalExpression,
+  reversalVariant,
   note,
   onNoteChange,
   onDismiss,
@@ -22,7 +26,7 @@ export function FocusCardModal({
   name: string;
   englishName?: string;
   orientation: CardOrientation;
-  reversalExpression: string | null;
+  reversalVariant: ReversalVariant;
   note: string;
   onNoteChange: (value: string) => void;
   onDismiss: () => void;
@@ -33,17 +37,15 @@ export function FocusCardModal({
         <Pressable style={styles.card} onPress={() => undefined}>
           <Text variant="subtitle">{title}</Text>
           <CardArtwork
-            accessibilityLabel={`${name}，${orientation === 'reversed' ? '逆位' : '正位'}`}
+            accessibilityLabel={`${name}，${reversalAccessibilityLabel(orientation, reversalVariant)}`}
             cardId={cardId}
             orientation={orientation}
+            reversalVariant={reversalVariant}
             size="focus"
           />
           <Text variant="title">{name}</Text>
           {englishName ? <Text variant="muted">{englishName}</Text> : null}
-          <Text>{orientation === 'reversed' ? 'Reversed' : 'Upright'}</Text>
-          {reversalExpression ? (
-            <Text>{reversalExpression === 'underexpressed' ? '表达不足' : '表达过度'}</Text>
-          ) : null}
+          <Text>{reversalStateLabel(orientation, reversalVariant)}</Text>
           <TextInput
             accessibilityLabel="临时卡片备注"
             value={note}

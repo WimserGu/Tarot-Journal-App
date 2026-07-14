@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { CardEntrySource, ReadingStatus, ReversalExpression, UUID } from '../../domain/types';
+import type { CardEntrySource, ReadingStatus, ReversalVariant, UUID } from '../../domain/types';
 
 import type { CreateReadingInput, ReadingCardInput } from './readingRepository';
 
@@ -10,7 +10,7 @@ export type ReadingCardFormValue = {
   tarot_card_id: number | null;
   position_name: string;
   orientation: 'upright' | 'reversed';
-  reversalExpression?: ReversalExpression;
+  reversalVariant?: ReversalVariant;
   source?: CardEntrySource;
   drawSessionId?: UUID | null;
   spreadPositionId?: string | null;
@@ -49,17 +49,17 @@ export const readingCardFormSchema = z
     tarot_card_id: z.number().int().positive().nullable(),
     position_name: z.string().trim().max(120, '牌阵位置不能超过 120 个字符。'),
     orientation: z.enum(['upright', 'reversed']),
-    reversalExpression: z.enum(['underexpressed', 'overexpressed']).nullable().optional(),
+    reversalVariant: z.enum(['left', 'right']).nullable().optional(),
     source: z.enum(['drawn', 'manual']).optional(),
     drawSessionId: z.string().nullable().optional(),
     spreadPositionId: z.string().nullable().optional(),
   })
   .superRefine((value, context) => {
-    if (value.orientation === 'upright' && value.reversalExpression !== null) {
+    if (value.orientation === 'upright' && value.reversalVariant !== null) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: '正位牌不能设置逆位表达状态。',
-        path: ['reversalExpression'],
+        message: '正位牌不能设置左旋或右旋状态。',
+        path: ['reversalVariant'],
       });
     }
     if ((value.source ?? 'manual') === 'manual' && (value.drawSessionId ?? null) !== null) {
@@ -108,7 +108,7 @@ export function createEmptyReadingCard(): ReadingCardFormValue {
     tarot_card_id: null,
     position_name: '',
     orientation: 'upright',
-    reversalExpression: null,
+    reversalVariant: null,
     source: 'manual',
     drawSessionId: null,
     spreadPositionId: 'open.card.1',
@@ -156,7 +156,7 @@ export function toReadingCreateInput(
     tarot_card_id: card.tarot_card_id,
     position_name: card.position_name.trim() || null,
     orientation: card.orientation,
-    reversalExpression: card.reversalExpression ?? null,
+    reversalVariant: card.reversalVariant ?? null,
     source: card.source ?? 'manual',
     drawSessionId: card.drawSessionId ?? null,
     spreadPositionId: card.spreadPositionId ?? null,

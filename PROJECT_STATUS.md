@@ -1,5 +1,33 @@
 # Project Status
 
+## Expo SDK 54 Upgrade
+
+- Upgraded the managed Expo app from SDK 53 to SDK 54 using Expo CLI compatibility resolution.
+- Current core versions are Expo `54.0.35`, React Native `0.81.5`, React `19.1.0`, and Expo Router
+  `6.0.24`.
+- Expo Doctor passes all 18 checks, and the existing authentication, repositories, onboarding,
+  statistics, Import Assistant, local development mode, and draw experiences remain intact.
+- The project has no generated `ios/` or `android/` directories, so no native project regeneration or
+  migration was required.
+
+## Dual Reversal Mode Revision
+
+- Replaced the former expression-based product model with `disabled`, `standard`, and `dual` reversal
+  modes. Standard mode remains upright / ordinary reversed; dual mode is upright / reversed-left /
+  reversed-right and never creates an ordinary reversed card.
+- Renamed the domain field to `reversalVariant` with neutral `left` / `right` values. User-facing copy
+  consistently uses `双逆位模式`, `逆位・左旋`, and `逆位・右旋`; the App assigns no meaning to either side.
+- Centralized artwork rotation at 0°, 180°, -30°, and +30°. Reveal animation rotates only artwork,
+  and Reduced Motion displays the final angle immediately.
+- Updated draw probability boundaries, all draw-mode selectors, manual/history editing, Import
+  Assistant, Reading/Draw/Focus displays, accessibility labels, and Statistics dual-side refinement.
+- No migration was created or deployed. Existing constrained Supabase columns are handled by a
+  temporary repository storage adapter: deprecated `underexpressed` reads as `left`, and deprecated
+  `overexpressed` reads as `right`; local legacy data and Review snapshots are normalized safely.
+- Import accepts ordinary `reversed` plus explicit `reversed | left` / `reversed | right` and never
+  infers a side. Overall orientation Statistics still count all reversals, while the dual refinement
+  excludes ordinary reversals.
+
 ## Prompt 32: Rider–Waite–Smith Artwork & Deck Theme Foundation
 
 - Added 78 normalized 456 × 787 RWS “Pam-A” front assets from the Wikimedia Commons TaionWC image set. Each individual source returned `Public domain` license and usage labels through the Commons API; per-file source URLs and SHA-1 values are retained.
@@ -48,7 +76,7 @@ Implementation status: complete and verified.
 - ESLint: passed with 0 errors and 0 warnings.
 - TypeScript: passed.
 - Vitest: 8 test files and 30 tests passed.
-- Expo SDK alignment: passed. `react-native` is `0.79.6`, and the required `expo-font@~13.3.2` peer is installed.
+- Current Expo SDK alignment: SDK 54 with `react-native@0.81.5` and `expo-font@~14.0.12`.
 - Babel runtime fix: `@babel/runtime@7.29.7` is a direct production dependency, so Metro can resolve its runtime helper from the app root.
 - Expo Doctor: passed 18 of 18 checks.
 - Expo Web: passed. `expo export --platform web --clear` completed successfully.
@@ -86,15 +114,15 @@ Implementation status: complete locally; migration deployment and real remote ve
 ### Completed Scope
 
 - Added a pure, injectable DrawEngine over the canonical 78-card deck with 1–10 card validation,
-  no duplicates, deterministic ordering, and disabled/standard/expression reversal modes.
+  no duplicates, deterministic ordering, and disabled/standard/dual reversal modes.
 - DrawResult now owns its cards, effective configuration, and ISO creation time; random and time
   providers can both be fixed in tests.
 - Added temporary in-memory DrawSession coordination, editable draw results, discard-without-save,
   and handoff into the existing Reading creation form.
 - Unified App-drawn and manually entered cards through `ReadingCard.source`, `drawSessionId`, and
-  neutral optional `reversalExpression` fields. Existing manual Reading creation/editing remains available.
-- Added manual and draw-result controls for upright, ordinary reversed, underexpressed, and
-  overexpressed states; upright cards always clear the expression.
+  neutral optional `reversalVariant` fields. Existing manual Reading creation/editing remains available.
+- Added mode-aware manual and draw-result controls for upright, ordinary reversed, left, and
+  right states; upright cards always clear the variant.
 - Upgraded local persistence to schema version 4 with safe legacy defaults and strict validation.
 - Added strict Supabase mapping and updated atomic Reading RPC payloads.
 - Created local-only migration `20260713103538_unified_card_entry.sql`; no existing migration was modified.

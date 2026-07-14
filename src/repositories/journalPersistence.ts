@@ -8,6 +8,7 @@ import type {
   ReadingFollowUp,
   Topic,
 } from '../domain/types';
+import { decodeStoredReversalVariant } from './reversalStorage';
 import type { DrawSession } from '../features/draw/drawTypes';
 
 import type { JournalData, MutableJournalData } from './journalData';
@@ -81,6 +82,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function persistedReversalVariant(value: Record<string, unknown>): unknown {
+  return Object.prototype.hasOwnProperty.call(value, 'reversalVariant')
+    ? value.reversalVariant
+    : value.reversalExpression;
+}
+
 function hasIdentity(value: unknown): value is Record<string, unknown> {
   return isRecord(value) && typeof value.id === 'string' && typeof value.user_id === 'string';
 }
@@ -129,30 +136,27 @@ function validReadingCard(value: unknown): value is ReadingCard {
   ))
     return false;
   const source = value.source;
-  const expression = value.reversalExpression;
+  const legacyValue = value as Record<string, unknown>;
+  const rawVariant = persistedReversalVariant(legacyValue);
+  const variant = decodeStoredReversalVariant(rawVariant);
   const drawSessionId = value.drawSessionId;
   const spreadPositionId = value.spreadPositionId;
   const sourceValid = source === undefined || source === 'drawn' || source === 'manual';
-  const expressionValid =
-    expression === undefined ||
-    expression === null ||
-    expression === 'underexpressed' ||
-    expression === 'overexpressed';
+  const variantValid = rawVariant === undefined || variant !== undefined;
   const drawSessionValid =
     drawSessionId === undefined || drawSessionId === null || typeof drawSessionId === 'string';
   const spreadPositionValid =
     spreadPositionId === undefined ||
     spreadPositionId === null ||
     typeof spreadPositionId === 'string';
-  const stateValid =
-    value.orientation !== 'upright' || expression === undefined || expression === null;
+  const stateValid = value.orientation !== 'upright' || variant === undefined || variant === null;
   const sourceLinkValid =
     source === undefined ||
     (source === 'manual' && (drawSessionId === undefined || drawSessionId === null)) ||
     (source === 'drawn' && typeof drawSessionId === 'string');
   return (
     sourceValid &&
-    expressionValid &&
+    variantValid &&
     drawSessionValid &&
     spreadPositionValid &&
     stateValid &&
@@ -216,9 +220,11 @@ function validDrawSession(value: unknown): value is DrawSession {
       Number.isInteger(card.positionIndex) &&
       typeof card.spreadPositionId === 'string' &&
       (card.orientation === 'upright' || card.orientation === 'reversed') &&
-      (card.reversalExpression === null ||
-        card.reversalExpression === 'underexpressed' ||
-        card.reversalExpression === 'overexpressed') &&
+      (() => {
+        const legacyCard = card as Record<string, unknown>;
+        const rawVariant = persistedReversalVariant(legacyCard);
+        return rawVariant === undefined || decodeStoredReversalVariant(rawVariant) !== undefined;
+      })() &&
       card.source === 'drawn' &&
       typeof card.drawSessionId === 'string',
   );
@@ -355,10 +361,30 @@ export class JournalPersistence {
       reading.spread_id ??= null;
     });
     data.reading_cards.forEach((card) => {
+      const legacyCard = card as ReadingCard & { reversalExpression?: unknown };
       card.source ??= 'manual';
-      card.reversalExpression ??= null;
+      card.reversalVariant =
+        decodeStoredReversalVariant(persistedReversalVariant(legacyCard)) ?? null;
+      delete legacyCard.reversalExpression;
       card.drawSessionId ??= null;
       card.spreadPositionId ??= null;
+    });
+    data.draw_sessions.forEach((session) => {
+      const legacyConfiguration = session.configuration as typeof session.configuration & {
+        overexpressedProbabilityWhenReversed?: number;
+        reversalMode: typeof session.configuration.reversalMode | 'expression';
+      };
+      if ((legacyConfiguration.reversalMode as string) === 'expression')
+        session.configuration.reversalMode = 'dual';
+      session.configuration.rightProbabilityWhenReversed ??=
+        legacyConfiguration.overexpressedProbabilityWhenReversed ?? 0.5;
+      delete legacyConfiguration.overexpressedProbabilityWhenReversed;
+      session.cards.forEach((card) => {
+        const legacyCard = card as typeof card & { reversalExpression?: unknown };
+        card.reversalVariant =
+          decodeStoredReversalVariant(persistedReversalVariant(legacyCard)) ?? null;
+        delete legacyCard.reversalExpression;
+      });
     });
   }
 

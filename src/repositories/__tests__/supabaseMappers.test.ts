@@ -95,7 +95,7 @@ describe('Supabase mappers', () => {
     expect(mapReadingCardRow(base)).toMatchObject({
       source: 'manual',
       drawSessionId: null,
-      reversalExpression: null,
+      reversalVariant: null,
     });
     expect(
       mapReadingCardRow({
@@ -107,7 +107,7 @@ describe('Supabase mappers', () => {
     ).toMatchObject({
       source: 'drawn',
       drawSessionId: '40000000-0000-4000-8000-000000000001',
-      reversalExpression: 'underexpressed',
+      reversalVariant: 'left',
     });
   });
   it('rejects illegal card-entry combinations', () => {

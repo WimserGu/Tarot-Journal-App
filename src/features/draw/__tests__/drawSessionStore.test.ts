@@ -16,7 +16,7 @@ const cards = [
     positionIndex: 0,
     spreadPositionId: 'single-card.reflection',
     orientation: 'reversed' as const,
-    reversalExpression: 'underexpressed' as const,
+    reversalVariant: 'left' as const,
     source: 'drawn' as const,
   },
 ];
@@ -41,7 +41,7 @@ describe('temporary DrawSession coordination', () => {
     expect(drawSessionCardsToForm(session)[0]).toMatchObject({
       tarot_card_id: 0,
       orientation: 'reversed',
-      reversalExpression: 'underexpressed',
+      reversalVariant: 'left',
       source: 'drawn',
       drawSessionId: session.id,
     });

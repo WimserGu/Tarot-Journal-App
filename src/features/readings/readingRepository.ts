@@ -7,7 +7,7 @@ import type {
   Reading,
   ReadingCard,
   ReadingStatus,
-  ReversalExpression,
+  ReversalVariant,
   TarotCard,
   Topic,
   UUID,
@@ -26,13 +26,13 @@ export type ReadingCardInput = {
   orientation: CardOrientation;
   position_order: number;
   spreadPositionId?: string | null;
-  reversalExpression?: ReversalExpression;
+  reversalVariant?: ReversalVariant;
   source?: CardEntrySource;
   drawSessionId?: UUID | null;
 };
 
 export type NormalizedReadingCardInput = ReadingCardInput & {
-  reversalExpression: ReversalExpression;
+  reversalVariant: ReversalVariant;
   source: CardEntrySource;
   drawSessionId: UUID | null;
   spreadPositionId: string | null;
@@ -100,6 +100,7 @@ export type ReadingListFilters = {
 
 export type ReadingTimelineCard = {
   orientation: CardOrientation;
+  reversalVariant: ReversalVariant;
   position_name: string | null;
   position_order: number;
   tarot_card: TarotCard | null;
@@ -244,7 +245,7 @@ function validateCardInput(
   status: ReadingStatus,
 ): NormalizedReadingCardInput {
   const source = card.source ?? 'manual';
-  const reversalExpression = card.reversalExpression ?? null;
+  const reversalVariant = card.reversalVariant ?? null;
   const drawSessionId = card.drawSessionId ?? null;
   const spreadPositionId = card.spreadPositionId ?? null;
   if (!Number.isInteger(card.position_order) || card.position_order < 1) {
@@ -266,16 +267,12 @@ function validateCardInput(
     throw new ReadingValidationError('App 抽取的牌必须保留抽牌会话来源。');
   }
 
-  if (
-    reversalExpression !== null &&
-    reversalExpression !== 'underexpressed' &&
-    reversalExpression !== 'overexpressed'
-  ) {
-    throw new ReadingValidationError('逆位表达状态无效。');
+  if (reversalVariant !== null && reversalVariant !== 'left' && reversalVariant !== 'right') {
+    throw new ReadingValidationError('逆位左右旋状态无效。');
   }
 
-  if (card.orientation === 'upright' && reversalExpression !== null) {
-    throw new ReadingValidationError('正位牌不能带有逆位表达状态。');
+  if (card.orientation === 'upright' && reversalVariant !== null) {
+    throw new ReadingValidationError('正位牌不能带有左旋或右旋状态。');
   }
 
   if (card.tarot_card_id !== null && !tarotCardIds.has(card.tarot_card_id)) {
@@ -295,7 +292,7 @@ function validateCardInput(
   return {
     ...card,
     position_name: positionName,
-    reversalExpression,
+    reversalVariant,
     source,
     drawSessionId,
     spreadPositionId,
@@ -490,6 +487,7 @@ function buildTimelineItem(
     question_text: detail.question_text,
     cards: detail.cards.map(({ reading_card: card, tarot_card: tarotCard }) => ({
       orientation: card.orientation,
+      reversalVariant: card.reversalVariant,
       position_name: card.position_name,
       position_order: card.position_order,
       tarot_card: tarotCard,

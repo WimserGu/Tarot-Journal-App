@@ -54,7 +54,7 @@ describe('DrawSession Supabase mappers', () => {
         spread_position_ids: ['single-card.reflection'],
         reversal_mode: 'standard',
         reversed_probability: 0.5,
-        overexpressed_probability_when_reversed: 0.5,
+        right_probability_when_reversed: 0.5,
         question_text: 'What should I notice?',
         ritual: { stage: 'reveal', drawn_count: 1, revealed_position_indexes: [0] },
         table: {
@@ -93,5 +93,40 @@ describe('DrawSession Supabase mappers', () => {
       positionSnapshot: 'Reflection',
       orientation: 'upright',
     });
+  });
+  it('maps legacy dual-mode configuration and card storage values', () => {
+    const session = mapDrawSessionRow({
+      id: 'legacy-session',
+      user_id: 'user-1',
+      created_at: '2026-07-13T12:00:00.000Z',
+      updated_at: '2026-07-13T12:01:00.000Z',
+      spread_id: null,
+      status: 'draft',
+      linked_reading_id: null,
+      configuration: {
+        card_count: 1,
+        spread_id: 'free-table',
+        spread_position_ids: ['free-table.1'],
+        reversal_mode: 'expression',
+        reversed_probability: 0.5,
+        overexpressed_probability_when_reversed: 0.5,
+      },
+    });
+    const left = mapDrawSessionCardRow({
+      id: 'legacy-card',
+      draw_session_id: 'legacy-session',
+      tarot_card_id: 1,
+      position_index: 0,
+      spread_position_id: 'free-table.1',
+      position_snapshot: 'Card 1',
+      orientation: 'reversed',
+      reversal_expression: 'underexpressed',
+      source: 'drawn',
+    });
+    expect(session.configuration).toMatchObject({
+      reversalMode: 'dual',
+      rightProbabilityWhenReversed: 0.5,
+    });
+    expect(left.reversalVariant).toBe('left');
   });
 });

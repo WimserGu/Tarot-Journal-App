@@ -19,7 +19,7 @@ function valid(candidate: ImportReadingCandidate, topicId?: string): string | nu
       (card) =>
         card.tarotCardId === null ||
         card.orientation === null ||
-        (card.orientation === 'upright' && card.reversalExpression),
+        (card.orientation === 'upright' && card.reversalVariant),
     )
   )
     return 'Cards need correction.';
@@ -71,7 +71,7 @@ export async function importReviewedReadings(args: {
             position_name: null,
             position_order: index + 1,
             orientation: card.orientation!,
-            reversalExpression: card.reversalExpression,
+            reversalVariant: card.reversalVariant,
             source: 'manual',
             drawSessionId: null,
             spreadPositionId: null,

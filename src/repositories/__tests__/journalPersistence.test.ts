@@ -163,8 +163,10 @@ describe('Journal persistence', () => {
     const storage = new MemoryStorage();
     const legacyCard = {
       ...journalSeedData.reading_cards[0]!,
+      orientation: 'reversed',
       source: undefined,
-      reversalExpression: undefined,
+      reversalVariant: undefined,
+      reversalExpression: 'underexpressed',
       drawSessionId: undefined,
     };
     storage.values.set(journalStorageKeys.schema, JSON.stringify({ version: 3 }));
@@ -173,9 +175,13 @@ describe('Journal persistence', () => {
     await store.ready();
     expect(store.snapshot().reading_cards[0]).toMatchObject({
       source: 'manual',
-      reversalExpression: null,
+      reversalVariant: 'left',
       drawSessionId: null,
     });
+    await store.mutate(() => undefined);
+    const restored = createStore(storage, 'legacy-card-restored');
+    await restored.ready();
+    expect(restored.snapshot().reading_cards[0]?.reversalVariant).toBe('left');
   });
 
   it('round-trips normalized DrawSession table placement through local storage', async () => {
@@ -194,7 +200,7 @@ describe('Journal persistence', () => {
         spreadPositionIds: ['free-table.1'],
         reversalMode: 'standard' as const,
         reversedProbability: 0.5,
-        overexpressedProbabilityWhenReversed: 0.5,
+        rightProbabilityWhenReversed: 0.5,
         hiddenDeckCardIds: [1, 2, 3],
         ritual: {
           stage: 'reveal' as const,
@@ -217,17 +223,31 @@ describe('Journal persistence', () => {
           spreadPositionId: 'free-table.1',
           positionSnapshot: 'Card 1',
           orientation: 'upright' as const,
-          reversalExpression: null,
+          reversalVariant: null,
           source: 'drawn' as const,
           drawSessionId: 'draw-session-placement',
         },
       ],
     };
+    const legacySession = {
+      ...session,
+      configuration: {
+        ...session.configuration,
+        reversalMode: 'expression',
+        rightProbabilityWhenReversed: undefined,
+        overexpressedProbabilityWhenReversed: 0.25,
+      },
+      cards: session.cards.map(({ reversalVariant: _reversalVariant, ...card }) => ({
+        ...card,
+        orientation: 'reversed',
+        reversalExpression: 'overexpressed',
+      })),
+    };
     storage.values.set(
       journalStorageKeys.schema,
       JSON.stringify({ version: JOURNAL_SCHEMA_VERSION }),
     );
-    storage.values.set(journalStorageKeys.tables.draw_sessions, JSON.stringify([session]));
+    storage.values.set(journalStorageKeys.tables.draw_sessions, JSON.stringify([legacySession]));
 
     const first = createStore(storage, 'placement-first');
     await first.ready();
@@ -236,6 +256,8 @@ describe('Journal persistence', () => {
     await restored.ready();
 
     expect(restored.snapshot().draw_sessions?.[0]?.configuration).toMatchObject({
+      reversalMode: 'dual',
+      rightProbabilityWhenReversed: 0.25,
       hiddenDeckCardIds: [1, 2, 3],
       ritual: {
         revealedPositionIndexes: [0],
@@ -248,6 +270,7 @@ describe('Journal persistence', () => {
         },
       },
     });
+    expect(restored.snapshot().draw_sessions?.[0]?.cards[0]?.reversalVariant).toBe('right');
   });
 
   it('safely recovers from malformed JSON and skips malformed records', async () => {

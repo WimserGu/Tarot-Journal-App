@@ -15,7 +15,7 @@ const session = (id: string, createdAt: string, status: DrawSession['status']): 
     spreadPositionIds: ['single-card.reflection'],
     reversalMode: 'standard',
     reversedProbability: 0.5,
-    overexpressedProbabilityWhenReversed: 0.5,
+    rightProbabilityWhenReversed: 0.5,
   },
   status,
   linkedReadingId: status === 'saved' ? 'reading-1' : null,

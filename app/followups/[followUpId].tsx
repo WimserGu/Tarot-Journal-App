@@ -9,6 +9,7 @@ import {
   formatFollowUpDate,
 } from '../../src/features/followups/followUpDate';
 import { outcomeLabels } from '../../src/features/followups/followUpPresentation';
+import { reversalStateLabel } from '../../src/features/draw/reversalPresentation';
 import { useFollowUpDetail } from '../../src/features/followups/useFollowUps';
 import { followUpRepository } from '../../src/repositories/repositoryFactory';
 import { colors, spacing } from '../../src/theme/tokens';
@@ -92,7 +93,7 @@ export default function FollowUpDetailScreen() {
         {data.reading.cards.map(({ reading_card: card, tarot_card: tarot }) => (
           <Text key={card.id}>
             {card.position_order}. {tarot?.name_zh ?? '未选牌'} ·{' '}
-            {card.orientation === 'upright' ? '正位' : '逆位'}
+            {reversalStateLabel(card.orientation, card.reversalVariant)}
           </Text>
         ))}
         <Text>当时的解读：{data.reading.reading.interpretation ?? '未填写'}</Text>

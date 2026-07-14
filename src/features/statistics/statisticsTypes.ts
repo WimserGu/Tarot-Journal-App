@@ -1,5 +1,6 @@
 import type {
   CardOrientation,
+  ReversalVariant,
   QuestionTemplate,
   Reading,
   TarotCard,
@@ -17,6 +18,7 @@ export type StatisticsFilter = {
 export const defaultStatisticsFilter: StatisticsFilter = { includeDrafts: false };
 export type StatisticsCard = {
   orientation: CardOrientation;
+  reversalVariant?: ReversalVariant;
   tarotCard: TarotCard;
   positionOrder: number;
 };
@@ -55,6 +57,7 @@ export type StatisticsResult = {
   majorArcanaRatio: TraceableRatio;
   minorArcanaRatio: TraceableRatio;
   orientationDistribution: Record<CardOrientation, TraceableRatio>;
+  dualReversalDistribution: Record<'left' | 'right', TraceableRatio>;
   suitDistribution: Record<TarotSuit, TraceableRatio>;
   topCards: CardStatistic[];
   /** Complete card distribution for downstream review snapshots. */

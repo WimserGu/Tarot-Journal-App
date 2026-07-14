@@ -1,6 +1,7 @@
 import type { UUID } from '../../domain/types';
 
 import type { ReadingDetail, ReadingRepository } from './readingRepository';
+import { reversalStateLabel } from '../draw/reversalPresentation';
 
 export function buildReadingShareText(detail: ReadingDetail): string {
   const dateTime = new Intl.DateTimeFormat('zh-CN', {
@@ -16,7 +17,7 @@ export function buildReadingShareText(detail: ReadingDetail): string {
         .map(({ reading_card: card, tarot_card: tarotCard }) => {
           const position = card.position_name ? `${card.position_name}：` : '';
           const name = tarotCard?.name_zh ?? '未选择牌面';
-          const orientation = card.orientation === 'upright' ? '正位' : '逆位';
+          const orientation = reversalStateLabel(card.orientation, card.reversalVariant);
 
           return `${card.position_order}. ${position}${name} · ${orientation}`;
         })

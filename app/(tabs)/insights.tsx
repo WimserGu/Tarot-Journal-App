@@ -115,6 +115,22 @@ export default function InsightsScreen() {
             />
           </View>
           <View style={styles.card}>
+            <Text variant="subtitle">双逆位细分</Text>
+            <Text variant="muted">只统计明确记录了左右旋的逆位牌，不包含普通逆位。</Text>
+            <StatBar
+              label="逆位・左旋"
+              count={result.dualReversalDistribution.left.count}
+              ratio={result.dualReversalDistribution.left.ratio}
+              onPress={first(result.dualReversalDistribution.left.readingIds)}
+            />
+            <StatBar
+              label="逆位・右旋"
+              count={result.dualReversalDistribution.right.count}
+              ratio={result.dualReversalDistribution.right.ratio}
+              onPress={first(result.dualReversalDistribution.right.readingIds)}
+            />
+          </View>
+          <View style={styles.card}>
             <Text variant="subtitle">大 / 小阿卡那</Text>
             <StatBar
               label="大阿卡那"

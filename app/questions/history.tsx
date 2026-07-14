@@ -8,6 +8,7 @@ import { Text } from '@/components/Text';
 import type { ReadingTimelineItem } from '@/features/readings/readingRepository';
 import { useQuestionHistory } from '@/features/readings/useReadings';
 import { IconButton } from '@/features/topics/components/IconButton';
+import { reversalStateLabel } from '@/features/draw/reversalPresentation';
 import { formatTopicDate, orientationLabel } from '@/features/topics/topicPresentation';
 import { borderRadii, colors, spacing } from '@/theme/tokens';
 
@@ -74,7 +75,7 @@ export default function QuestionHistoryScreen() {
           ? item.cards
               .map(
                 (card) =>
-                  `${card.tarot_card?.name_zh ?? '未选择牌面'} · ${orientationLabel(card.orientation)}`,
+                  `${card.tarot_card?.name_zh ?? '未选择牌面'} · ${reversalStateLabel(card.orientation, card.reversalVariant)}`,
               )
               .join(' / ')
           : '尚未录入牌面'}

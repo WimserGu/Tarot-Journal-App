@@ -62,7 +62,7 @@ export function drawSessionCardsToForm(session: DrawSession): ReadingCardFormVal
     position_name: spread?.positions[index]?.title ?? card.positionSnapshot ?? '',
     spreadPositionId: spread ? card.spreadPositionId : null,
     orientation: card.orientation,
-    reversalExpression: card.reversalExpression,
+    reversalVariant: card.reversalVariant,
     source: card.source,
     drawSessionId: card.source === 'drawn' ? card.drawSessionId : null,
   }));

@@ -3,7 +3,7 @@ import { tarotCards } from '../../domain/tarotCards';
 function normalize(candidate: ImportReadingCandidate): ImportReadingCandidate {
   const cards = candidate.cards.map((card) => ({
     ...card,
-    reversalExpression: card.orientation === 'upright' ? null : card.reversalExpression,
+    reversalVariant: card.orientation === 'upright' ? null : card.reversalVariant,
   }));
   const blocked =
     !candidate.date ||
@@ -13,7 +13,7 @@ function normalize(candidate: ImportReadingCandidate): ImportReadingCandidate {
       (card) =>
         card.tarotCardId === null ||
         card.orientation === null ||
-        (card.orientation === 'upright' && card.reversalExpression),
+        (card.orientation === 'upright' && card.reversalVariant),
     );
   return { ...candidate, cards, isValid: !blocked && candidate.warnings.length === 0 };
 }
@@ -39,7 +39,7 @@ export const addCard = (candidate: ImportReadingCandidate) =>
         tarotCardId: tarotCards[0]!.id,
         rawCardName: tarotCards[0]!.name_zh,
         orientation: 'upright',
-        reversalExpression: null,
+        reversalVariant: null,
         warnings: [],
       },
     ],

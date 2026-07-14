@@ -10,7 +10,11 @@ const cups = tarotCards.find((card) => card.suit === 'cups')!;
 function item(
   id: string,
   at: string,
-  cards: { card: typeof fool; orientation: 'upright' | 'reversed' }[],
+  cards: {
+    card: typeof fool;
+    orientation: 'upright' | 'reversed';
+    reversalVariant?: 'left' | 'right' | null;
+  }[],
   options: {
     status?: 'draft' | 'completed';
     topic?: string;
@@ -39,6 +43,7 @@ function item(
     cards: cards.map((value, index) => ({
       tarotCard: value.card,
       orientation: value.orientation,
+      reversalVariant: value.reversalVariant ?? null,
       positionOrder: index + 1,
     })),
     topic: null,
@@ -81,6 +86,20 @@ describe('calculateStatistics', () => {
     expect(result.minorArcanaRatio.count).toBe(2);
     expect(result.suitDistribution.wands.count).toBe(1);
     expect(result.orientationDistribution.reversed.count).toBe(3);
+  });
+  it('keeps ordinary reversals out of the dual reversal refinement', () => {
+    const mixed = [
+      item('variants', '2026-03-10T12:00:00-04:00', [
+        { card: fool, orientation: 'reversed', reversalVariant: null },
+        { card: magician, orientation: 'reversed', reversalVariant: 'left' },
+        { card: cups, orientation: 'reversed', reversalVariant: 'right' },
+      ]),
+    ];
+    const variantResult = calculateStatistics(mixed, { includeDrafts: false }, 0);
+
+    expect(variantResult.orientationDistribution.reversed).toMatchObject({ count: 3, total: 3 });
+    expect(variantResult.dualReversalDistribution.left).toMatchObject({ count: 1, total: 2 });
+    expect(variantResult.dualReversalDistribution.right).toMatchObject({ count: 1, total: 2 });
   });
   it('counts fixed questions and safely skips temporary questions', () =>
     expect(result.questionStatistics.map((q) => q.readingCount)).toEqual([3]));

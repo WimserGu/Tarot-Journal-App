@@ -6,8 +6,8 @@ The app uses stable Topic, QuestionTemplate, and Reading repository contracts. T
 
 ## Tech Stack
 
-- Expo
-- React Native
+- Expo SDK 54
+- React Native 0.81
 - TypeScript with strict mode
 - Expo Router
 - AsyncStorage local persistence
@@ -21,21 +21,21 @@ The app uses stable Topic, QuestionTemplate, and Reading repository contracts. T
 Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
 Start the Expo development server:
 
 ```bash
-npx expo start
+pnpm exec expo start
 ```
 
 Run on a specific platform:
 
 ```bash
-npm run android
-npm run ios
-npm run web
+pnpm android
+pnpm ios
+pnpm web
 ```
 
 ## Quality Checks
@@ -43,19 +43,19 @@ npm run web
 Run lint:
 
 ```bash
-npm run lint
+pnpm lint
 ```
 
 Run TypeScript checks:
 
 ```bash
-npm run typecheck
+pnpm typecheck
 ```
 
 Format files:
 
 ```bash
-npm run format
+pnpm format
 ```
 
 ## Environment Variables
@@ -245,15 +245,17 @@ Prompt 21 adds two equal Reading entry paths: **即时抽牌** uses a pure DrawE
 the card was entered.
 
 - `ReadingCard.source` is `drawn` for cards produced by the App and `manual` for physical-card entry.
-- Legacy cards safely load as `source = manual`, `reversalExpression = null`, and `drawSessionId = null`.
-- A reversed card may optionally be `underexpressed` or `overexpressed`; these are neutral observation
-  labels, not a good/bad judgment and not a claim about the user's psychology.
-- An upright card always clears `reversalExpression`.
+- Legacy cards safely load as `source = manual`, `reversalVariant = null`, and `drawSessionId = null`.
+- Reversal modes are `disabled`, `standard`, and `dual`. Standard mode keeps the traditional
+  upright / reversed states; dual mode uses upright / reversed-left / reversed-right.
+- A reversed card may optionally use the neutral `left` or `right` variant. The App does not assign
+  meanings to either direction; users decide how, or whether, to interpret them.
+- An upright card always clears `reversalVariant`.
 - `DrawResult` is a temporary domain value containing the drawn cards, the effective configuration,
   and an ISO creation time. Random and time providers are injectable for deterministic tests.
 - DrawSession is temporary in v1. It holds configuration and editable results in memory, links to a
   Reading after save, and is discarded without creating a separate history or database table.
-- The DrawEngine prevents duplicate cards, supports 1–10 cards and disabled/standard/expression
+- The DrawEngine prevents duplicate cards, supports 1–10 cards and disabled/standard/dual
   reversal modes, and accepts an injectable RandomProvider for deterministic tests. Within the draw
   feature, `Math.random()` is isolated to the default infrastructure provider.
 - Cards manually added on the draw result page are persisted as `manual`; editing an engine-produced
@@ -271,12 +273,24 @@ pnpm exec supabase db push
 pnpm exec supabase migration list --linked
 ```
 
-Known deferred work includes spread systems, DrawSession persistence, animations, expression-specific
-statistics, AI reflection, and user-configurable probabilities.
+The current Supabase card columns retain their historical `reversal_expression` constraints. To avoid
+a new migration in this revision, repository mappers temporarily encode `left` and `right` using the
+deprecated storage values `underexpressed` and `overexpressed`, and decode them at the repository
+boundary. These deprecated names never enter the current domain or UI. Local JSON and legacy
+DrawSession configuration are normalized in the same direction. No remote migration was deployed.
+
+Card artwork uses one centralized rotation mapping: upright is 0°, ordinary reversed is 180°,
+reversed-left is about -30°, and reversed-right is about +30°. Only the artwork rotates; table
+placement, hit targets, controls, labels, notes, and accessibility elements remain upright. Reduced
+Motion skips the transition and shows the final angle immediately.
+
+Statistics continue to count every reversed card in the overall orientation total. A separate dual
+reversal refinement counts only cards that actually have a left or right variant, so ordinary
+reversals are never forced into a side. No meaning is inferred from either direction.
 
 ## Import Assistant (Phase 1)
 
-Import Assistant copies a neutral formatting prompt, then parses pasted `[Reading]` blocks locally. External AI services only format text the user chooses to share; this app makes no AI API request and never uploads pasted history. Candidates are reviewed and edited before sequential import. Topic titles match exactly or are created explicitly; cards import as `manual`, without DrawSessions or inferred spreads. Partial failures remain visible and can be retried. No migration is added. App-internal navigation warns about losing an active import draft; browser refresh/close cannot be reliably intercepted.
+Import Assistant copies a neutral formatting prompt, then parses pasted `[Reading]` blocks locally. External AI services only format text the user chooses to share; this app makes no AI API request and never uploads pasted history. Candidates are reviewed and edited before sequential import. Topic titles match exactly or are created explicitly; cards import as `manual`, without DrawSessions or inferred spreads. Strict card lines accept `upright`, ordinary `reversed`, `reversed | left`, and `reversed | right`; the formatter must not infer a side from card meanings. Partial failures remain visible and can be retried. No migration is added. App-internal navigation warns about losing an active import draft; browser refresh/close cannot be reliably intercepted.
 
 ## Free Tarot Table (Phase 1)
 
@@ -290,7 +304,7 @@ The Free Tarot Table is now a directly manipulated workspace. A click on the vir
 
 Table placement is stored inside the existing DrawSession configuration as normalized `x`/`y` coordinates plus a small z-index. Positions therefore restore proportionally at different viewport sizes. Old DrawSessions without placement data receive deterministic in-memory defaults and are not rewritten until the user acts. Local JSON persistence and the Supabase configuration mapper preserve placement alongside the hidden deck, reveal order, observation state, and temporary notes. No migration is required.
 
-Tarot visuals now use a centralized Rider–Waite–Smith theme registry covering all 78 stable card IDs. The historical “Pam-A” scan set comes from the Wikimedia Commons TaionWC collection; every individual file was checked through the Commons API for a Public Domain label. Assets are normalized to 456 × 787 without cropping symbolic content or recoloring. A neutral original App card back and missing-art fallback are bundled separately. Reversed cards rotate only the image by 180 degrees while controls and metadata remain upright.
+Tarot visuals now use a centralized Rider–Waite–Smith theme registry covering all 78 stable card IDs. The historical “Pam-A” scan set comes from the Wikimedia Commons TaionWC collection; every individual file was checked through the Commons API for a Public Domain label. Assets are normalized to 456 × 787 without cropping symbolic content or recoloring. A neutral original App card back and missing-art fallback are bundled separately. Traditional reversed cards rotate the image by 180 degrees; dual reversed cards use about -30 or +30 degrees while controls and metadata remain upright.
 
 The table, Single Card, Three Card, Focus Card, Draw Session detail, and Reading detail all resolve artwork from the existing numeric `tarotCardId`. Old records therefore display the current default theme without data changes. The card river repeats only the lightweight back asset and never loads hidden fronts. Full source, per-file URLs, Commons SHA-1 values, license labels, processing notes, jurisdiction caveat, and card-back origin are recorded in `assets/tarot/rws/ARTWORK_SOURCE.md` and `source-files.json`. No modern commercial edition, AI-generated replacement art, image upload, Supabase binary, or migration is involved.
 

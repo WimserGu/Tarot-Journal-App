@@ -23,6 +23,7 @@ import {
 } from '../readingSchema';
 import type { ReadingFormContext } from '../readingRepository';
 import { LEGACY_UNSPECIFIED_SPREAD_LABEL, readingSpreadLabel } from '../readingSpreadPresentation';
+import type { ReversalMode } from '@/features/draw/drawTypes';
 
 type ReadingFormProps = {
   context: ReadingFormContext;
@@ -33,6 +34,7 @@ type ReadingFormProps = {
   onSave: (values: ReadingFormValues, status: 'draft' | 'completed') => Promise<void>;
   saveError: string | null;
   unspecifiedSpreadLabel?: string;
+  reversalMode?: ReversalMode;
 };
 
 function isBlankCard(card: ReadingFormValues['cards'][number]): boolean {
@@ -48,6 +50,7 @@ export function ReadingForm({
   onSave,
   saveError,
   unspecifiedSpreadLabel = LEGACY_UNSPECIFIED_SPREAD_LABEL,
+  reversalMode,
 }: ReadingFormProps) {
   const {
     clearErrors,
@@ -414,11 +417,11 @@ export function ReadingForm({
               onOrientationChange={(orientation) => {
                 setValue(`cards.${index}.orientation`, orientation, { shouldDirty: true });
                 if (orientation === 'upright') {
-                  setValue(`cards.${index}.reversalExpression`, null, { shouldDirty: true });
+                  setValue(`cards.${index}.reversalVariant`, null, { shouldDirty: true });
                 }
               }}
-              onReversalExpressionChange={(expression) => {
-                setValue(`cards.${index}.reversalExpression`, expression, {
+              onReversalVariantChange={(variant) => {
+                setValue(`cards.${index}.reversalVariant`, variant, {
                   shouldDirty: true,
                   shouldValidate: true,
                 });
@@ -446,6 +449,7 @@ export function ReadingForm({
               }}
               selectedCard={selectedCard}
               value={value}
+              reversalMode={reversalMode}
             />
           );
         })}

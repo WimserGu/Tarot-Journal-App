@@ -42,6 +42,7 @@ export class RepositoryStatisticsRepository implements StatisticsRepository {
           ? [
               {
                 orientation: card.orientation,
+                reversalVariant: card.reversalVariant,
                 tarotCard: card.tarot_card,
                 positionOrder: card.position_order,
               },

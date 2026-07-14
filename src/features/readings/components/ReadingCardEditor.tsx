@@ -4,9 +4,9 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Text } from '@/components/Text';
 import type { TarotCard } from '@/domain/types';
 import type { ReadingCardFormValue } from '@/features/readings/readingSchema';
+import type { ReversalMode } from '@/features/draw/drawTypes';
+import { reversalStatesForMode } from '@/features/draw/reversalPresentation';
 import { borderRadii, colors, fontSizes, spacing } from '@/theme/tokens';
-
-import { toggleCardOrientation } from '../tarotCardPickerState';
 
 type ReadingCardEditorProps = {
   canRemove?: boolean;
@@ -18,13 +18,14 @@ type ReadingCardEditorProps = {
   onMoveDown: () => void;
   onMoveUp: () => void;
   onOrientationChange: (orientation: ReadingCardFormValue['orientation']) => void;
-  onReversalExpressionChange: (
-    expression: NonNullable<ReadingCardFormValue['reversalExpression']> | null,
+  onReversalVariantChange: (
+    variant: NonNullable<ReadingCardFormValue['reversalVariant']> | null,
   ) => void;
   onPositionNameChange: (value: string) => void;
   onRemove: () => void;
   selectedCard: TarotCard | null;
   value: ReadingCardFormValue;
+  reversalMode?: ReversalMode;
 };
 
 function ToolButton({
@@ -67,11 +68,12 @@ export function ReadingCardEditor({
   onMoveDown,
   onMoveUp,
   onOrientationChange,
-  onReversalExpressionChange,
+  onReversalVariantChange,
   onPositionNameChange,
   onRemove,
   selectedCard,
   value,
+  reversalMode,
 }: ReadingCardEditorProps) {
   return (
     <View style={styles.card}>
@@ -136,82 +138,35 @@ export function ReadingCardEditor({
 
       <View style={styles.field}>
         <Text variant="muted">方向</Text>
-        <View style={styles.segmentedControl}>
-          {(['upright', 'reversed'] as const).map((orientation) => {
-            const selected = value.orientation === orientation;
+        <View style={styles.variantOptions}>
+          {reversalStatesForMode(reversalMode).map((state) => {
+            const selected =
+              value.orientation === state.orientation &&
+              (value.reversalVariant ?? null) === state.reversalVariant;
 
             return (
               <Pressable
-                accessibilityLabel={orientation === 'upright' ? '设为正位' : '设为逆位'}
+                accessibilityLabel={`设为${state.label}`}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 disabled={disabled}
-                key={orientation}
-                onPress={() => onOrientationChange(orientation)}
+                key={`${state.orientation}:${state.reversalVariant ?? 'standard'}`}
+                onPress={() => {
+                  onOrientationChange(state.orientation);
+                  onReversalVariantChange(state.reversalVariant);
+                }}
                 style={({ pressed }) => [
-                  styles.segment,
+                  styles.variantOption,
                   selected ? styles.segmentSelected : null,
                   pressed && !disabled ? styles.pressed : null,
                 ]}
               >
-                <Text style={selected ? styles.segmentTextSelected : undefined}>
-                  {orientation === 'upright' ? '正位' : '逆位'}
-                </Text>
+                <Text style={selected ? styles.segmentTextSelected : undefined}>{state.label}</Text>
               </Pressable>
             );
           })}
         </View>
-        <Pressable
-          accessibilityLabel={value.orientation === 'upright' ? '快速切换为逆位' : '快速切换为正位'}
-          accessibilityRole="button"
-          disabled={disabled}
-          onPress={() => onOrientationChange(toggleCardOrientation(value.orientation))}
-          style={({ pressed }) => [
-            styles.orientationToggle,
-            pressed && !disabled ? styles.pressed : null,
-            disabled ? styles.toolButtonDisabled : null,
-          ]}
-        >
-          <Ionicons color={colors.accent} name="swap-horizontal" size={18} />
-          <Text style={styles.orientationToggleText}>
-            {value.orientation === 'upright' ? '切换为逆位' : '切换为正位'}
-          </Text>
-        </Pressable>
       </View>
-
-      {value.orientation === 'reversed' ? (
-        <View style={styles.field}>
-          <Text variant="muted">逆位表达</Text>
-          <View style={styles.expressionOptions}>
-            {(
-              [
-                [null, '普通逆位'],
-                ['underexpressed', '表达不足'],
-                ['overexpressed', '表达过度'],
-              ] as const
-            ).map(([expression, label]) => {
-              const selected = (value.reversalExpression ?? null) === expression;
-              return (
-                <Pressable
-                  accessibilityLabel={`设置为${label}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  disabled={disabled}
-                  key={expression ?? 'standard'}
-                  onPress={() => onReversalExpressionChange(expression)}
-                  style={({ pressed }) => [
-                    styles.expressionOption,
-                    selected ? styles.segmentSelected : null,
-                    pressed && !disabled ? styles.pressed : null,
-                  ]}
-                >
-                  <Text style={selected ? styles.segmentTextSelected : undefined}>{label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      ) : null}
 
       <Text variant="muted">
         来源：{(value.source ?? 'manual') === 'drawn' ? 'App 抽取' : '手动添加'}
@@ -247,7 +202,7 @@ const styles = StyleSheet.create({
   field: {
     gap: spacing.xs,
   },
-  expressionOption: {
+  variantOption: {
     alignItems: 'center',
     borderColor: colors.border,
     borderRadius: borderRadii.sm,
@@ -257,7 +212,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: spacing.sm,
   },
-  expressionOptions: {
+  variantOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.xs,
@@ -282,31 +237,6 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.72,
-  },
-  orientationToggle: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    gap: spacing.xs,
-    minHeight: 36,
-    paddingHorizontal: spacing.xs,
-  },
-  orientationToggleText: {
-    color: colors.accent,
-    fontWeight: '700',
-  },
-  segment: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 44,
-  },
-  segmentedControl: {
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    overflow: 'hidden',
   },
   segmentSelected: {
     backgroundColor: colors.accent,

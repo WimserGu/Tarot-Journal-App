@@ -17,6 +17,7 @@ import {
   ValidationRepositoryError,
 } from './repositoryErrors';
 import { mapDrawSessionCardRow, mapDrawSessionRow, mapReadingRow } from './supabaseMappers';
+import { encodeStoredReversalVariant } from './reversalStorage';
 
 type DbError = { code?: string; message?: string } | null;
 
@@ -40,7 +41,7 @@ export function drawConfigurationRow(session: Pick<DrawSession, 'configuration'>
     spread_position_ids: [...value.spreadPositionIds],
     reversal_mode: value.reversalMode,
     reversed_probability: value.reversedProbability,
-    overexpressed_probability_when_reversed: value.overexpressedProbabilityWhenReversed,
+    right_probability_when_reversed: value.rightProbabilityWhenReversed,
     question_text: value.questionText,
     hidden_deck_card_ids: value.hiddenDeckCardIds ?? [],
     table: value.table
@@ -116,7 +117,7 @@ export class SupabaseDrawSessionRepository implements DrawSessionRepository {
       spread_position_id: card.spreadPositionId,
       position_snapshot: card.positionSnapshot ?? `Card ${index + 1}`,
       orientation: card.orientation,
-      reversal_expression: card.reversalExpression,
+      reversal_expression: encodeStoredReversalVariant(card.reversalVariant),
       source: card.source,
     }));
     if (cardRows.length > 0) {
@@ -176,7 +177,7 @@ export class SupabaseDrawSessionRepository implements DrawSessionRepository {
       spread_position_id: card.spreadPositionId,
       position_snapshot: card.positionSnapshot ?? `Card ${index + 1}`,
       orientation: card.orientation,
-      reversal_expression: card.reversalExpression,
+      reversal_expression: encodeStoredReversalVariant(card.reversalVariant),
       source: card.source,
     }));
     if (cardRows.length > 0) {

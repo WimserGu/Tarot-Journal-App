@@ -1,4 +1,4 @@
-import { DEFAULT_DRAW_CONFIGURATION, type DrawConfiguration, type ReversalMode } from './drawTypes';
+import type { DrawConfiguration, ReversalMode } from './drawTypes';
 
 export const FREE_TABLE_REVERSAL_OPTIONS = [
   {
@@ -8,13 +8,13 @@ export const FREE_TABLE_REVERSAL_OPTIONS = [
   },
   {
     value: 'standard',
-    label: '普通逆位',
-    description: '牌可能为正位或逆位；逆位不区分表达方式。',
+    label: '普通正逆位',
+    description: '使用传统的正位与倒置逆位。',
   },
   {
-    value: 'expression',
-    label: '逆位表达',
-    description: '逆位牌会进一步记录为“表达不足”或“表达过度”。',
+    value: 'dual',
+    label: '双逆位模式',
+    description: '逆位分为左旋与右旋，由你自行定义两个方向的意义。',
   },
 ] as const satisfies readonly {
   value: ReversalMode;
@@ -23,31 +23,31 @@ export const FREE_TABLE_REVERSAL_OPTIONS = [
 }[];
 
 export function reversalModeForDraw(
-  drawMode: string | undefined,
-  freeTableMode: ReversalMode,
+  _drawMode: string | undefined,
+  selectedMode: ReversalMode,
 ): ReversalMode {
-  return drawMode === 'table' ? freeTableMode : DEFAULT_DRAW_CONFIGURATION.reversalMode;
+  return selectedMode;
 }
 
 export function resolveFreeTableReversal(
   configuration: Pick<
     DrawConfiguration,
-    'reversalMode' | 'reversedProbability' | 'overexpressedProbabilityWhenReversed'
+    'reversalMode' | 'reversedProbability' | 'rightProbabilityWhenReversed'
   >,
   reversalRoll = Math.random(),
-  expressionRoll = Math.random(),
+  variantRoll = Math.random(),
 ) {
   const reversed =
     configuration.reversalMode !== 'disabled' && reversalRoll < configuration.reversedProbability;
-  const reversalExpression =
-    reversed && configuration.reversalMode === 'expression'
-      ? expressionRoll < configuration.overexpressedProbabilityWhenReversed
-        ? ('overexpressed' as const)
-        : ('underexpressed' as const)
+  const reversalVariant =
+    reversed && configuration.reversalMode === 'dual'
+      ? variantRoll < configuration.rightProbabilityWhenReversed
+        ? ('right' as const)
+        : ('left' as const)
       : null;
 
   return {
     orientation: reversed ? ('reversed' as const) : ('upright' as const),
-    reversalExpression,
+    reversalVariant,
   };
 }

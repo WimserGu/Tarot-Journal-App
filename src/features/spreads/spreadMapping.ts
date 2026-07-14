@@ -9,7 +9,7 @@ export function cardsForSpread(spread: Spread, cards: readonly ReadingCardFormVa
       tarot_card_id: current?.tarot_card_id ?? null,
       position_name: position.title,
       orientation: current?.orientation ?? 'upright',
-      reversalExpression: current?.reversalExpression ?? null,
+      reversalVariant: current?.reversalVariant ?? null,
       source: current?.source ?? 'manual',
       drawSessionId: current?.drawSessionId ?? null,
       spreadPositionId: position.id,

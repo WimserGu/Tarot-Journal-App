@@ -5,7 +5,7 @@ export type ImportCardCandidate = {
   tarotCardId: number | null;
   rawCardName: string;
   orientation: 'upright' | 'reversed' | null;
-  reversalExpression: 'underexpressed' | 'overexpressed' | null;
+  reversalVariant: 'left' | 'right' | null;
   warnings: ImportWarning[];
 };
 export type ImportReadingCandidate = {
@@ -48,12 +48,14 @@ export function parseImportText(input: string): ImportParseResult {
 function parseBlock(block: string, order: number): ImportReadingCandidate {
   const warnings: ImportWarning[] = [];
   const fields = new Map<string, string[]>();
+  const fieldOccurrences = new Map<string, number>();
   let current: string | null = null;
   block.split('\n').forEach((raw) => {
     const line = raw.trimEnd();
     const match = /^(Date|Topic|Question|Cards|Notes):\s*(.*)$/.exec(line);
     if (match) {
       current = match[1]!;
+      fieldOccurrences.set(current, (fieldOccurrences.get(current) ?? 0) + 1);
       const values = fields.get(current) ?? [];
       values.push(match[2]!);
       fields.set(current, values);
@@ -64,7 +66,7 @@ function parseBlock(block: string, order: number): ImportReadingCandidate {
   required.forEach((name) => {
     if (!fields.has(name))
       warnings.push({ code: 'missing_field', message: `缺少 ${name}。`, field: name });
-    if ((fields.get(name)?.length ?? 0) > 1)
+    if ((fieldOccurrences.get(name) ?? 0) > 1)
       warnings.push({ code: 'duplicate_field', message: `${name} 重复。`, field: name });
   });
   const dateRaw = fields.get('Date')?.[0]?.trim() ?? '';
@@ -74,6 +76,7 @@ function parseBlock(block: string, order: number): ImportReadingCandidate {
   if (!question)
     warnings.push({ code: 'missing_question', message: '问题不能为空。', field: 'Question' });
   const cards = (fields.get('Cards') ?? []).filter((line) => line.trim()).map(parseCard);
+  warnings.push(...cards.flatMap((card) => card.warnings));
   if (!cards.length)
     warnings.push({ code: 'missing_cards', message: '至少需要一张牌。', field: 'Cards' });
   if (cards.some((card) => card.tarotCardId === null || card.orientation === null))
@@ -93,31 +96,30 @@ function parseBlock(block: string, order: number): ImportReadingCandidate {
 }
 function parseCard(line: string): ImportCardCandidate {
   const warnings: ImportWarning[] = [];
-  const match =
-    /^\s*-\s*([^|]+?)\s*\|\s*(upright|reversed)(?:\s*\|\s*(underexpressed|overexpressed))?\s*$/.exec(
-      line,
-    );
+  const match = /^\s*-\s*([^|]+?)\s*\|\s*(upright|reversed)(?:\s*\|\s*(left|right))?\s*$/.exec(
+    line,
+  );
   if (!match)
     return {
       tarotCardId: null,
       rawCardName: line.trim(),
       orientation: null,
-      reversalExpression: null,
+      reversalVariant: null,
       warnings: [{ code: 'malformed_card', message: `牌面格式无效：${line}` }],
     };
   const card = tarotCards.find((item) => item.name_zh === match[1]!.trim());
   const orientation = match[2] as 'upright' | 'reversed';
-  const expression = (match[3] ?? null) as ImportCardCandidate['reversalExpression'];
+  const variant = (match[3] ?? null) as ImportCardCandidate['reversalVariant'];
   if (!card) warnings.push({ code: 'unknown_card', message: `无法识别牌名：${match[1]!.trim()}` });
-  if (orientation === 'upright' && expression)
-    warnings.push({ code: 'upright_expression', message: '正位不能带逆位表达。' });
+  if (orientation === 'upright' && variant)
+    warnings.push({ code: 'upright_variant', message: '正位不能带左旋或右旋状态。' });
   return {
     tarotCardId: card?.id ?? null,
     rawCardName: match[1]!.trim(),
     orientation,
-    reversalExpression: expression,
+    reversalVariant: variant,
     warnings,
   };
 }
 
-export const IMPORT_AI_PROMPT = `请把下面的塔罗记录整理为严格格式。\n\n不要解释。\n不要分析。\n不要总结。\n不要分类。\n不要补充缺失信息。\n不要遗漏任何一次抽牌。\n不要改变问题原意。\n保持原始顺序。\n\n每条记录必须输出为：\n[Reading]\nDate: YYYY-MM-DD\nTopic:\nQuestion:\nCards:\n- 牌名 | upright\n- 牌名 | reversed\nNotes:\n\n规则：没有日期、Topic 或 Notes 时留空；牌名使用标准中文塔罗牌名；只有原文明确写出表达不足/过度时才使用 underexpressed/overexpressed；只输出整理结果。\n\n示例：\n[Reading]\nDate: 2026-07-13\nTopic: 关系\nQuestion: 她现在想对我说什么？\nCards:\n- 星币国王 | upright\nNotes:`;
+export const IMPORT_AI_PROMPT = `请把下面的塔罗记录整理为严格格式。\n\n不要解释。\n不要分析。\n不要总结。\n不要分类。\n不要补充缺失信息。\n不要遗漏任何一次抽牌。\n不要改变问题原意。\n保持原始顺序。\n\n每条记录必须输出为：\n[Reading]\nDate: YYYY-MM-DD\nTopic:\nQuestion:\nCards:\n- 牌名 | upright\n- 牌名 | reversed\n- 牌名 | reversed | left\n- 牌名 | reversed | right\nNotes:\n\n规则：没有日期、Topic 或 Notes 时留空；牌名使用标准中文塔罗牌名；原文只有“逆位”时输出 reversed；原文明示“左旋”时输出 reversed | left；原文明示“右旋”时输出 reversed | right；不得根据牌义猜测左右；只输出整理结果。\n\n示例：\n[Reading]\nDate: 2026-07-13\nTopic: 关系\nQuestion: 她现在想对我说什么？\nCards:\n- 星币国王 | upright\nNotes:`;

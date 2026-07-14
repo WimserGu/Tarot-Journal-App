@@ -50,6 +50,7 @@ import {
   UnknownRepositoryError,
   ValidationRepositoryError,
 } from './repositoryErrors';
+import { encodeStoredReversalVariant } from './reversalStorage';
 import {
   mapQuestionTemplatePositionRow,
   mapQuestionTemplateRow,
@@ -309,7 +310,7 @@ export class SupabaseReadingRepository extends SupabaseRepositoryBase implements
         position_name: card.position_name,
         orientation: card.orientation,
         position_order: card.position_order,
-        reversal_expression: card.reversalExpression,
+        reversal_expression: encodeStoredReversalVariant(card.reversalVariant ?? null),
         source: card.source,
         draw_session_id: card.drawSessionId,
         spread_position_id: card.spreadPositionId,

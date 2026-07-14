@@ -6,14 +6,11 @@ import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { IconButton } from '@/features/topics/components/IconButton';
+import { reversalStateLabel } from '@/features/draw/reversalPresentation';
 import { TopicIcon } from '@/features/topics/components/TopicIcon';
 import { questionFrequencyLabels } from '@/features/topics/topicConstants';
 import { topicRepository } from '@/repositories/repositoryFactory';
-import {
-  formatTopicDate,
-  getCurrentTimeZone,
-  orientationLabel,
-} from '@/features/topics/topicPresentation';
+import { formatTopicDate, getCurrentTimeZone } from '@/features/topics/topicPresentation';
 import type { TopicDeletionSummary, TopicRecentReading } from '@/features/topics/topicRepository';
 import { useTopicDetail } from '@/features/topics/useTopics';
 import { borderRadii, colors, spacing } from '@/theme/tokens';
@@ -34,7 +31,7 @@ function readingCardLabel(reading: TopicRecentReading): string {
   return reading.cards
     .map((card) => {
       const position = card.position_name ? `${card.position_name}：` : '';
-      return `${position}${card.tarot_card.name_zh} · ${orientationLabel(card.orientation)}`;
+      return `${position}${card.tarot_card.name_zh} · ${reversalStateLabel(card.orientation, card.reversalVariant)}`;
     })
     .join(' / ');
 }

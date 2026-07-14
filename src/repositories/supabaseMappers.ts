@@ -7,12 +7,12 @@ import type {
   Reading,
   ReadingCard,
   ReadingStatus,
-  ReversalExpression,
   Topic,
   TopicIcon,
 } from '../domain/types';
 import type { DrawSession, DrawnCard, DrawConfiguration } from '../features/draw/drawTypes';
 import { ValidationRepositoryError } from './repositoryErrors';
+import { decodeStoredReversalVariant } from './reversalStorage';
 
 type Row = Record<string, unknown>;
 
@@ -123,15 +123,12 @@ export function mapReadingCardRow(row: Row): ReadingCard {
     row.source === undefined
       ? 'manual'
       : enumValue<CardEntrySource>(row, 'source', ['drawn', 'manual']);
-  const reversalExpression =
-    row.reversal_expression === undefined || row.reversal_expression === null
-      ? null
-      : enumValue<Exclude<ReversalExpression, null>>(row, 'reversal_expression', [
-          'underexpressed',
-          'overexpressed',
-        ]);
+  const decodedReversalVariant = decodeStoredReversalVariant(row.reversal_expression);
+  if (decodedReversalVariant === undefined && row.reversal_expression !== undefined)
+    fail('reversal_expression');
+  const reversalVariant = decodedReversalVariant ?? null;
   const orientation = enumValue<CardOrientation>(row, 'orientation', ['upright', 'reversed']);
-  if (orientation === 'upright' && reversalExpression !== null) fail('reversal_expression');
+  if (orientation === 'upright' && reversalVariant !== null) fail('reversal_expression');
   const drawSessionId = optionalNullableString(row, 'draw_session_id');
   if (source === 'manual' && drawSessionId !== null) fail('draw_session_id');
   if (source === 'drawn' && drawSessionId === null) fail('draw_session_id');
@@ -144,7 +141,7 @@ export function mapReadingCardRow(row: Row): ReadingCard {
     position_name: nullableString(row, 'position_name'),
     spreadPositionId: optionalNullableString(row, 'spread_position_id'),
     orientation,
-    reversalExpression,
+    reversalVariant,
     source,
     drawSessionId,
     created_at: iso(row, 'created_at'),
@@ -155,18 +152,19 @@ export function mapReadingCardRow(row: Row): ReadingCard {
 function drawConfiguration(value: unknown): DrawConfiguration {
   if (!isRecord(value) || !Array.isArray(value.spread_position_ids)) fail('configuration');
   const cardCount = value.card_count;
-  const reversalMode = value.reversal_mode;
+  const reversalMode = value.reversal_mode === 'expression' ? 'dual' : value.reversal_mode;
   const reversedProbability = value.reversed_probability;
-  const overexpressedProbability = value.overexpressed_probability_when_reversed;
+  const rightProbability =
+    value.right_probability_when_reversed ?? value.overexpressed_probability_when_reversed;
   const ritual = value.ritual;
   const table = value.table;
   if (
     typeof cardCount !== 'number' ||
     !Number.isInteger(cardCount) ||
     typeof value.spread_id !== 'string' ||
-    !['disabled', 'standard', 'expression'].includes(String(reversalMode)) ||
+    !['disabled', 'standard', 'dual'].includes(String(reversalMode)) ||
     typeof reversedProbability !== 'number' ||
-    typeof overexpressedProbability !== 'number' ||
+    typeof rightProbability !== 'number' ||
     !value.spread_position_ids.every((id) => typeof id === 'string')
   )
     fail('configuration');
@@ -176,7 +174,7 @@ function drawConfiguration(value: unknown): DrawConfiguration {
     spreadPositionIds: value.spread_position_ids as string[],
     reversalMode: reversalMode as DrawConfiguration['reversalMode'],
     reversedProbability,
-    overexpressedProbabilityWhenReversed: overexpressedProbability,
+    rightProbabilityWhenReversed: rightProbability,
   };
   if (typeof value.question_text === 'string') configuration.questionText = value.question_text;
   if (
@@ -251,11 +249,11 @@ export function mapDrawSessionRow(row: Row): DrawSession {
 
 export function mapDrawSessionCardRow(row: Row): DrawnCard {
   const orientation = enumValue<CardOrientation>(row, 'orientation', ['upright', 'reversed']);
-  const reversalExpression = nullableString(
-    row,
-    'reversal_expression',
-  ) as DrawnCard['reversalExpression'];
-  if (orientation === 'upright' && reversalExpression !== null) fail('reversal_expression');
+  const decodedReversalVariant = decodeStoredReversalVariant(row.reversal_expression);
+  if (decodedReversalVariant === undefined && row.reversal_expression !== undefined)
+    fail('reversal_expression');
+  const reversalVariant = decodedReversalVariant ?? null;
+  if (orientation === 'upright' && reversalVariant !== null) fail('reversal_expression');
   return {
     id: string(row, 'id'),
     tarotCardId: integer(row, 'tarot_card_id'),
@@ -263,7 +261,7 @@ export function mapDrawSessionCardRow(row: Row): DrawnCard {
     spreadPositionId: string(row, 'spread_position_id'),
     positionSnapshot: string(row, 'position_snapshot'),
     orientation,
-    reversalExpression,
+    reversalVariant,
     source: enumValue<CardEntrySource>(row, 'source', ['drawn', 'manual']),
     drawSessionId: string(row, 'draw_session_id'),
   };

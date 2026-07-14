@@ -1,4 +1,4 @@
-import type { CardOrientation } from '../../../domain/types';
+import type { CardOrientation, ReversalVariant } from '../../../domain/types';
 import { DEFAULT_DECK_THEME_ID, defaultTarotArtwork } from './defaultTarotArtwork';
 import { fallbackTarotFront } from './tarotArtworkFallback';
 import type {
@@ -69,8 +69,35 @@ export function getTarotCardBackArtwork(themeId = defaultDeckThemeId) {
   return getCardBackSource(themeId);
 }
 
-export function artworkRotation(orientation: CardOrientation) {
-  return orientation === 'reversed' ? [{ rotate: '180deg' as const }] : undefined;
+export function getCardArtworkRotation(
+  orientation: CardOrientation,
+  reversalVariant: ReversalVariant,
+): number {
+  if (orientation === 'upright') return 0;
+  if (reversalVariant === 'left') return -30;
+  if (reversalVariant === 'right') return 30;
+  return 180;
+}
+
+export function getCardRevealRotation(
+  orientation: CardOrientation,
+  reversalVariant: ReversalVariant,
+  reducedMotion: boolean,
+): { from: number; to: number; duration: number } {
+  const finalRotation = getCardArtworkRotation(orientation, reversalVariant);
+  return {
+    from: reducedMotion ? finalRotation : 0,
+    to: finalRotation,
+    duration: reducedMotion ? 0 : 320,
+  };
+}
+
+export function getTraditionalReversalInspectionRotation(reversalVariant: ReversalVariant): number {
+  return reversalVariant === 'left' ? -180 : 180;
+}
+
+export function artworkRotation(orientation: CardOrientation, reversalVariant: ReversalVariant) {
+  return [{ rotate: `${getCardArtworkRotation(orientation, reversalVariant)}deg` }];
 }
 
 export function registeredDeckThemes(): readonly TarotDeckTheme[] {

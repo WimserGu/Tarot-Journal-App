@@ -12,6 +12,7 @@ import {
 import type { TopicTimelineFilters } from '@/features/readings/readingRepository';
 import { useReadingFormContext, useTopicTimeline } from '@/features/readings/useReadings';
 import { IconButton } from '@/features/topics/components/IconButton';
+import { reversalStateLabel } from '@/features/draw/reversalPresentation';
 import { formatTopicDate, orientationLabel } from '@/features/topics/topicPresentation';
 import { borderRadii, colors, fontSizes, spacing } from '@/theme/tokens';
 
@@ -86,7 +87,7 @@ export default function TopicTimelineScreen() {
           ? item.cards
               .map((card) => {
                 const position = card.position_name ? `${card.position_name}：` : '';
-                return `${position}${card.tarot_card?.name_zh ?? '未选择牌面'} · ${orientationLabel(card.orientation)}`;
+                return `${position}${card.tarot_card?.name_zh ?? '未选择牌面'} · ${reversalStateLabel(card.orientation, card.reversalVariant)}`;
               })
               .join(' / ')
           : '尚未录入牌面'}
