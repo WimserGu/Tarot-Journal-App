@@ -14,6 +14,33 @@ function cloneCards(cards: readonly DrawnCard[]): DrawnCard[] {
   return cards.map((card) => ({ ...card }));
 }
 
+function cloneConfiguration(configuration: DrawSession['configuration']) {
+  return {
+    ...configuration,
+    spreadPositionIds: [...configuration.spreadPositionIds],
+    hiddenDeckCardIds: configuration.hiddenDeckCardIds
+      ? [...configuration.hiddenDeckCardIds]
+      : undefined,
+    ritual: configuration.ritual
+      ? {
+          ...configuration.ritual,
+          revealedPositionIndexes: [...configuration.ritual.revealedPositionIndexes],
+          cardNotes: { ...configuration.ritual.cardNotes },
+        }
+      : undefined,
+    table: configuration.table
+      ? {
+          placementsByCardId: Object.fromEntries(
+            Object.entries(configuration.table.placementsByCardId).map(([id, placement]) => [
+              id,
+              { ...placement },
+            ]),
+          ),
+        }
+      : undefined,
+  };
+}
+
 function validateCards(cards: readonly DrawnCard[], allowEmpty = false): void {
   if (cards.length === 0 && !allowEmpty)
     throw new ValidationRepositoryError('A saved draw session needs at least one card.');
@@ -45,7 +72,7 @@ export class MockDrawSessionRepository implements DrawSessionRepository {
     const now = this.store.now();
     const id = this.store.createId('draw-session');
     const spread =
-      input.spreadId === 'free-table'
+      input.configuration.spreadId === 'free-table'
         ? null
         : spreadRepository.resolveSpread(input.spreadId ?? input.configuration.spreadId);
     const cards = input.cards.map((card, index) => ({
@@ -61,10 +88,7 @@ export class MockDrawSessionRepository implements DrawSessionRepository {
       createdAt: now,
       updatedAt: now,
       spreadId: input.spreadId,
-      configuration: {
-        ...input.configuration,
-        spreadPositionIds: [...input.configuration.spreadPositionIds],
-      },
+      configuration: cloneConfiguration(input.configuration),
       status: 'draft',
       linkedReadingId: null,
       cards,
@@ -92,10 +116,7 @@ export class MockDrawSessionRepository implements DrawSessionRepository {
     const updated: DrawSession = {
       ...current,
       cards,
-      configuration: {
-        ...input.configuration,
-        spreadPositionIds: [...input.configuration.spreadPositionIds],
-      },
+      configuration: cloneConfiguration(input.configuration),
       spreadId: input.spreadId,
       status,
       linkedReadingId: input.linkedReadingId ?? current.linkedReadingId,
@@ -115,7 +136,13 @@ export class MockDrawSessionRepository implements DrawSessionRepository {
       .draw_sessions?.find(
         (candidate) => candidate.id === id && candidate.userId === this.store.userId,
       );
-    return session ? { ...session, cards: cloneCards(session.cards) } : null;
+    return session
+      ? {
+          ...session,
+          configuration: cloneConfiguration(session.configuration),
+          cards: cloneCards(session.cards),
+        }
+      : null;
   }
 
   async list(): Promise<DrawSession[]> {
@@ -124,7 +151,11 @@ export class MockDrawSessionRepository implements DrawSessionRepository {
     return sessions
       .filter((session) => session.userId === this.store.userId && session.status !== 'discarded')
       .sort((first, second) => second.createdAt.localeCompare(first.createdAt))
-      .map((session) => ({ ...session, cards: cloneCards(session.cards) }));
+      .map((session) => ({
+        ...session,
+        configuration: cloneConfiguration(session.configuration),
+        cards: cloneCards(session.cards),
+      }));
   }
 
   async getActiveDraft(): Promise<DrawSession | null> {
@@ -135,7 +166,13 @@ export class MockDrawSessionRepository implements DrawSessionRepository {
     if (drafts.length > 1)
       throw new ValidationRepositoryError('Only one active draw draft is allowed.');
     const session = drafts[0];
-    return session ? { ...session, cards: cloneCards(session.cards) } : null;
+    return session
+      ? {
+          ...session,
+          configuration: cloneConfiguration(session.configuration),
+          cards: cloneCards(session.cards),
+        }
+      : null;
   }
 
   async listRelatedReadings(id: UUID): Promise<Reading[]> {

@@ -1,0 +1,19 @@
+{
+  "deckId": "rws-1909",
+  "displayName": "Rider–Waite–Smith Tarot",
+  "artist": "Pamela Colman Smith",
+  "designer": "A. E. Waite",
+  "originalPublicationYear": 1909,
+  "sourceName": "Wikimedia Commons — Rider–Waite–Smith tarot deck (TaionWC)",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/Category:Rider-Waite-Smith_tarot_deck_(TaionWC)",
+  "licenseLabel": "Public Domain Mark (verified on each individual file through the Commons API)",
+  "attribution": "Rider–Waite–Smith illustrations by Pamela Colman Smith, first published 1909.",
+  "cardBackSource": "Original geometric artwork created for Tarot Journal App.",
+  "assetVersion": "1.0.0",
+  "frontCount": 78,
+  "normalizedDimensions": {
+    "width": 456,
+    "height": 787
+  },
+  "accessedAt": "2026-07-14"
+}

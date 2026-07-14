@@ -59,8 +59,8 @@ export function drawSessionCardsToForm(session: DrawSession): ReadingCardFormVal
         );
   return session.cards.map((card, index) => ({
     tarot_card_id: card.tarotCardId,
-    position_name: spread?.positions[index]?.title ?? '',
-    spreadPositionId: card.spreadPositionId,
+    position_name: spread?.positions[index]?.title ?? card.positionSnapshot ?? '',
+    spreadPositionId: spread ? card.spreadPositionId : null,
     orientation: card.orientation,
     reversalExpression: card.reversalExpression,
     source: card.source,

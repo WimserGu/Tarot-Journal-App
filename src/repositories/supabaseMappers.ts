@@ -159,6 +159,7 @@ function drawConfiguration(value: unknown): DrawConfiguration {
   const reversedProbability = value.reversed_probability;
   const overexpressedProbability = value.overexpressed_probability_when_reversed;
   const ritual = value.ritual;
+  const table = value.table;
   if (
     typeof cardCount !== 'number' ||
     !Number.isInteger(cardCount) ||
@@ -178,6 +179,11 @@ function drawConfiguration(value: unknown): DrawConfiguration {
     overexpressedProbabilityWhenReversed: overexpressedProbability,
   };
   if (typeof value.question_text === 'string') configuration.questionText = value.question_text;
+  if (
+    Array.isArray(value.hidden_deck_card_ids) &&
+    value.hidden_deck_card_ids.every(Number.isInteger)
+  )
+    configuration.hiddenDeckCardIds = value.hidden_deck_card_ids as number[];
   if (ritual !== null && ritual !== undefined) {
     if (
       !isRecord(ritual) ||
@@ -199,6 +205,31 @@ function drawConfiguration(value: unknown): DrawConfiguration {
               .map(([key, note]) => [key, note as string]),
           )
         : {},
+    };
+  }
+  if (isRecord(table) && isRecord(table.placements_by_card_id)) {
+    configuration.table = {
+      placementsByCardId: Object.fromEntries(
+        Object.entries(table.placements_by_card_id).flatMap(([cardId, placement]) => {
+          if (
+            !isRecord(placement) ||
+            typeof placement.x !== 'number' ||
+            typeof placement.y !== 'number' ||
+            !Number.isInteger(placement.z_index)
+          )
+            return [];
+          return [
+            [
+              cardId,
+              {
+                x: Math.max(0, Math.min(1, placement.x)),
+                y: Math.max(0, Math.min(1, placement.y)),
+                zIndex: Math.max(1, Math.min(1000, placement.z_index as number)),
+              },
+            ],
+          ];
+        }),
+      ),
     };
   }
   return configuration;

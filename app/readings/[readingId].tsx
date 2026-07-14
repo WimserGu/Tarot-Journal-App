@@ -18,6 +18,7 @@ import { formatFollowUpDate } from '@/features/followups/followUpDate';
 import { outcomeLabels } from '@/features/followups/followUpPresentation';
 import { borderRadii, colors, spacing } from '@/theme/tokens';
 import { spreadRepository } from '@/features/spreads/spreadRepository';
+import { CardArtwork } from '@/features/draw/components/CardArtwork';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -229,9 +230,7 @@ export default function ReadingDetailScreen() {
         {originalDrawSessionId ? (
           <Button
             label="查看原始抽牌"
-            onPress={() =>
-              router.push(`/draw/${originalDrawSessionId}` as never)
-            }
+            onPress={() => router.push(`/draw/${originalDrawSessionId}` as never)}
           />
         ) : null}
       </View>
@@ -245,6 +244,14 @@ export default function ReadingDetailScreen() {
             );
             return (
               <View key={readingCard.id} style={styles.cardRow}>
+                {readingCard.tarot_card_id !== null ? (
+                  <CardArtwork
+                    accessibilityLabel={`${tarotCard?.name_zh ?? '未知牌面'}，${orientationLabel(readingCard.orientation)}`}
+                    cardId={readingCard.tarot_card_id}
+                    orientation={readingCard.orientation}
+                    size="table"
+                  />
+                ) : null}
                 <Text variant="subtitle">
                   {spreadPosition?.title ??
                     readingCard.position_name ??
@@ -334,6 +341,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   cardRow: {
+    alignItems: 'center',
     backgroundColor: colors.surface,
     borderColor: colors.border,
     borderRadius: borderRadii.md,

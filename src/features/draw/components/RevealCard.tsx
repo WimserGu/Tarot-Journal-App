@@ -1,21 +1,23 @@
 import { useEffect, useState } from 'react';
-import { AccessibilityInfo, Animated, Pressable, StyleSheet } from 'react-native';
-import { Text } from '@/components/Text';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
+import { AccessibilityInfo, Animated } from 'react-native';
+import type { CardOrientation, ReversalExpression } from '@/domain/types';
+import { CardArtwork } from './CardArtwork';
 import { FaceDownCard } from './FaceDownCard';
 
 export function RevealCard({
   revealed,
   label,
+  cardId,
   name,
   orientation,
-  onReveal,
+  reversalExpression,
 }: {
   revealed: boolean;
   label: string;
+  cardId: number;
   name: string;
-  orientation: string;
-  onReveal: () => void;
+  orientation: CardOrientation;
+  reversalExpression?: ReversalExpression;
 }) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const opacity = useState(new Animated.Value(revealed ? 1 : 0))[0];
@@ -26,29 +28,26 @@ export function RevealCard({
     if (revealed && !reduceMotion)
       Animated.timing(opacity, { toValue: 1, duration: 320, useNativeDriver: true }).start();
   }, [opacity, reduceMotion, revealed]);
-  if (!revealed)
-    return (
-      <Pressable accessibilityRole="button" accessibilityLabel={`揭示 ${label}`} onPress={onReveal}>
-        <FaceDownCard label={label} />
-      </Pressable>
-    );
+  if (!revealed) return <FaceDownCard label={label} size="table" />;
+  const orientationText = orientation === 'reversed' ? '逆位' : '正位';
+  const expressionText =
+    reversalExpression === 'underexpressed'
+      ? '，表达不足'
+      : reversalExpression === 'overexpressed'
+        ? '，表达过度'
+        : '';
+  const accessibilityLabel = `${name}，${orientationText}${expressionText}`;
   return (
-    <Animated.View style={[styles.card, { opacity: reduceMotion ? 1 : opacity }]}>
-      <Text variant="subtitle">{label}</Text>
-      <Text>{name}</Text>
-      <Text variant="muted">{orientation}</Text>
+    <Animated.View
+      accessibilityLabel={accessibilityLabel}
+      style={{ opacity: reduceMotion ? 1 : opacity }}
+    >
+      <CardArtwork
+        accessibilityLabel={accessibilityLabel}
+        cardId={cardId}
+        orientation={orientation}
+        size="table"
+      />
     </Animated.View>
   );
 }
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.accent,
-    borderRadius: borderRadii.sm,
-    borderWidth: 1,
-    gap: spacing.xs,
-    minHeight: 112,
-    padding: spacing.sm,
-    width: 140,
-  },
-});

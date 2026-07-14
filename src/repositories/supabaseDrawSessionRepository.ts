@@ -32,7 +32,7 @@ function check(error: DbError, operation: string): void {
   throw new UnknownRepositoryError(operation);
 }
 
-function configurationRow(session: Pick<DrawSession, 'configuration'>) {
+export function drawConfigurationRow(session: Pick<DrawSession, 'configuration'>) {
   const value = session.configuration;
   return {
     card_count: value.cardCount,
@@ -42,6 +42,17 @@ function configurationRow(session: Pick<DrawSession, 'configuration'>) {
     reversed_probability: value.reversedProbability,
     overexpressed_probability_when_reversed: value.overexpressedProbabilityWhenReversed,
     question_text: value.questionText,
+    hidden_deck_card_ids: value.hiddenDeckCardIds ?? [],
+    table: value.table
+      ? {
+          placements_by_card_id: Object.fromEntries(
+            Object.entries(value.table.placementsByCardId).map(([cardId, placement]) => [
+              cardId,
+              { x: placement.x, y: placement.y, z_index: placement.zIndex },
+            ]),
+          ),
+        }
+      : null,
     ritual: value.ritual
       ? {
           stage: value.ritual.stage,
@@ -90,7 +101,7 @@ export class SupabaseDrawSessionRepository implements DrawSessionRepository {
       .insert({
         user_id: userId,
         spread_id: input.spreadId,
-        configuration: configurationRow(input),
+        configuration: drawConfigurationRow(input),
         status: 'draft',
       })
       .select('*')
@@ -145,7 +156,7 @@ export class SupabaseDrawSessionRepository implements DrawSessionRepository {
       .from('draw_sessions')
       .update({
         spread_id: input.spreadId,
-        configuration: configurationRow(input),
+        configuration: drawConfigurationRow(input),
         status,
         linked_reading_id: linkedReadingId,
       })

@@ -10,8 +10,10 @@ export function ObservationOverlay({ onDismiss }: { onDismiss: () => void }) {
       style={styles.overlay}
     >
       <View>
-        <Text variant="title">Observe</Text>
-        <Text>Tap anywhere to return to the table tools.</Text>
+        <Text variant="title" style={styles.text}>
+          Observe
+        </Text>
+        <Text style={styles.text}>Tap anywhere to return to the table tools.</Text>
       </View>
     </Pressable>
   );
@@ -19,7 +21,7 @@ export function ObservationOverlay({ onDismiss }: { onDismiss: () => void }) {
 const styles = StyleSheet.create({
   overlay: {
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: '#0A1713CC',
     bottom: 0,
     justifyContent: 'center',
     left: 0,
@@ -27,4 +29,5 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
   },
+  text: { color: colors.surface, textAlign: 'center' },
 });

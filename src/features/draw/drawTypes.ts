@@ -9,6 +9,16 @@ import type {
 
 export type ReversalMode = 'disabled' | 'standard' | 'expression';
 
+export type NormalizedTablePlacement = {
+  x: number;
+  y: number;
+  zIndex: number;
+};
+
+export type TarotTableState = {
+  placementsByCardId: Record<string, NormalizedTablePlacement>;
+};
+
 export type DrawConfiguration = {
   cardCount: number;
   spreadId: string;
@@ -17,6 +27,8 @@ export type DrawConfiguration = {
   reversedProbability: number;
   overexpressedProbabilityWhenReversed: number;
   questionText?: string;
+  hiddenDeckCardIds?: number[];
+  table?: TarotTableState;
   ritual?: {
     stage: 'prepare' | 'draw' | 'reveal' | 'reflection';
     drawnCount: number;

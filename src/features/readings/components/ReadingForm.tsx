@@ -22,6 +22,7 @@ import {
   type ReadingFormValues,
 } from '../readingSchema';
 import type { ReadingFormContext } from '../readingRepository';
+import { LEGACY_UNSPECIFIED_SPREAD_LABEL, readingSpreadLabel } from '../readingSpreadPresentation';
 
 type ReadingFormProps = {
   context: ReadingFormContext;
@@ -31,6 +32,7 @@ type ReadingFormProps = {
   onDirtyChange: (isDirty: boolean) => void;
   onSave: (values: ReadingFormValues, status: 'draft' | 'completed') => Promise<void>;
   saveError: string | null;
+  unspecifiedSpreadLabel?: string;
 };
 
 function isBlankCard(card: ReadingFormValues['cards'][number]): boolean {
@@ -45,6 +47,7 @@ export function ReadingForm({
   onDirtyChange,
   onSave,
   saveError,
+  unspecifiedSpreadLabel = LEGACY_UNSPECIFIED_SPREAD_LABEL,
 }: ReadingFormProps) {
   const {
     clearErrors,
@@ -230,7 +233,7 @@ export function ReadingForm({
             disabled && styles.disabled,
           ]}
         >
-          <Text>{selectedSpread?.name ?? '旧记录（未指定牌阵）'}</Text>
+          <Text>{readingSpreadLabel(selectedSpread?.name, unspecifiedSpreadLabel)}</Text>
           <Ionicons color={colors.textMuted} name="chevron-down" size={18} />
         </Pressable>
       </View>

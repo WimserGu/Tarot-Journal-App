@@ -1,8 +1,44 @@
 import { describe, expect, it } from 'vitest';
 
 import { mapDrawSessionCardRow, mapDrawSessionRow } from '../supabaseMappers';
+import { drawConfigurationRow } from '../supabaseDrawSessionRepository';
+import { DEFAULT_DRAW_CONFIGURATION } from '../../features/draw/drawTypes';
 
 describe('DrawSession Supabase mappers', () => {
+  it('serializes table placement without dropping other configuration state', () => {
+    expect(
+      drawConfigurationRow({
+        configuration: {
+          ...DEFAULT_DRAW_CONFIGURATION,
+          hiddenDeckCardIds: [3, 1, 2],
+          ritual: {
+            stage: 'reveal',
+            drawnCount: 1,
+            revealedPositionIndexes: [0],
+            isObserving: true,
+            cardNotes: { card: 'note' },
+          },
+          table: {
+            placementsByCardId: {
+              'position:0': { x: 0.25, y: 0.75, zIndex: 4 },
+            },
+          },
+        },
+      }),
+    ).toMatchObject({
+      hidden_deck_card_ids: [3, 1, 2],
+      ritual: {
+        revealed_position_indexes: [0],
+        is_observing: true,
+        card_notes: { card: 'note' },
+      },
+      table: {
+        placements_by_card_id: {
+          'position:0': { x: 0.25, y: 0.75, z_index: 4 },
+        },
+      },
+    });
+  });
   it('maps a saved session and its immutable card snapshot', () => {
     const session = mapDrawSessionRow({
       id: 'session-1',
@@ -21,6 +57,11 @@ describe('DrawSession Supabase mappers', () => {
         overexpressed_probability_when_reversed: 0.5,
         question_text: 'What should I notice?',
         ritual: { stage: 'reveal', drawn_count: 1, revealed_position_indexes: [0] },
+        table: {
+          placements_by_card_id: {
+            'position:0': { x: 0.4, y: 0.6, z_index: 2 },
+          },
+        },
       },
     });
     const card = mapDrawSessionCardRow({
@@ -40,6 +81,11 @@ describe('DrawSession Supabase mappers', () => {
       configuration: {
         questionText: 'What should I notice?',
         ritual: { stage: 'reveal', drawnCount: 1, revealedPositionIndexes: [0] },
+        table: {
+          placementsByCardId: {
+            'position:0': { x: 0.4, y: 0.6, zIndex: 2 },
+          },
+        },
       },
     });
     expect(card).toMatchObject({

@@ -7,7 +7,7 @@ import {
   linkActiveDrawSession,
   setActiveDrawSession,
 } from '../drawSessionStore';
-import { DEFAULT_DRAW_CONFIGURATION, type DrawResult } from '../drawTypes';
+import { DEFAULT_DRAW_CONFIGURATION, type DrawResult, type DrawSession } from '../drawTypes';
 
 const cards = [
   {
@@ -44,6 +44,32 @@ describe('temporary DrawSession coordination', () => {
       reversalExpression: 'underexpressed',
       source: 'drawn',
       drawSessionId: session.id,
+    });
+  });
+  it('removes free-table position ids when mapping to a Reading without a spread', () => {
+    const baseSession = createDrawSession(result);
+    const freeTableSession = {
+      ...baseSession,
+      spreadId: null,
+      configuration: {
+        ...DEFAULT_DRAW_CONFIGURATION,
+        spreadId: 'free-table',
+        spreadPositionIds: ['free-table.1'],
+      },
+      cards: [
+        {
+          ...baseSession.cards[0]!,
+          spreadPositionId: 'free-table.1',
+          positionSnapshot: 'Card 1',
+        },
+      ],
+    } satisfies DrawSession;
+
+    expect(drawSessionCardsToForm(freeTableSession)[0]).toMatchObject({
+      position_name: 'Card 1',
+      spreadPositionId: null,
+      source: 'drawn',
+      drawSessionId: freeTableSession.cards[0]!.drawSessionId,
     });
   });
   it('links the in-memory session after Reading save', () => {

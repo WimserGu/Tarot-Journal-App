@@ -178,6 +178,78 @@ describe('Journal persistence', () => {
     });
   });
 
+  it('round-trips normalized DrawSession table placement through local storage', async () => {
+    const storage = new MemoryStorage();
+    const session = {
+      id: 'draw-session-placement',
+      userId: DEMO_USER_ID,
+      createdAt: '2026-07-14T09:00:00.000Z',
+      updatedAt: '2026-07-14T09:00:00.000Z',
+      spreadId: null,
+      status: 'draft' as const,
+      linkedReadingId: null,
+      configuration: {
+        cardCount: 1,
+        spreadId: 'free-table',
+        spreadPositionIds: ['free-table.1'],
+        reversalMode: 'standard' as const,
+        reversedProbability: 0.5,
+        overexpressedProbabilityWhenReversed: 0.5,
+        hiddenDeckCardIds: [1, 2, 3],
+        ritual: {
+          stage: 'reveal' as const,
+          drawnCount: 1,
+          revealedPositionIndexes: [0],
+          isObserving: true,
+          cardNotes: { card: 'temporary note' },
+        },
+        table: {
+          placementsByCardId: {
+            'position:0': { x: 0.35, y: 0.65, zIndex: 2 },
+          },
+        },
+      },
+      cards: [
+        {
+          id: 'draw-card-placement',
+          tarotCardId: 1,
+          positionIndex: 0,
+          spreadPositionId: 'free-table.1',
+          positionSnapshot: 'Card 1',
+          orientation: 'upright' as const,
+          reversalExpression: null,
+          source: 'drawn' as const,
+          drawSessionId: 'draw-session-placement',
+        },
+      ],
+    };
+    storage.values.set(
+      journalStorageKeys.schema,
+      JSON.stringify({ version: JOURNAL_SCHEMA_VERSION }),
+    );
+    storage.values.set(journalStorageKeys.tables.draw_sessions, JSON.stringify([session]));
+
+    const first = createStore(storage, 'placement-first');
+    await first.ready();
+    await first.mutate(() => undefined);
+    const restored = createStore(storage, 'placement-restored');
+    await restored.ready();
+
+    expect(restored.snapshot().draw_sessions?.[0]?.configuration).toMatchObject({
+      hiddenDeckCardIds: [1, 2, 3],
+      ritual: {
+        revealedPositionIndexes: [0],
+        isObserving: true,
+        cardNotes: { card: 'temporary note' },
+      },
+      table: {
+        placementsByCardId: {
+          'position:0': { x: 0.35, y: 0.65, zIndex: 2 },
+        },
+      },
+    });
+  });
+
   it('safely recovers from malformed JSON and skips malformed records', async () => {
     const storage = new MemoryStorage();
     storage.values.set(journalStorageKeys.tables.topics, '{not-json');

@@ -280,11 +280,31 @@ Import Assistant copies a neutral formatting prompt, then parses pasted `[Readin
 
 ## Free Tarot Table (Phase 1)
 
-The default draw flow starts with a question and stores it immediately in the draft DrawSession. The user draws from a horizontally scrollable remaining deck, can reveal any drawn card independently, and decides when to finish. The table, draw order, reveal progress, orientation, question, and remaining deck are restored from the DrawSession draft. A finished table hands its question and cards to Reading without creating a new DrawSession or inferring a spread. No AI API, migration, or sharing is involved.
+The instant-draw entry first presents four draw modes: Free Tarot Table, Single Card, Three Cards, and the honestly marked not-yet-available Custom Spread editor. Free Table starts with a question and lets the user decide how many cards to select; Single and Three Cards reuse the built-in Spread Engine positions. The table, draw order, reveal progress, orientation, question, and remaining deck are restored from the DrawSession draft. No AI API, migration, or sharing is involved.
+
+The table experience uses a full-height, dark cloth surface with a quiet question header, naturally offset cards, and a low-contrast toolbar. The virtualized face-down deck remains attached to the table edge: touch users swipe it directly, while desktop users can click-drag it. A movement threshold keeps a click selecting a card and a drag scrolling the deck. Scroll indicators and the numerical remaining-card count are intentionally hidden.
+
+### Digital Tarot Table MVP
+
+The Free Tarot Table is now a directly manipulated workspace. A click on the virtualized hidden-card river selects that exact persisted hidden card, while an 8 px movement threshold turns the same gesture into horizontal drag scrolling without drawing. Face-down and revealed cards can be moved independently on the table; taps reveal face-down cards or open Focus Card for revealed cards. `Finish` remains explicit, so revealing the current cards never prevents drawing more.
+
+Table placement is stored inside the existing DrawSession configuration as normalized `x`/`y` coordinates plus a small z-index. Positions therefore restore proportionally at different viewport sizes. Old DrawSessions without placement data receive deterministic in-memory defaults and are not rewritten until the user acts. Local JSON persistence and the Supabase configuration mapper preserve placement alongside the hidden deck, reveal order, observation state, and temporary notes. No migration is required.
+
+Tarot visuals now use a centralized Rider–Waite–Smith theme registry covering all 78 stable card IDs. The historical “Pam-A” scan set comes from the Wikimedia Commons TaionWC collection; every individual file was checked through the Commons API for a Public Domain label. Assets are normalized to 456 × 787 without cropping symbolic content or recoloring. A neutral original App card back and missing-art fallback are bundled separately. Reversed cards rotate only the image by 180 degrees while controls and metadata remain upright.
+
+The table, Single Card, Three Card, Focus Card, Draw Session detail, and Reading detail all resolve artwork from the existing numeric `tarotCardId`. Old records therefore display the current default theme without data changes. The card river repeats only the lightweight back asset and never loads hidden fronts. Full source, per-file URLs, Commons SHA-1 values, license labels, processing notes, jurisdiction caveat, and card-back origin are recorded in `assets/tarot/rws/ARTWORK_SOURCE.md` and `source-files.json`. No modern commercial edition, AI-generated replacement art, image upload, Supabase binary, or migration is involved.
+
+Future artwork themes can be added by registering another immutable `TarotDeckTheme`; Phase 1 exposes only Rider–Waite–Smith and the Settings attribution page is informational rather than a fake selector. Run `pnpm test:rws-assets` to audit the 78 mappings, source records, missing files, orphan files, card back, and fallback.
+
+Current Phase 1 limitations: no user-controlled rotation, resizing, multi-select, advanced stacks, custom deck switching UI, AI interpretation, sound, or haptics. Pointer placement has keyboard-accessible tap actions, but keyboard coordinate movement is not included yet. Public-domain applicability still depends on the user's jurisdiction; modern derivative RWS editions are not included.
 
 ## Interactive Tarot Table (Phase 2)
 
 Revealed cards can be focused individually, while users may continue drawing and reveal in any order. Observation Mode hides controls until the user taps to return. Optional per-card observation notes, reveal order, and observation state remain only in DrawSession configuration and are not automatically copied to Reading. No migration or AI is used.
+
+## Natural Drawing Experience (Phase 1)
+
+Each free-table session creates one hidden shuffled deck and persists its order in DrawSession configuration. The horizontally scrollable table edge shows only face-down backs; selecting one uses its already-assigned hidden card and removes it from the edge. The deck is never reshuffled during a session, so restoration preserves the same remaining order. No migration is used.
 
 ## Built-in Spread Engine
 

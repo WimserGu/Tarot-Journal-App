@@ -2,19 +2,27 @@ import { Modal, Pressable, StyleSheet, TextInput } from 'react-native';
 import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
 import { colors, spacing } from '@/theme/tokens';
+import type { CardOrientation } from '@/domain/types';
+import { CardArtwork } from './CardArtwork';
 export function FocusCardModal({
   visible,
   title,
+  cardId,
   name,
+  englishName,
   orientation,
+  reversalExpression,
   note,
   onNoteChange,
   onDismiss,
 }: {
   visible: boolean;
   title: string;
+  cardId: number;
   name: string;
-  orientation: string;
+  englishName?: string;
+  orientation: CardOrientation;
+  reversalExpression: string | null;
   note: string;
   onNoteChange: (value: string) => void;
   onDismiss: () => void;
@@ -24,8 +32,18 @@ export function FocusCardModal({
       <Pressable style={styles.backdrop} onPress={onDismiss}>
         <Pressable style={styles.card} onPress={() => undefined}>
           <Text variant="subtitle">{title}</Text>
+          <CardArtwork
+            accessibilityLabel={`${name}，${orientation === 'reversed' ? '逆位' : '正位'}`}
+            cardId={cardId}
+            orientation={orientation}
+            size="focus"
+          />
           <Text variant="title">{name}</Text>
-          <Text>{orientation}</Text>
+          {englishName ? <Text variant="muted">{englishName}</Text> : null}
+          <Text>{orientation === 'reversed' ? 'Reversed' : 'Upright'}</Text>
+          {reversalExpression ? (
+            <Text>{reversalExpression === 'underexpressed' ? '表达不足' : '表达过度'}</Text>
+          ) : null}
           <TextInput
             accessibilityLabel="临时卡片备注"
             value={note}
@@ -49,6 +67,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   card: {
+    alignItems: 'center',
     backgroundColor: colors.background,
     gap: spacing.md,
     maxWidth: 420,

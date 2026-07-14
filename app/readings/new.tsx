@@ -14,6 +14,7 @@ import { drawSessionRepository, readingRepository } from '@/repositories/reposit
 import type { DrawSession } from '@/features/draw/drawTypes';
 import { toReadingCreateInput, type ReadingFormValues } from '@/features/readings/readingSchema';
 import { createSubmissionGuard } from '@/features/readings/submissionGuard';
+import { FREE_TABLE_SPREAD_LABEL } from '@/features/readings/readingSpreadPresentation';
 import { useReadingFormContext } from '@/features/readings/useReadings';
 import { useUnsavedChangesGuard } from '@/features/readings/useUnsavedChangesGuard';
 import { colors, spacing } from '@/theme/tokens';
@@ -146,6 +147,11 @@ export default function NewReadingScreen() {
               onDirtyChange={setIsDirty}
               onSave={saveReading}
               saveError={saveError}
+              unspecifiedSpreadLabel={
+                drawSession?.configuration.spreadId === 'free-table'
+                  ? FREE_TABLE_SPREAD_LABEL
+                  : undefined
+              }
             />
           ) : null}
         </ScrollView>

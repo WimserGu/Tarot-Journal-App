@@ -1,8 +1,35 @@
 # Project Status
 
+## Prompt 32: Rider–Waite–Smith Artwork & Deck Theme Foundation
+
+- Added 78 normalized 456 × 787 RWS “Pam-A” front assets from the Wikimedia Commons TaionWC image set. Each individual source returned `Public domain` license and usage labels through the Commons API; per-file source URLs and SHA-1 values are retained.
+- Added an original rotationally symmetrical Tarot Journal App card back, an original neutral fallback, human- and machine-readable source manifests, and a reproducible license-checking download/normalization script.
+- Replaced the neutral placeholder registry with an immutable one-theme `TarotDeckTheme` registry keyed only by stable numeric tarot card IDs. Unknown theme and card IDs resolve safely with diagnostic status.
+- Integrated static artwork into the card river, face-down and revealed table cards, Single/Three modes, Focus Card, Draw Session detail, Reading detail, and old-session fallback behavior. Reversed cards rotate only the front image.
+- Added a Settings attribution screen and a focused `pnpm test:rws-assets` audit for 78 mappings, Major/Minor counts, source records, missing/orphan files, card back, and fallback.
+- Assets remain in the Expo bundle. DrawSession, Reading, local persistence, and Supabase continue storing only existing card IDs; no migration or repository/schema redesign was introduced.
+- No modern commercial edition, retail scan, AI-generated replacement artwork, or Supabase image upload is included. Jurisdiction-specific public-domain caveats remain documented.
+
+## Prompt 30: Digital Tarot Table MVP
+
+- Added a centralized 78-card neutral placeholder artwork registry, shared card back, missing-art fallback, artwork-only reversed rotation, and artwork-enabled Focus Card.
+- Made the virtualized card river directly swipeable/drag-scrollable with hidden indicators, grab cursors on Web, and an 8 px click-versus-drag threshold.
+- Made face-down and revealed table cards freely draggable while preserving tap-to-reveal and tap-to-focus behavior.
+- Added deterministic initial placement, normalized responsive coordinates, z-order promotion, table-bound clamping, and old-session defaults.
+- Persisted table placement through the existing DrawSession configuration JSON in local and Supabase adapters while preserving hidden order, reveal state, observation state, and notes.
+- Removed the redundant global Draw/Reveal action; Observe, Finish, History, and the explicit Begin Reflection lifecycle remain.
+- No migration, external artwork download, AI, statistics change, or repository redesign was introduced.
+
+## Prompt 29: Free Tarot Table UI Redesign
+
+- Replaced the white CRUD-style draw result layout with a full-height dark-cloth tarot table.
+- Kept the existing virtualized hidden deck while presenting it as an overlapping table edge with hidden scroll indicators.
+- Added desktop click-drag scrolling with a selection threshold, deterministic natural card offsets, a quieter toolbar, and the “Begin Reflection” journaling CTA.
+- Domain models, repositories, and database schema are unchanged; no migration was added.
+
 ## Prompt 27: Free Tarot Table (Phase 1)
 
-Implemented a question-first, free-table draw flow. Draft DrawSessions can begin empty and persist the question, drawn-card order, reveal state, and remaining deck. Finishing hands the stored question and cards to Reading without inferring a spread. No migration was added.
+Implemented a draw-mode selection page with Free Table, Single Card, Three Cards, and an explicitly unavailable Custom Spread editor. Draft DrawSessions persist their mode, question, draw order, reveal state, and remaining deck; the mode selection page never auto-resumes a draft. No migration was added.
 
 ## Prompt 10: Reading Creation Flow
 

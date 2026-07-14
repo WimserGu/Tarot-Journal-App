@@ -13,6 +13,7 @@ import {
 } from '@/features/draw/drawSessionPresentation';
 import { drawSessionRepository } from '@/repositories/repositoryFactory';
 import { colors, spacing } from '@/theme/tokens';
+import { drawRouteForSession } from '@/features/draw/drawModeRoutes';
 
 export default function DrawHistoryScreen() {
   const router = useRouter();
@@ -59,15 +60,13 @@ export default function DrawHistoryScreen() {
             {session.status}
           </Text>
           <View style={styles.actions}>
-            <Button
-              label="打开详情"
-              onPress={() =>
-                  router.push(`/draw/${session.id}` as never)
-              }
-            />
+            <Button label="打开详情" onPress={() => router.push(`/draw/${session.id}` as never)} />
             {session.status === 'draft' ? (
               <>
-                <Button label="继续草稿" onPress={() => router.replace('/draw')} />
+                <Button
+                  label="继续草稿"
+                  onPress={() => router.replace(drawRouteForSession(session))}
+                />
                 <Button
                   label="删除草稿"
                   onPress={() =>

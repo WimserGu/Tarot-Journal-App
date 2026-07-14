@@ -43,6 +43,7 @@ export default function SettingsScreen() {
       <Button label="重新查看 onboarding" onPress={() => router.push('/onboarding-review')} />
       <Button label="Weekly / Monthly Reviews" onPress={() => router.push('/reviews' as Href)} />
       <Button label="导入历史记录" onPress={() => router.push('/import' as Href)} />
+      <Button label="关于塔罗牌面" onPress={() => router.push('/artwork' as Href)} />
       <Button
         label={mode === 'local' ? '退出开发体验' : '退出登录'}
         onPress={() => void signOut()}

@@ -10,6 +10,7 @@ import { linkedReadingIsMissing } from '@/features/draw/drawSessionPresentation'
 import type { DrawSession } from '@/features/draw/drawTypes';
 import { drawSessionRepository } from '@/repositories/repositoryFactory';
 import { tarotCards } from '@/domain/tarotCards';
+import { CardArtwork } from '@/features/draw/components/CardArtwork';
 import { borderRadii, colors, spacing } from '@/theme/tokens';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
@@ -86,6 +87,12 @@ export default function DrawSessionDetailScreen() {
           const tarotCard = cardsById.get(card.tarotCardId);
           return (
             <View key={card.id} style={styles.card}>
+              <CardArtwork
+                accessibilityLabel={`${tarotCard?.name_zh ?? '未知牌面'}，${orientationLabel(card)}`}
+                cardId={card.tarotCardId}
+                orientation={card.orientation}
+                size="table"
+              />
               <Text variant="subtitle">
                 {card.positionSnapshot ?? `第 ${card.positionIndex + 1} 张`}
               </Text>
