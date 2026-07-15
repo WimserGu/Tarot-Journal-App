@@ -115,12 +115,25 @@ export type QuestionTemplatePosition = {
   updated_at: ISODateTime;
 };
 
+/** A user-defined question category scoped to exactly one Topic. */
+export type QuestionTag = {
+  id: UUID;
+  user_id: UUID;
+  topic_id: UUID;
+  name: string;
+  normalized_name: string;
+  created_at: ISODateTime;
+  updated_at: ISODateTime;
+};
+
 /** Maps directly to the future public.readings table. */
 export type Reading = {
   id: UUID;
   user_id: UUID;
   topic_id: UUID | null;
   question_template_id: UUID | null;
+  /** Missing only on legacy local snapshots; repositories normalize it to null. */
+  question_tag_id?: UUID | null;
   question_text_snapshot: string | null;
   spread_id: string | null;
   reading_at: ISODateTime;
@@ -146,6 +159,8 @@ export type ReadingCard = {
   reversalVariant: ReversalVariant;
   source: CardEntrySource;
   drawSessionId: UUID | null;
+  /** Optional for legacy local snapshots; repositories normalize missing values to null. */
+  interpretation?: string | null;
   created_at: ISODateTime;
   updated_at: ISODateTime;
 };

@@ -95,7 +95,11 @@ function periodComparison(
   const allowed = (item: StatisticsReading) =>
     filter.includeDrafts || item.reading.status === 'completed';
   const scoped = (item: StatisticsReading) =>
-    !filter.topicId || item.reading.topic_id === filter.topicId;
+    (!filter.topicId || item.reading.topic_id === filter.topicId) &&
+    (filter.questionTagId === undefined ||
+      (filter.questionTagId === null
+        ? !item.questionTag
+        : item.questionTag?.id === filter.questionTagId));
   const previous = all.filter(
     (item) => allowed(item) && scoped(item) && inRange(item, previousStart, previousEnd),
   );
@@ -123,11 +127,29 @@ function buildCardStatistics(readings: readonly StatisticsReading[]): CardStatis
         totalCount: 0,
         uprightCount: 0,
         reversedCount: 0,
+        ordinaryReversedCount: 0,
+        leftCount: 0,
+        rightCount: 0,
         readingIds: [],
+        occurrences: [],
       };
       current.totalCount += 1;
       current[card.orientation === 'upright' ? 'uprightCount' : 'reversedCount'] += 1;
+      if (card.orientation === 'reversed') {
+        if (card.reversalVariant === 'left') current.leftCount += 1;
+        else if (card.reversalVariant === 'right') current.rightCount += 1;
+        else current.ordinaryReversedCount += 1;
+      }
       current.readingIds = unique([...current.readingIds, item.reading.id]);
+      current.occurrences.push({
+        readingId: item.reading.id,
+        readingAt: item.reading.reading_at,
+        readingTimezone: item.reading.reading_timezone,
+        questionText: item.questionText,
+        orientation: card.orientation,
+        reversalVariant: card.reversalVariant ?? null,
+        interpretation: card.interpretation ?? null,
+      });
       values.set(card.tarotCard.id, current);
     }),
   );
@@ -176,6 +198,10 @@ export function calculateStatistics(
         (item) =>
           (filter.includeDrafts || item.reading.status === 'completed') &&
           (!filter.topicId || item.reading.topic_id === filter.topicId) &&
+          (filter.questionTagId === undefined ||
+            (filter.questionTagId === null
+              ? !item.questionTag
+              : item.questionTag?.id === filter.questionTagId)) &&
           inFilterRange(
             item,
             filter,
@@ -240,7 +266,21 @@ export function calculateStatistics(
       readingCount: number;
     }
   >();
+  const questionTags = new Map<
+    string,
+    { questionTagId: UUID | null; label: string; readingIds: UUID[]; readingCount: number }
+  >();
   readings.forEach((item) => {
+    const tagKey = item.questionTag?.id ?? 'unclassified';
+    const tag = questionTags.get(tagKey) ?? {
+      questionTagId: item.questionTag?.id ?? null,
+      label: item.questionTag?.name ?? '未分类',
+      readingIds: [],
+      readingCount: 0,
+    };
+    tag.readingCount += 1;
+    tag.readingIds.push(item.reading.id);
+    questionTags.set(tagKey, tag);
     if (!item.reading.question_template_id) return;
     const key = item.reading.question_template_id;
     const current = questions.get(key) ?? {
@@ -280,6 +320,9 @@ export function calculateStatistics(
     cardStatistics: cards,
     questionStatistics: [...questions.values()].sort(
       (a, b) => b.readingCount - a.readingCount || a.questionText.localeCompare(b.questionText),
+    ),
+    questionTagStatistics: [...questionTags.values()].sort(
+      (a, b) => b.readingCount - a.readingCount || a.label.localeCompare(b.label, 'zh-CN'),
     ),
     streaks: buildStreaks(readings, cards),
     recent7Days: recent(7),

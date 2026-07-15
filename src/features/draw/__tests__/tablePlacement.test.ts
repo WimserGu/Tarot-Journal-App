@@ -4,6 +4,7 @@ import {
   nextTableZIndex,
   normalizeTablePlacement,
   pixelPlacement,
+  placementFromWindowDrop,
   placementFromPixels,
   tablePlacementKey,
   tableStateForSession,
@@ -69,6 +70,39 @@ describe('normalized tarot table placement', () => {
     const placement = placementFromPixels(900, -40, table, card, 4);
     expect(placement).toMatchObject({ x: 1, y: 0, zIndex: 4 });
     expect(pixelPlacement(placement, table, card)).toEqual({ left: 418, top: 0 });
+  });
+
+  it('places a deck card at its drop point inside the table', () => {
+    expect(
+      placementFromWindowDrop(
+        { x: 300, y: 250 },
+        { x: 100, y: 100, width: 400, height: 300 },
+        { width: 80, height: 120 },
+        4,
+      ),
+    ).toEqual({ x: 0.5, y: 0.5, zIndex: 4 });
+  });
+
+  it('cancels a deck-card drop outside the table', () => {
+    expect(
+      placementFromWindowDrop(
+        { x: 99, y: 250 },
+        { x: 100, y: 100, width: 400, height: 300 },
+        { width: 80, height: 120 },
+        4,
+      ),
+    ).toBeNull();
+  });
+
+  it('keeps a card fully visible when dropped at a table edge', () => {
+    expect(
+      placementFromWindowDrop(
+        { x: 100, y: 100 },
+        { x: 100, y: 100, width: 400, height: 300 },
+        { width: 80, height: 120 },
+        5,
+      ),
+    ).toEqual({ x: 0, y: 0, zIndex: 5 });
   });
 
   it('restores equivalent normalized placement at another table size', () => {

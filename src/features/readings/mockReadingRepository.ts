@@ -8,6 +8,7 @@ import {
   buildTopicTimeline,
   validateReadingCreateInput,
   type CreateReadingInput,
+  type BatchAssignQuestionTagInput,
   type ReadingDeletionSummary,
   type ReadingDetail,
   type ReadingFormContext,
@@ -19,6 +20,7 @@ import {
   type TopicTimelineFilters,
   type UpdateReadingInput,
   ReadingNotFoundError,
+  ReadingValidationError,
 } from './readingRepository';
 
 export class MockReadingRepository implements ReadingRepository {
@@ -42,6 +44,7 @@ export class MockReadingRepository implements ReadingRepository {
       user_id: this.store.userId,
       topic_id: values.topic_id,
       question_template_id: values.question_template_id,
+      question_tag_id: values.question_tag_id,
       question_text_snapshot: values.question_text_snapshot,
       spread_id: values.spread_id,
       reading_at: values.reading_at,
@@ -65,6 +68,7 @@ export class MockReadingRepository implements ReadingRepository {
       source: card.source,
       drawSessionId: card.drawSessionId,
       spreadPositionId: card.spreadPositionId,
+      interpretation: card.interpretation,
       created_at: now,
       updated_at: now,
     }));
@@ -167,6 +171,7 @@ export class MockReadingRepository implements ReadingRepository {
       ...currentReading,
       topic_id: values.topic_id,
       question_template_id: values.question_template_id,
+      question_tag_id: values.question_tag_id,
       question_text_snapshot: questionTextSnapshot,
       spread_id: values.spread_id,
       reading_at: values.reading_at,
@@ -187,6 +192,7 @@ export class MockReadingRepository implements ReadingRepository {
       source: card.source,
       drawSessionId: card.drawSessionId,
       spreadPositionId: card.spreadPositionId,
+      interpretation: card.interpretation,
       created_at: now,
       updated_at: now,
     }));
@@ -206,6 +212,45 @@ export class MockReadingRepository implements ReadingRepository {
     });
 
     return updatedReading;
+  }
+
+  async assignQuestionTag(input: BatchAssignQuestionTagInput): Promise<Reading[]> {
+    await this.store.ready();
+    const readingIds = [...new Set(input.reading_ids)];
+    const snapshot = this.store.snapshot();
+    const tag = snapshot.question_tags?.find(
+      (item) =>
+        item.id === input.question_tag_id &&
+        item.topic_id === input.topic_id &&
+        item.user_id === this.store.userId,
+    );
+    const readings = readingIds.map((readingId) =>
+      snapshot.readings.find(
+        (reading) =>
+          reading.id === readingId &&
+          reading.topic_id === input.topic_id &&
+          reading.user_id === this.store.userId,
+      ),
+    );
+    if (!tag) throw new ReadingValidationError('选择的问题标签不属于当前 Topic。');
+    if (readingIds.length === 0 || readings.some((reading) => !reading))
+      throw new ReadingValidationError('请选择当前 Topic 中的有效记录。');
+    const now = this.store.now();
+    await this.store.mutate((data) => {
+      readingIds.forEach((readingId) => {
+        const index = data.readings.findIndex((reading) => reading.id === readingId);
+        data.readings[index] = {
+          ...data.readings[index]!,
+          question_tag_id: input.question_tag_id,
+          updated_at: now,
+        };
+      });
+    });
+    return readings.map((reading) => ({
+      ...reading!,
+      question_tag_id: input.question_tag_id,
+      updated_at: now,
+    }));
   }
 
   async deleteReading(readingId: UUID): Promise<ReadingDeletionSummary> {

@@ -19,7 +19,8 @@ export function buildReadingShareText(detail: ReadingDetail): string {
           const name = tarotCard?.name_zh ?? '未选择牌面';
           const orientation = reversalStateLabel(card.orientation, card.reversalVariant);
 
-          return `${card.position_order}. ${position}${name} · ${orientation}`;
+          const interpretation = card.interpretation ? `\n   单牌解读：${card.interpretation}` : '';
+          return `${card.position_order}. ${position}${name} · ${orientation}${interpretation}`;
         })
         .join('\n')
     : '尚未录入牌面。';
@@ -31,7 +32,7 @@ export function buildReadingShareText(detail: ReadingDetail): string {
     `状态：${detail.reading.status === 'draft' ? '草稿' : '正式记录'}`,
     '牌面：',
     cards,
-    `个人解读：${detail.reading.interpretation ?? '尚未填写'}`,
+    `总体解读：${detail.reading.interpretation ?? '尚未填写'}`,
   ].join('\n');
 }
 

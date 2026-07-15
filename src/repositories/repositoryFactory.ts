@@ -1,6 +1,8 @@
 import { getAppEnvironment, type EnvironmentSource } from '../config/environment';
 import { questionTemplateRepository as localQuestionTemplates } from '../features/questions/mockQuestionTemplateRepository';
 import type { QuestionTemplateRepository } from '../features/questions/questionTemplateRepository';
+import { questionTagRepository as localQuestionTags } from '../features/questionTags/mockQuestionTagRepository';
+import type { QuestionTagRepository } from '../features/questionTags/questionTagRepository';
 import { readingRepository as localReadings } from '../features/readings/mockReadingRepository';
 import type { ReadingRepository } from '../features/readings/readingRepository';
 import { drawSessionRepository as localDrawSessions } from '../features/draw/mockDrawSessionRepository';
@@ -19,6 +21,7 @@ import { SupabaseDrawSessionRepository } from './supabaseDrawSessionRepository';
 import { getSupabaseClient } from '../lib/supabase';
 import {
   SupabaseQuestionTemplateRepository,
+  SupabaseQuestionTagRepository,
   SupabaseReadingRepository,
   SupabaseTopicRepository,
 } from './supabaseRepositories';
@@ -26,6 +29,7 @@ import {
 export type AppRepositories = {
   topics: TopicRepository;
   questionTemplates: QuestionTemplateRepository;
+  questionTags: QuestionTagRepository;
   readings: ReadingRepository;
   reviews: ReviewRepository;
   followUps: FollowUpRepository;
@@ -34,6 +38,7 @@ export type AppRepositories = {
 const local: AppRepositories = {
   topics: localTopics,
   questionTemplates: localQuestionTemplates,
+  questionTags: localQuestionTags,
   readings: localReadings,
   reviews: localReviewRepository,
   followUps: localFollowUpRepository,
@@ -51,6 +56,7 @@ export function createRepositories(source?: EnvironmentSource): AppRepositories 
     cachedSupabase = {
       topics: new SupabaseTopicRepository(client),
       questionTemplates: new SupabaseQuestionTemplateRepository(client),
+      questionTags: new SupabaseQuestionTagRepository(client),
       readings,
       reviews: new SupabaseReviewRepository(client),
       followUps: new SupabaseFollowUpRepository(client, readings),
@@ -82,6 +88,10 @@ export const questionTemplateRepository: QuestionTemplateRepository = new Proxy(
       ),
   },
 );
+export const questionTagRepository: QuestionTagRepository = new Proxy({} as QuestionTagRepository, {
+  get: (_target, key) =>
+    Reflect.get(createRepositories().questionTags, key).bind(createRepositories().questionTags),
+});
 export const readingRepository: ReadingRepository = new Proxy({} as ReadingRepository, {
   get: (_target, key) =>
     Reflect.get(createRepositories().readings, key).bind(createRepositories().readings),

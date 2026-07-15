@@ -6,6 +6,7 @@ import {
   UnauthorizedRepositoryError,
 } from '../repositoryErrors';
 import {
+  SupabaseQuestionTagRepository,
   SupabaseQuestionTemplateRepository,
   SupabaseReadingRepository,
   SupabaseTopicRepository,
@@ -55,6 +56,11 @@ function client(
     user?: boolean;
     rpcError?: { code?: string; message?: string };
     rpcData?: unknown;
+    rpcResponses?: {
+      data: unknown;
+      error: { code?: string; message?: string } | null;
+    }[];
+    tableErrors?: Record<string, { code?: string; message?: string }>;
   } = {},
 ): SupabaseClient {
   const rows: Record<string, unknown[]> = {
@@ -64,6 +70,7 @@ function client(
     readings: [reading],
     reading_cards: [card],
   };
+  const responses = [...(options.rpcResponses ?? [])];
   return {
     auth: {
       getUser: vi.fn(async () =>
@@ -72,14 +79,65 @@ function client(
           : { data: { user: { id: 'user' } }, error: null },
       ),
     },
-    rpc: vi.fn(async () => ({ data: options.rpcData, error: options.rpcError ?? null })),
+    rpc: vi.fn(
+      async () => responses.shift() ?? { data: options.rpcData, error: options.rpcError ?? null },
+    ),
     from: vi.fn((table: string) => ({
-      select: vi.fn(async () => ({ data: rows[table] ?? [], error: null })),
+      select: vi.fn(async () => ({
+        data: rows[table] ?? [],
+        error: options.tableErrors?.[table] ?? null,
+      })),
     })),
   } as unknown as SupabaseClient;
 }
 
 describe('mocked Supabase repositories', () => {
+  it('assigns one question tag to a validated set of Topic readings', async () => {
+    let updatingReadings = false;
+    const readingsBuilder = {
+      select: vi.fn(),
+      eq: vi.fn(),
+      in: vi.fn(),
+      update: vi.fn(),
+      then: vi.fn(),
+    };
+    readingsBuilder.select.mockReturnValue(readingsBuilder);
+    readingsBuilder.eq.mockReturnValue(readingsBuilder);
+    readingsBuilder.in.mockReturnValue(readingsBuilder);
+    readingsBuilder.update.mockImplementation(() => {
+      updatingReadings = true;
+      return readingsBuilder;
+    });
+    readingsBuilder.then.mockImplementation((resolve: (value: unknown) => unknown) =>
+      resolve({
+        data: updatingReadings ? [{ ...reading, question_tag_id: 'tag' }] : [{ id: reading.id }],
+        error: null,
+      }),
+    );
+    const tagBuilder = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn(async () => ({ data: { id: 'tag' }, error: null })),
+    };
+    const fake = {
+      auth: {
+        getUser: vi.fn(async () => ({ data: { user: { id: 'user' } }, error: null })),
+      },
+      from: vi.fn((table: string) => (table === 'question_tags' ? tagBuilder : readingsBuilder)),
+    } as unknown as SupabaseClient;
+
+    const result = await new SupabaseReadingRepository(fake).assignQuestionTag({
+      topic_id: 'topic',
+      question_tag_id: 'tag',
+      reading_ids: ['reading'],
+    });
+
+    expect(result[0]?.question_tag_id).toBe('tag');
+    expect(readingsBuilder.update).toHaveBeenCalledWith(
+      expect.objectContaining({ question_tag_id: 'tag' }),
+    );
+  });
+
   it('maps missing sessions to Unauthorized', async () => {
     await expect(
       new SupabaseTopicRepository(client({ user: false })).listTopics(),
@@ -127,6 +185,7 @@ describe('mocked Supabase repositories', () => {
           reversalVariant: 'right',
           source: 'drawn',
           drawSessionId: '40000000-0000-4000-8000-000000000009',
+          interpretation: '继续观察，不急着下结论。',
         },
       ],
     });
@@ -140,10 +199,91 @@ describe('mocked Supabase repositories', () => {
             source: 'drawn',
             draw_session_id: '40000000-0000-4000-8000-000000000009',
             reversal_expression: 'overexpressed',
+            interpretation: '继续观察，不急着下结论。',
           }),
         ],
       }),
     );
+    expect(listener).toHaveBeenCalledOnce();
+  });
+  it('keeps the Reading form available before the optional question-tags migration is deployed', async () => {
+    const fake = client({
+      tableErrors: {
+        question_tags: {
+          code: 'PGRST205',
+          message: "Could not find the table 'public.question_tags' in the schema cache",
+        },
+      },
+    });
+
+    const context = await new SupabaseReadingRepository(fake).getReadingFormContext();
+
+    expect(context.question_tags).toEqual([]);
+    expect(context.topics).toHaveLength(1);
+  });
+  it('retries an untagged Reading against the pre-question-tags RPC signature', async () => {
+    const fake = client({
+      rpcResponses: [
+        {
+          data: null,
+          error: {
+            code: 'PGRST202',
+            message:
+              'Could not find the function public.create_reading_with_cards with parameter p_question_tag_id',
+          },
+        },
+        { data: 'reading', error: null },
+      ],
+      tableErrors: {
+        question_tags: {
+          code: '42P01',
+          message: 'relation "question_tags" does not exist',
+        },
+      },
+    });
+    const repo = new SupabaseReadingRepository(fake);
+
+    await repo.createReading({
+      topic_id: 'topic',
+      question_template_id: null,
+      question_tag_id: null,
+      temporary_question: 'Question',
+      reading_at: now,
+      reading_timezone: 'UTC',
+      interpretation: null,
+      status: 'draft',
+      cards: [],
+    });
+
+    expect(fake.rpc).toHaveBeenNthCalledWith(
+      1,
+      'create_reading_with_cards',
+      expect.objectContaining({ p_question_tag_id: null }),
+    );
+    expect(fake.rpc).toHaveBeenNthCalledWith(
+      2,
+      'create_reading_with_cards',
+      expect.not.objectContaining({ p_question_tag_id: expect.anything() }),
+    );
+  });
+  it('deletes a question tag through the authenticated repository and notifies listeners', async () => {
+    const maybeSingle = vi.fn(async () => ({ data: { id: 'tag' }, error: null }));
+    const select = vi.fn(() => ({ maybeSingle }));
+    const eq = vi.fn(() => ({ select }));
+    const remove = vi.fn(() => ({ eq }));
+    const fake = {
+      auth: { getUser: vi.fn(async () => ({ data: { user: { id: 'user' } }, error: null })) },
+      from: vi.fn(() => ({ delete: remove })),
+    } as unknown as SupabaseClient;
+    const repository = new SupabaseQuestionTagRepository(fake);
+    const listener = vi.fn();
+    repository.subscribe(listener);
+
+    await repository.deleteQuestionTag('tag');
+
+    expect(fake.from).toHaveBeenCalledWith('question_tags');
+    expect(eq).toHaveBeenCalledWith('id', 'tag');
+    expect(select).toHaveBeenCalledWith('id');
     expect(listener).toHaveBeenCalledOnce();
   });
   it('uses the atomic template reorder RPC and notifies listeners', async () => {

@@ -4,6 +4,7 @@ import type {
   ISODateTime,
   QuestionTemplate,
   QuestionTemplatePosition,
+  QuestionTag,
   Reading,
   ReadingCard,
   ReadingStatus,
@@ -29,6 +30,7 @@ export type ReadingCardInput = {
   reversalVariant?: ReversalVariant;
   source?: CardEntrySource;
   drawSessionId?: UUID | null;
+  interpretation?: string | null;
 };
 
 export type NormalizedReadingCardInput = ReadingCardInput & {
@@ -36,11 +38,13 @@ export type NormalizedReadingCardInput = ReadingCardInput & {
   source: CardEntrySource;
   drawSessionId: UUID | null;
   spreadPositionId: string | null;
+  interpretation: string | null;
 };
 
 export type CreateReadingInput = {
   topic_id: UUID;
   question_template_id: UUID | null;
+  question_tag_id?: UUID | null;
   temporary_question: string | null;
   spread_id?: string | null;
   reading_at: ISODateTime;
@@ -52,10 +56,17 @@ export type CreateReadingInput = {
 
 export type UpdateReadingInput = CreateReadingInput;
 
+export type BatchAssignQuestionTagInput = {
+  topic_id: UUID;
+  question_tag_id: UUID;
+  reading_ids: UUID[];
+};
+
 export type ReadingFormContext = {
   topics: Topic[];
   question_templates: QuestionTemplate[];
   question_template_positions: QuestionTemplatePosition[];
+  question_tags: QuestionTag[];
   tarot_cards: TarotCard[];
 };
 
@@ -68,6 +79,7 @@ export type ReadingDetail = {
   reading: Reading;
   topic: Topic;
   question_template: QuestionTemplate | null;
+  question_tag: QuestionTag | null;
   question_text: string;
   cards: ReadingDetailCard[];
 };
@@ -104,10 +116,12 @@ export type ReadingTimelineCard = {
   position_name: string | null;
   position_order: number;
   tarot_card: TarotCard | null;
+  interpretation: string | null;
 };
 
 export type ReadingTimelineItem = {
   cards: ReadingTimelineCard[];
+  question_tag?: QuestionTag | null;
   question_template: QuestionTemplate | null;
   question_text: string;
   reading: Reading;
@@ -153,6 +167,7 @@ export interface ReadingRepository {
   getReadingFormContext(): Promise<ReadingFormContext>;
   createReading(input: CreateReadingInput): Promise<Reading>;
   updateReading(readingId: UUID, input: UpdateReadingInput): Promise<Reading>;
+  assignQuestionTag(input: BatchAssignQuestionTagInput): Promise<Reading[]>;
   deleteReading(readingId: UUID): Promise<ReadingDeletionSummary>;
   toggleFavorite(readingId: UUID): Promise<Reading>;
   getReadingDetail(readingId: UUID): Promise<ReadingDetail | null>;
@@ -204,6 +219,14 @@ function findOwnedTemplate(
   );
 }
 
+function findOwnedQuestionTag(
+  data: JournalData,
+  userId: UUID,
+  tagId: UUID,
+): QuestionTag | undefined {
+  return data.question_tags?.find((tag) => tag.id === tagId && tag.user_id === userId);
+}
+
 function validateCardOrders(cards: readonly ReadingCardInput[]): void {
   const orders = cards.map((card) => card.position_order);
   const uniqueOrders = new Set(orders);
@@ -248,6 +271,7 @@ function validateCardInput(
   const reversalVariant = card.reversalVariant ?? null;
   const drawSessionId = card.drawSessionId ?? null;
   const spreadPositionId = card.spreadPositionId ?? null;
+  const interpretation = normalizeOptionalText(card.interpretation ?? null);
   if (!Number.isInteger(card.position_order) || card.position_order < 1) {
     throw new ReadingValidationError('牌序必须是从 1 开始的正整数。');
   }
@@ -289,6 +313,10 @@ function validateCardInput(
     throw new ReadingValidationError('牌阵位置名称不能超过 120 个字符。');
   }
 
+  if (interpretation !== null && interpretation.length > 5000) {
+    throw new ReadingValidationError('单牌解读不能超过 5000 个字符。');
+  }
+
   return {
     ...card,
     position_name: positionName,
@@ -296,6 +324,7 @@ function validateCardInput(
     source,
     drawSessionId,
     spreadPositionId,
+    interpretation,
   };
 }
 
@@ -320,6 +349,14 @@ export function validateReadingCreateInput(
     throw new ReadingValidationError('请选择一个可用的长期议题。');
   }
 
+  const questionTagId = input.question_tag_id ?? null;
+  if (questionTagId !== null) {
+    const tag = findOwnedQuestionTag(data, userId, questionTagId);
+    if (!tag || tag.topic_id !== topic.id) {
+      throw new ReadingValidationError('选择的问题标签不属于当前 Topic。');
+    }
+  }
+
   if (input.status !== 'draft' && input.status !== 'completed') {
     throw new ReadingValidationError('记录状态无效。');
   }
@@ -337,7 +374,7 @@ export function validateReadingCreateInput(
   const interpretation = normalizeOptionalText(input.interpretation);
 
   if (interpretation !== null && interpretation.length > 5000) {
-    throw new ReadingValidationError('个人解读不能超过 5000 个字符。');
+    throw new ReadingValidationError('总体解读不能超过 5000 个字符。');
   }
 
   let questionText: string;
@@ -377,6 +414,7 @@ export function validateReadingCreateInput(
   return {
     topic_id: topic.id,
     question_template_id: input.question_template_id,
+    question_tag_id: questionTagId,
     question_text_snapshot: questionText,
     spread_id: spreadId,
     reading_at: input.reading_at,
@@ -416,6 +454,9 @@ export function buildReadingFormContext(data: JournalData, userId: UUID): Readin
     question_template_positions: data.question_template_positions
       .filter((position) => position.user_id === userId)
       .sort((first, second) => first.position_order - second.position_order),
+    question_tags: (data.question_tags ?? [])
+      .filter((tag) => tag.user_id === userId && topicIds.has(tag.topic_id))
+      .sort((first, second) => first.name.localeCompare(second.name, 'zh-CN')),
     tarot_cards: [...data.tarot_cards].sort(
       (first, second) => first.sort_order - second.sort_order,
     ),
@@ -444,6 +485,9 @@ export function buildReadingDetail(
   const questionTemplate = reading.question_template_id
     ? (findOwnedTemplate(data, userId, reading.question_template_id) ?? null)
     : null;
+  const questionTag = reading.question_tag_id
+    ? (findOwnedQuestionTag(data, userId, reading.question_tag_id) ?? null)
+    : null;
   const tarotCardById = new Map(data.tarot_cards.map((card) => [card.id, card]));
   const cards = data.reading_cards
     .filter((card) => card.user_id === userId && card.reading_id === reading.id)
@@ -460,6 +504,7 @@ export function buildReadingDetail(
     reading,
     topic,
     question_template: questionTemplate,
+    question_tag: questionTag,
     question_text:
       reading.question_text_snapshot ?? questionTemplate?.question_text ?? '未命名问题',
     cards,
@@ -484,6 +529,7 @@ function buildTimelineItem(
   return {
     reading: detail.reading,
     question_template: detail.question_template,
+    ...(detail.question_tag ? { question_tag: detail.question_tag } : {}),
     question_text: detail.question_text,
     cards: detail.cards.map(({ reading_card: card, tarot_card: tarotCard }) => ({
       orientation: card.orientation,
@@ -491,6 +537,7 @@ function buildTimelineItem(
       position_name: card.position_name,
       position_order: card.position_order,
       tarot_card: tarotCard,
+      interpretation: card.interpretation ?? null,
     })),
   };
 }

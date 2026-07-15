@@ -6,6 +6,7 @@ import { Text } from '@/components/Text';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { getRouteAccess } from '@/features/auth/routeAccess';
 import { colors } from '@/theme/tokens';
+import { ThemeProvider } from '@/theme/ThemeProvider';
 
 export const unstable_settings = { initialRouteName: '(tabs)' };
 
@@ -60,9 +61,11 @@ function Navigator() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <Navigator />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Navigator />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 const styles = StyleSheet.create({

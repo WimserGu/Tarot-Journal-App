@@ -17,6 +17,17 @@ export const defaultTarotCardPickerFilters: TarotCardPickerFilters = {
   suit: 'all',
 };
 
+export function applyArcanaFilter(
+  filters: TarotCardPickerFilters,
+  arcana: ArcanaFilter,
+): TarotCardPickerFilters {
+  return {
+    ...filters,
+    arcana,
+    suit: arcana === 'major' ? 'all' : filters.suit,
+  };
+}
+
 export function filterTarotCards(
   cards: readonly TarotCard[],
   filters: TarotCardPickerFilters,

@@ -1,8 +1,24 @@
 # Tarot Journal App
 
+UI 2.0 Phase 1 uses the Lunar Mystic / Moonlight design system on Home and Reading Detail. See [docs/UI_2_MOONLIGHT_DESIGN_SYSTEM.md](docs/UI_2_MOONLIGHT_DESIGN_SYSTEM.md) for tokens, reusable components, accessibility rules and the remaining migration plan.
+
 Tarot Journal App is a private tarot journaling and trend-tracking app built with Expo, React Native, TypeScript, and Expo Router.
 
 The app uses stable Topic, QuestionTemplate, and Reading repository contracts. The local AsyncStorage adapter remains the default; Supabase adapters are available when explicitly selected and an authenticated Supabase session is present.
+
+## Topic-scoped question tags (Phase 1)
+
+Each Reading may optionally reference one question tag owned by its Topic. Users manage tags from the
+Topic detail page, reuse them in new/edit Reading forms and Import Assistant, and see an “未分类”
+bucket when no tag is selected. Relationship Topics can explicitly add the presets “对方的想法”、
+“我的状态”、“关系走向”、“沟通” and “行动建议”; the App never assigns a tag automatically and
+tags never cross Topic boundaries. Insights shows the selected Topic grouped by tag using Reading
+history only, without AI or semantic matching.
+
+Local persistence schema version 7 stores tags and legacy Readings load with `question_tag_id = null`.
+The pending migration `20260714180000_question_tags_phase_1.sql` creates `question_tags`, adds the
+nullable Reading reference, enforces same-user/same-Topic integrity, and enables RLS. It has not been
+deployed remotely.
 
 ## Tech Stack
 

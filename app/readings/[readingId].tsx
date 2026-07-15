@@ -1,27 +1,28 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Share, StyleSheet, View } from 'react-native';
+import { Alert, Share, View } from 'react-native';
 
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import {
+  EmptyMysticState,
+  GlassPanel,
+  MoonButton,
+  MysticHeader,
+  MysticScreen,
+  MysticText,
+  SectionLabel,
+} from '@/components/mystic';
+import { TarotCardDisplay } from '@/features/draw/components/TarotCardDisplay';
+import { formatFollowUpDate } from '@/features/followups/followUpDate';
+import { outcomeLabels } from '@/features/followups/followUpPresentation';
+import { useReadingFollowUps } from '@/features/followups/useFollowUps';
 import {
   buildReadingShareText,
   deleteReadingAfterConfirmation,
 } from '@/features/readings/readingDetailActions';
-import { readingRepository } from '@/repositories/repositoryFactory';
-import { IconButton } from '@/features/topics/components/IconButton';
-import {
-  reversalAccessibilityLabel,
-  reversalStateLabel,
-} from '@/features/draw/reversalPresentation';
 import { useReadingDetail } from '@/features/readings/useReadings';
-import { useReadingFollowUps } from '@/features/followups/useFollowUps';
-import { formatFollowUpDate } from '@/features/followups/followUpDate';
-import { outcomeLabels } from '@/features/followups/followUpPresentation';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
 import { spreadRepository } from '@/features/spreads/spreadRepository';
-import { CardArtwork } from '@/features/draw/components/CardArtwork';
+import { readingRepository } from '@/repositories/repositoryFactory';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -40,6 +41,7 @@ function formatReadingDateTime(value: string, timeZone: string): string {
 
 export default function ReadingDetailScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
   const params = useLocalSearchParams<{ readingId?: string | string[] }>();
   const readingId = firstRouteParam(params.readingId);
   const {
@@ -53,13 +55,9 @@ export default function ReadingDetailScreen() {
   const [isActing, setIsActing] = useState(false);
 
   const deleteReading = async () => {
-    if (!detail) {
-      return;
-    }
-
+    if (!detail) return;
     setActionError(null);
     setIsActing(true);
-
     try {
       await deleteReadingAfterConfirmation(readingRepository, detail.reading.id, true);
       router.replace({ pathname: '/topics/[topicId]', params: { topicId: detail.topic.id } });
@@ -71,10 +69,7 @@ export default function ReadingDetailScreen() {
   };
 
   const confirmDelete = () => {
-    if (!detail) {
-      return;
-    }
-
+    if (!detail) return;
     Alert.alert(
       '删除这条记录？',
       `将永久删除这条记录、${detail.cards.length} 张牌面及 ${followUps.length} 条关联回顾。此操作无法恢复。`,
@@ -86,13 +81,9 @@ export default function ReadingDetailScreen() {
   };
 
   const toggleFavorite = async () => {
-    if (!detail || isActing) {
-      return;
-    }
-
+    if (!detail || isActing) return;
     setActionError(null);
     setIsActing(true);
-
     try {
       await readingRepository.toggleFavorite(detail.reading.id);
     } catch (error) {
@@ -103,12 +94,8 @@ export default function ReadingDetailScreen() {
   };
 
   const shareReading = async () => {
-    if (!detail || isActing) {
-      return;
-    }
-
+    if (!detail || isActing) return;
     setActionError(null);
-
     try {
       await Share.share({ message: buildReadingShareText(detail) });
     } catch (error) {
@@ -118,29 +105,37 @@ export default function ReadingDetailScreen() {
 
   if (isLoading) {
     return (
-      <Screen>
-        <Text variant="muted">正在加载记录…</Text>
-      </Screen>
+      <MysticScreen>
+        <EmptyMysticState description="正在整理问题、牌面与记录内容。" title="正在加载 Reading…" />
+      </MysticScreen>
     );
   }
 
   if (errorMessage) {
     return (
-      <Screen>
-        <Text>{errorMessage}</Text>
-        <Button label="重新加载" onPress={() => void reload()} />
-        <Button label="返回议题列表" onPress={() => router.replace('/topics')} />
-      </Screen>
+      <MysticScreen>
+        <MysticHeader onBack={() => router.back()} title="无法打开 Reading" />
+        <EmptyMysticState
+          actionLabel="重新加载"
+          description={errorMessage}
+          onAction={() => void reload()}
+          title="暂时无法读取记录"
+        />
+      </MysticScreen>
     );
   }
 
   if (!detail) {
     return (
-      <Screen>
-        <Text variant="subtitle">找不到这条记录</Text>
-        <Text variant="muted">它可能已经被删除，或不再属于当前用户。</Text>
-        <Button label="返回议题列表" onPress={() => router.replace('/topics')} />
-      </Screen>
+      <MysticScreen>
+        <MysticHeader onBack={() => router.back()} title="Reading 不存在" />
+        <EmptyMysticState
+          actionLabel="返回议题列表"
+          description="它可能已经被删除，或不再属于当前用户。"
+          onAction={() => router.replace('/topics')}
+          title="找不到这条记录"
+        />
+      </MysticScreen>
     );
   }
 
@@ -158,154 +153,188 @@ export default function ReadingDetailScreen() {
   )?.reading_card.drawSessionId;
 
   return (
-    <Screen scroll>
-      <View style={styles.topBar}>
-        <IconButton accessibilityLabel="返回" icon="arrow-back" onPress={() => router.back()} />
-        <View style={styles.topActions}>
-          <IconButton
+    <MysticScreen maxWidth={980} scroll>
+      <MysticHeader
+        action={
+          <MoonButton
             accessibilityLabel={detail.reading.is_favorite ? '取消收藏记录' : '收藏记录'}
-            icon={detail.reading.is_favorite ? 'star' : 'star-outline'}
+            label={detail.reading.is_favorite ? '★ 已收藏' : '☆ 收藏'}
+            loading={isActing}
             onPress={() => void toggleFavorite()}
+            variant="ghost"
           />
-          <IconButton
-            accessibilityLabel="编辑记录"
-            icon="pencil-outline"
-            onPress={() =>
-              router.push({ pathname: '/readings/edit', params: { readingId: detail.reading.id } })
-            }
-          />
-          <IconButton
-            accessibilityLabel="删除记录"
-            icon="trash-outline"
-            onPress={confirmDelete}
-            tone="danger"
-          />
-        </View>
-      </View>
+        }
+        onBack={() => router.back()}
+        subtitle={formatReadingDateTime(detail.reading.reading_at, detail.reading.reading_timezone)}
+        title="Tarot Journal"
+      />
 
-      <View style={styles.context}>
-        <View style={styles.titleRow}>
-          <Text variant="eyebrow">{detail.topic.title}</Text>
-          <Text style={styles.statusLabel}>
+      <GlassPanel variant="elevated">
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+          <MysticText style={{ color: theme.colors.primarySoft }} variant="caption">
+            {detail.topic.title}
+          </MysticText>
+          <MysticText
+            style={{
+              color:
+                detail.reading.status === 'draft' ? theme.status.draft : theme.status.completed,
+              fontWeight: '700',
+            }}
+            variant="caption"
+          >
             {detail.reading.status === 'draft' ? '草稿' : '正式记录'}
-          </Text>
-          {detail.reading.is_favorite ? <Text style={styles.favoriteLabel}>已收藏</Text> : null}
+          </MysticText>
+          {detail.question_tag ? (
+            <MysticText style={{ color: theme.colors.warm }} variant="caption">
+              #{detail.question_tag.name}
+            </MysticText>
+          ) : null}
         </View>
-        <Text variant="title">{detail.question_text}</Text>
-        <Text variant="muted">{templateSource}</Text>
-        <Text variant="muted">
-          {formatReadingDateTime(detail.reading.reading_at, detail.reading.reading_timezone)}
-        </Text>
-      </View>
-
-      <View style={styles.actions}>
-        <Button
-          label="复制问题新建记录"
-          onPress={() =>
-            router.push({
-              pathname: '/readings/new',
-              params: { questionText: detail.question_text, topicId: detail.topic.id },
-            })
-          }
-        />
-        {detail.question_template ? (
-          <Button
-            label="查看同题历史"
+        <MysticText variant="display">{detail.question_text}</MysticText>
+        <MysticText variant="caption">{templateSource}</MysticText>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+          <MoonButton
+            label="复制问题再抽一次"
             onPress={() =>
               router.push({
-                pathname: '/questions/history',
+                pathname: '/readings/new',
                 params: {
-                  currentReadingId: detail.reading.id,
-                  questionTemplateId: detail.question_template!.id,
+                  questionText: detail.question_text,
+                  questionTagId: detail.question_tag?.id,
                   topicId: detail.topic.id,
                 },
               })
             }
+            variant="secondary"
           />
-        ) : null}
-        <Button label="分享纯文本摘要" onPress={() => void shareReading()} />
-        <Button
-          label="安排回顾"
-          onPress={() =>
-            router.push({ pathname: '/followups/new', params: { readingId: detail.reading.id } })
-          }
-        />
-        {originalDrawSessionId ? (
-          <Button
-            label="查看原始抽牌"
-            onPress={() => router.push(`/draw/${originalDrawSessionId}` as never)}
-          />
-        ) : null}
-      </View>
+          {detail.question_template ? (
+            <MoonButton
+              label="查看同题历史"
+              onPress={() =>
+                router.push({
+                  pathname: '/questions/history',
+                  params: {
+                    currentReadingId: detail.reading.id,
+                    questionTemplateId: detail.question_template!.id,
+                    topicId: detail.topic.id,
+                  },
+                })
+              }
+              variant="ghost"
+            />
+          ) : null}
+        </View>
+      </GlassPanel>
 
-      <View style={styles.section}>
-        <Text variant="subtitle">牌面</Text>
+      <View style={{ gap: theme.spacing.md }}>
+        <SectionLabel description={spread ? spread.name : '这次记录没有指定牌阵。'} title="牌面" />
         {detail.cards.length > 0 ? (
-          detail.cards.map(({ reading_card: readingCard, tarot_card: tarotCard }) => {
-            const spreadPosition = spread?.positions.find(
-              (position) => position.id === readingCard.spreadPositionId,
-            );
-            return (
-              <View key={readingCard.id} style={styles.cardRow}>
-                {readingCard.tarot_card_id !== null ? (
-                  <CardArtwork
-                    accessibilityLabel={`${tarotCard?.name_zh ?? '未知牌面'}，${reversalAccessibilityLabel(readingCard.orientation, readingCard.reversalVariant)}`}
-                    cardId={readingCard.tarot_card_id}
-                    orientation={readingCard.orientation}
-                    reversalVariant={readingCard.reversalVariant}
-                    size="table"
-                  />
-                ) : null}
-                <Text variant="subtitle">
-                  {spreadPosition?.title ??
-                    readingCard.position_name ??
-                    `第 ${readingCard.position_order} 张牌`}
-                </Text>
-                {spreadPosition?.description ? (
-                  <Text variant="muted">{spreadPosition.description}</Text>
-                ) : null}
-                <Text>{tarotCard?.name_zh ?? '尚未选择牌面'}</Text>
-                <Text variant="muted">
-                  {reversalStateLabel(readingCard.orientation, readingCard.reversalVariant)}
-                </Text>
-                <Text variant="muted">
-                  来源：{readingCard.source === 'drawn' ? 'App 抽取' : '手动添加'}
-                </Text>
-                <Text variant="muted">牌阵位置：{readingCard.position_name ?? '未填写'}</Text>
-              </View>
-            );
-          })
+          <View
+            style={{
+              alignItems: 'stretch',
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: theme.spacing.md,
+              justifyContent: 'center',
+            }}
+          >
+            {detail.cards.map(({ reading_card: readingCard, tarot_card: tarotCard }) => {
+              const spreadPosition = spread?.positions.find(
+                (position) => position.id === readingCard.spreadPositionId,
+              );
+              return (
+                <GlassPanel
+                  key={readingCard.id}
+                  style={{ flexBasis: 250, flexGrow: 1, maxWidth: 340 }}
+                  variant="subtle"
+                >
+                  {readingCard.tarot_card_id !== null ? (
+                    <TarotCardDisplay
+                      cardId={readingCard.tarot_card_id}
+                      name={tarotCard?.name_zh ?? '未知牌面'}
+                      orientation={readingCard.orientation}
+                      reversalVariant={readingCard.reversalVariant}
+                      size="standard"
+                    />
+                  ) : (
+                    <EmptyMysticState description="这张牌的牌面尚未选择。" title="暂无牌面" />
+                  )}
+                  <View style={{ gap: theme.spacing.xs }}>
+                    <MysticText style={{ color: theme.colors.warm }} variant="caption">
+                      {spreadPosition?.title ??
+                        readingCard.position_name ??
+                        `第 ${readingCard.position_order} 张牌`}
+                    </MysticText>
+                    {spreadPosition?.description ? (
+                      <MysticText variant="caption">{spreadPosition.description}</MysticText>
+                    ) : null}
+                    <MysticText variant="caption">
+                      {readingCard.source === 'drawn' ? 'App 抽取' : '手动添加'}
+                    </MysticText>
+                  </View>
+                  <View
+                    style={{
+                      borderTopColor: theme.colors.divider,
+                      borderTopWidth: 1,
+                      gap: theme.spacing.xs,
+                      paddingTop: theme.spacing.md,
+                    }}
+                  >
+                    <MysticText style={{ color: theme.colors.primarySoft }} variant="caption">
+                      这张牌的解读
+                    </MysticText>
+                    <MysticText variant={readingCard.interpretation ? 'body' : 'muted'}>
+                      {readingCard.interpretation ?? '尚未填写'}
+                    </MysticText>
+                  </View>
+                </GlassPanel>
+              );
+            })}
+          </View>
         ) : (
-          <Text variant="muted">这个草稿还没有牌面。</Text>
+          <EmptyMysticState description="可以编辑草稿并加入牌面。" title="这个草稿还没有牌面" />
         )}
       </View>
 
-      <View style={styles.section}>
-        <Text variant="subtitle">个人解读</Text>
-        <Text variant={detail.reading.interpretation ? 'body' : 'muted'}>
-          {detail.reading.interpretation ?? '尚未填写'}
-        </Text>
+      <View style={{ gap: theme.spacing.md }}>
+        <SectionLabel description="你当时对整个牌阵的观察。" title="总体解读" />
+        <GlassPanel variant="elevated">
+          <MysticText variant={detail.reading.interpretation ? 'body' : 'muted'}>
+            {detail.reading.interpretation ?? '尚未填写总体解读。'}
+          </MysticText>
+        </GlassPanel>
       </View>
 
-      <View style={styles.section}>
-        <Text variant="subtitle">后续反馈</Text>
-        <Text variant={detail.reading.reality_feedback ? 'body' : 'muted'}>
-          {detail.reading.reality_feedback ?? '暂未记录后续反馈。'}
-        </Text>
+      <View style={{ gap: theme.spacing.md }}>
+        <SectionLabel description="把牌面放回真实生活中。" title="后续反馈" />
+        <GlassPanel variant="subtle">
+          <MysticText variant={detail.reading.reality_feedback ? 'body' : 'muted'}>
+            {detail.reading.reality_feedback ?? '暂未记录后续反馈。'}
+          </MysticText>
+        </GlassPanel>
       </View>
 
-      <View style={styles.section}>
-        <Text variant="subtitle">后来发生了什么</Text>
+      <View style={{ gap: theme.spacing.md }}>
+        <SectionLabel title="后来发生了什么" />
         {followUps.length === 0 ? (
-          <Text variant="muted">尚未安排回顾。</Text>
+          <EmptyMysticState
+            actionLabel="安排回顾"
+            description="选择未来的日期，再回来对照当时的观察。"
+            onAction={() =>
+              router.push({ pathname: '/followups/new', params: { readingId: detail.reading.id } })
+            }
+            title="尚未安排回顾"
+          />
         ) : (
           followUps.map((followUp) => (
-            <View key={followUp.id} style={styles.cardRow}>
-              <Text>
+            <GlassPanel key={followUp.id} variant="subtle">
+              <MysticText variant="cardTitle">
+                {followUp.outcome ? outcomeLabels[followUp.outcome] : '待回顾'}
+              </MysticText>
+              <MysticText variant="caption">
                 计划：{formatFollowUpDate(followUp.scheduledFor, detail.reading.reading_timezone)}
-              </Text>
-              <Text>{followUp.outcome ? outcomeLabels[followUp.outcome] : '待回顾'}</Text>
-              <Button
+              </MysticText>
+              <MoonButton
                 label="查看回顾"
                 onPress={() =>
                   router.push({
@@ -313,77 +342,64 @@ export default function ReadingDetailScreen() {
                     params: { followUpId: followUp.id },
                   })
                 }
+                variant="secondary"
               />
-            </View>
+            </GlassPanel>
           ))
         )}
       </View>
 
-      <View style={styles.metadata}>
-        <Text variant="muted">
-          创建于 {formatReadingDateTime(detail.reading.created_at, detail.reading.reading_timezone)}
-        </Text>
-        <Text variant="muted">
-          更新于 {formatReadingDateTime(detail.reading.updated_at, detail.reading.reading_timezone)}
-        </Text>
-      </View>
+      <GlassPanel variant="subtle">
+        <SectionLabel description="这些操作不会改变原始抽牌记录。" title="记录操作" />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+          <MoonButton
+            label="编辑"
+            onPress={() =>
+              router.push({ pathname: '/readings/edit', params: { readingId: detail.reading.id } })
+            }
+            variant="secondary"
+          />
+          <MoonButton label="分享摘要" onPress={() => void shareReading()} variant="ghost" />
+          <MoonButton
+            label="安排回顾"
+            onPress={() =>
+              router.push({ pathname: '/followups/new', params: { readingId: detail.reading.id } })
+            }
+            variant="ghost"
+          />
+          {originalDrawSessionId ? (
+            <MoonButton
+              label="查看原始抽牌"
+              onPress={() => router.push(`/draw/${originalDrawSessionId}` as never)}
+              variant="ghost"
+            />
+          ) : null}
+          <MoonButton label="删除记录" onPress={confirmDelete} variant="destructive" />
+        </View>
+        <View
+          style={{
+            borderTopColor: theme.colors.divider,
+            borderTopWidth: 1,
+            gap: 2,
+            paddingTop: theme.spacing.md,
+          }}
+        >
+          <MysticText variant="caption">
+            创建于{' '}
+            {formatReadingDateTime(detail.reading.created_at, detail.reading.reading_timezone)}
+          </MysticText>
+          <MysticText variant="caption">
+            更新于{' '}
+            {formatReadingDateTime(detail.reading.updated_at, detail.reading.reading_timezone)}
+          </MysticText>
+        </View>
+      </GlassPanel>
 
-      {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
-    </Screen>
+      {actionError ? (
+        <MysticText accessibilityLiveRegion="polite" style={{ color: theme.colors.danger }}>
+          {actionError}
+        </MysticText>
+      ) : null}
+    </MysticScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  cardRow: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    gap: spacing.xs,
-    padding: spacing.md,
-  },
-  context: {
-    gap: spacing.sm,
-  },
-  errorText: {
-    color: colors.danger,
-  },
-  favoriteLabel: {
-    color: colors.accent,
-    fontWeight: '700',
-  },
-  metadata: {
-    borderTopColor: colors.border,
-    borderTopWidth: 1,
-    gap: spacing.xs,
-    paddingTop: spacing.md,
-  },
-  section: {
-    gap: spacing.md,
-  },
-  statusLabel: {
-    color: colors.accent,
-    fontWeight: '700',
-  },
-  titleRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  topActions: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  topBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-});

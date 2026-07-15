@@ -43,6 +43,8 @@ export function drawConfigurationRow(session: Pick<DrawSession, 'configuration'>
     reversed_probability: value.reversedProbability,
     right_probability_when_reversed: value.rightProbabilityWhenReversed,
     question_text: value.questionText,
+    source_topic_id: value.sourceTopicId,
+    source_question_template_id: value.sourceQuestionTemplateId,
     hidden_deck_card_ids: value.hiddenDeckCardIds ?? [],
     table: value.table
       ? {

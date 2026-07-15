@@ -1,130 +1,86 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
-import { Button } from '@/components/Button';
-import { Text } from '@/components/Text';
+import { GlassPanel, MoonButton, MysticText } from '@/components/mystic';
 import { formatHomeDate, type TodayQuestionSummary } from '@/features/home/homeData';
-import type { CardOrientation } from '@/domain/types';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
+import { reversalStateLabel } from '@/features/draw/reversalPresentation';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 type TodayQuestionCardProps = {
   question: TodayQuestionSummary;
   timeZone: string;
+  onEdit: () => void;
   onStart: () => void;
 };
 
-function orientationLabel(orientation: CardOrientation): string {
-  return orientation === 'upright' ? '正位' : '逆位';
-}
-
-export function TodayQuestionCard({ question, timeZone, onStart }: TodayQuestionCardProps) {
+export function TodayQuestionCard({ question, timeZone, onEdit, onStart }: TodayQuestionCardProps) {
+  const { theme } = useAppTheme();
   const lastRecordLabel = question.last_reading_at
     ? formatHomeDate(question.last_reading_at, timeZone)
-    : '尚未记录';
-  const lastCardLabel = question.last_card
-    ? `${question.last_card.name_zh} · ${orientationLabel(question.last_card.orientation)}`
-    : '暂无牌面';
+    : '暂无历史记录';
+  const lastCardLabel =
+    question.last_cards.length > 0
+      ? question.last_cards
+          .map(
+            (card) =>
+              `${card.name_zh} · ${reversalStateLabel(card.orientation, card.reversalVariant)}`,
+          )
+          .join(' / ')
+      : question.last_reading_at
+        ? '上次记录没有有效牌面'
+        : '暂无历史牌面';
 
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <Text variant="eyebrow">{question.topic.title}</Text>
+    <GlassPanel variant="subtle">
+      <View
+        style={{
+          alignItems: 'center',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: theme.spacing.sm,
+          justifyContent: 'space-between',
+        }}
+      >
+        <MysticText variant="caption">{question.topic.title}</MysticText>
         <View
           accessibilityLabel={question.is_completed_today ? '今日已完成' : '今日待记录'}
-          style={[
-            styles.status,
-            question.is_completed_today ? styles.statusCompleted : styles.statusPending,
-          ]}
+          style={{
+            backgroundColor: question.is_completed_today
+              ? 'rgba(184, 224, 206, 0.14)'
+              : 'rgba(181, 167, 234, 0.14)',
+            borderRadius: theme.radii.pill,
+            paddingHorizontal: theme.spacing.sm,
+            paddingVertical: theme.spacing.xs,
+          }}
         >
-          <Text
-            style={[
-              styles.statusText,
-              question.is_completed_today ? styles.statusTextCompleted : styles.statusTextPending,
-            ]}
+          <MysticText
+            style={{
+              color: question.is_completed_today ? theme.status.completed : theme.status.pending,
+              fontWeight: '700',
+            }}
+            variant="caption"
           >
             {question.is_completed_today ? '今日已完成' : '今日待记录'}
-          </Text>
+          </MysticText>
         </View>
       </View>
 
-      <Text style={styles.questionText} variant="subtitle">
-        {question.question_template.question_text}
-      </Text>
+      <MysticText variant="cardTitle">{question.question_template.question_text}</MysticText>
 
-      <View style={styles.metadata}>
-        <View style={styles.metadataItem}>
-          <Text style={styles.metadataLabel} variant="muted">
-            上次记录
-          </Text>
-          <Text style={styles.metadataValue}>{lastRecordLabel}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.md }}>
+        <View style={{ flexBasis: 140, flexGrow: 1, gap: theme.spacing.xs }}>
+          <MysticText variant="caption">上次记录</MysticText>
+          <MysticText>{lastRecordLabel}</MysticText>
         </View>
-        <View style={styles.metadataItem}>
-          <Text style={styles.metadataLabel} variant="muted">
-            上次出现的牌
-          </Text>
-          <Text style={styles.metadataValue}>{lastCardLabel}</Text>
+        <View style={{ flexBasis: 190, flexGrow: 2, gap: theme.spacing.xs }}>
+          <MysticText variant="caption">上次出现的牌</MysticText>
+          <MysticText>{lastCardLabel}</MysticText>
         </View>
       </View>
 
-      <Button label="开始记录" onPress={onStart} />
-    </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+        <MoonButton label="开始抽牌" onPress={onStart} />
+        <MoonButton label="修改问题" onPress={onEdit} variant="ghost" />
+      </View>
+    </GlassPanel>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    gap: spacing.md,
-    padding: spacing.md,
-  },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    justifyContent: 'space-between',
-  },
-  metadata: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-  },
-  metadataItem: {
-    flexBasis: 150,
-    flexGrow: 1,
-    gap: spacing.xs,
-  },
-  metadataLabel: {
-    fontSize: 12,
-  },
-  metadataValue: {
-    flexShrink: 1,
-    fontWeight: '600',
-  },
-  questionText: {
-    flexShrink: 1,
-  },
-  status: {
-    borderRadius: borderRadii.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  statusCompleted: {
-    backgroundColor: colors.surfaceMuted,
-  },
-  statusPending: {
-    backgroundColor: colors.accent,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  statusTextCompleted: {
-    color: colors.accent,
-  },
-  statusTextPending: {
-    color: colors.surface,
-  },
-});

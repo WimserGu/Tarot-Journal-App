@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { tarotCards } from '../../../domain/tarotCards';
 
 import {
+  applyArcanaFilter,
   defaultTarotCardPickerFilters,
   filterTarotCards,
   hasActiveTarotCardPickerFilters,
@@ -11,6 +12,15 @@ import {
 } from '../tarotCardPickerState';
 
 describe('tarot card picker state', () => {
+  it('clears an incompatible suit when switching to Major Arcana', () => {
+    expect(
+      applyArcanaFilter(
+        { ...defaultTarotCardPickerFilters, suit: 'wands' },
+        'major',
+      ),
+    ).toEqual({ ...defaultTarotCardPickerFilters, arcana: 'major', suit: 'all' });
+  });
+
   it('searches Chinese and English card names while ignoring case and whitespace', () => {
     expect(
       filterTarotCards(tarotCards, { ...defaultTarotCardPickerFilters, query: ' 宝 剑 八 ' }).map(

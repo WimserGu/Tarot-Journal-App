@@ -1,4 +1,5 @@
 export const DECK_DRAG_THRESHOLD = 8;
+export const TABLE_CARD_PICKUP_THRESHOLD = 3;
 export const TABLE_EDGE_SCROLL_INDICATOR_VISIBLE = false;
 
 export type LoopedDeckItem = {
@@ -33,6 +34,15 @@ export function deckGestureIntent(
   threshold = DECK_DRAG_THRESHOLD,
 ): 'select' | 'drag' {
   return Math.hypot(deltaX, deltaY) >= threshold ? 'drag' : 'select';
+}
+
+export function deckCardGestureIntent(
+  deltaX: number,
+  deltaY: number,
+  threshold = TABLE_CARD_PICKUP_THRESHOLD,
+): 'select' | 'scroll' | 'table-drag' {
+  if (Math.hypot(deltaX, deltaY) < threshold) return 'select';
+  return Math.abs(deltaY) > Math.abs(deltaX) ? 'table-drag' : 'scroll';
 }
 
 export function naturalCardOffset(index: number) {

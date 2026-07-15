@@ -5,6 +5,27 @@ function normalizeCardName(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, '');
 }
 
+const exactCardNameAliases: Readonly<Record<string, string>> = {
+  愚者: '愚人',
+  女教皇: '女祭司',
+  教宗: '教皇',
+  吊人: '倒吊人',
+  隐者: '隐士',
+};
+
+function cardNameCandidates(value: string): ReadonlySet<string> {
+  const normalized = normalizeCardName(value);
+  const canonicalChineseName = (exactCardNameAliases[normalized] ?? normalized)
+    .replace(/^金币/, '星币')
+    .replace(/^钱币/, '星币')
+    .replace(/侍者$/, '侍从')
+    .replace(/^(权杖|圣杯|宝剑|星币)一$/, '$1首牌')
+    .replace(/^(权杖|圣杯|宝剑|星币)(皇后|女王)$/, '$1王后');
+  const withoutEnglishArticle = normalized.startsWith('the') ? normalized.slice(3) : normalized;
+
+  return new Set([normalized, canonicalChineseName, withoutEnglishArticle]);
+}
+
 /** Finds a card by its stable key, Chinese name, or English display name. */
 export function findTarotCardByName(
   name: string,
@@ -16,12 +37,13 @@ export function findTarotCardByName(
     return undefined;
   }
 
+  const nameCandidates = cardNameCandidates(name);
+
   return cards.find((card) => {
-    return (
-      normalizeCardName(card.card_key) === normalizedName ||
-      normalizeCardName(card.name_zh) === normalizedName ||
-      normalizeCardName(card.name_en) === normalizedName
-    );
+    return [card.card_key, card.name_zh, card.name_en].some((value) => {
+      const cardCandidates = cardNameCandidates(value);
+      return [...nameCandidates].some((candidate) => cardCandidates.has(candidate));
+    });
   });
 }
 

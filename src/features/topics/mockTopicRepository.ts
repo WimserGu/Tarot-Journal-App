@@ -139,6 +139,9 @@ export class MockTopicRepository implements TopicRepository {
       mutableData.question_templates = mutableData.question_templates.filter(
         (question) => !removedQuestionIds.has(question.id),
       );
+      mutableData.question_tags = mutableData.question_tags.filter(
+        (tag) => !(tag.topic_id === topicId && tag.user_id === this.store.userId),
+      );
       mutableData.question_template_positions = mutableData.question_template_positions.filter(
         (position) => !removedQuestionIds.has(position.question_template_id),
       );

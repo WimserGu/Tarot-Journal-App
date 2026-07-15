@@ -4,10 +4,12 @@ import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-n
 
 import { Text } from '@/components/Text';
 import type { TarotCard } from '@/domain/types';
+import { CardArtwork } from '@/features/draw/components/CardArtwork';
 import { borderRadii, colors, fontSizes, spacing } from '@/theme/tokens';
 
 import {
   defaultTarotCardPickerFilters,
+  applyArcanaFilter,
   filterTarotCards,
   hasActiveTarotCardPickerFilters,
   isTarotCardSelected,
@@ -102,7 +104,9 @@ export function TarotCardPickerModal({
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 key={filter.value}
-                onPress={() => setFilters((current) => ({ ...current, arcana: filter.value }))}
+                onPress={() =>
+                  setFilters((current) => applyArcanaFilter(current, filter.value))
+                }
                 style={({ pressed }) => [
                   styles.arcanaFilter,
                   selected ? styles.filterSelected : null,
@@ -114,28 +118,32 @@ export function TarotCardPickerModal({
             );
           })}
         </View>
-        <View style={styles.suitFilters}>
-          {suitFilters.map((filter) => {
-            const selected = filters.suit === filter.value;
+        {filters.arcana !== 'major' ? (
+          <View style={styles.suitFilters}>
+            {suitFilters.map((filter) => {
+              const selected = filters.suit === filter.value;
 
-            return (
-              <Pressable
-                accessibilityLabel={`按${filter.label}筛选`}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                key={filter.value}
-                onPress={() => setFilters((current) => ({ ...current, suit: filter.value }))}
-                style={({ pressed }) => [
-                  styles.suitFilter,
-                  selected ? styles.filterSelected : null,
-                  pressed ? styles.pressed : null,
-                ]}
-              >
-                <Text style={selected ? styles.filterSelectedText : undefined}>{filter.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+              return (
+                <Pressable
+                  accessibilityLabel={`按${filter.label}筛选`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  key={filter.value}
+                  onPress={() => setFilters((current) => ({ ...current, suit: filter.value }))}
+                  style={({ pressed }) => [
+                    styles.suitFilter,
+                    selected ? styles.filterSelected : null,
+                    pressed ? styles.pressed : null,
+                  ]}
+                >
+                  <Text style={selected ? styles.filterSelectedText : undefined}>
+                    {filter.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
         <FlatList
           data={matchingCards}
           contentContainerStyle={styles.listContent}
@@ -162,8 +170,12 @@ export function TarotCardPickerModal({
                   ]}
                 >
                   <View style={styles.cardFace}>
-                    <Text style={styles.cardFaceText}>{categoryLabel}</Text>
-                    {suitLabel ? <Text style={styles.cardFaceText}>{suitLabel}</Text> : null}
+                    <CardArtwork
+                      accessibilityLabel={`${card.name_zh}牌面缩略图`}
+                      cardId={card.id}
+                      orientation="upright"
+                      size="picker"
+                    />
                   </View>
                   <View style={styles.cardCopy}>
                     <Text>{card.name_zh}</Text>
@@ -209,11 +221,6 @@ const styles = StyleSheet.create({
     minHeight: 72,
     paddingHorizontal: spacing.sm,
     width: 76,
-  },
-  cardFaceText: {
-    color: colors.textMuted,
-    fontSize: fontSizes.caption,
-    textAlign: 'center',
   },
   cardCopy: {
     flex: 1,

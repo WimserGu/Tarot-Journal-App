@@ -29,7 +29,7 @@ type MinorSuitSeed = {
 };
 
 const majorCardSeeds: readonly MajorCardSeed[] = [
-  { card_key: 'major_fool', name_zh: '愚者', name_en: 'The Fool', rank_code: '0', rank_order: 0 },
+  { card_key: 'major_fool', name_zh: '愚人', name_en: 'The Fool', rank_code: '0', rank_order: 0 },
   {
     card_key: 'major_magician',
     name_zh: '魔术师',
@@ -88,7 +88,7 @@ const majorCardSeeds: readonly MajorCardSeed[] = [
   },
   {
     card_key: 'major_hermit',
-    name_zh: '隐者',
+    name_zh: '隐士',
     name_en: 'The Hermit',
     rank_code: '9',
     rank_order: 9,
@@ -156,7 +156,7 @@ const majorCardSeeds: readonly MajorCardSeed[] = [
 ];
 
 const minorRankSeeds: readonly MinorRankSeed[] = [
-  { rank_code: 'ace', name_zh_suffix: '一', name_en: 'Ace', rank_order: 1 },
+  { rank_code: 'ace', name_zh_suffix: '首牌', name_en: 'Ace', rank_order: 1 },
   { rank_code: 'two', name_zh_suffix: '二', name_en: 'Two', rank_order: 2 },
   { rank_code: 'three', name_zh_suffix: '三', name_en: 'Three', rank_order: 3 },
   { rank_code: 'four', name_zh_suffix: '四', name_en: 'Four', rank_order: 4 },
@@ -168,7 +168,7 @@ const minorRankSeeds: readonly MinorRankSeed[] = [
   { rank_code: 'ten', name_zh_suffix: '十', name_en: 'Ten', rank_order: 10 },
   { rank_code: 'page', name_zh_suffix: '侍从', name_en: 'Page', rank_order: 11 },
   { rank_code: 'knight', name_zh_suffix: '骑士', name_en: 'Knight', rank_order: 12 },
-  { rank_code: 'queen', name_zh_suffix: '皇后', name_en: 'Queen', rank_order: 13 },
+  { rank_code: 'queen', name_zh_suffix: '王后', name_en: 'Queen', rank_order: 13 },
   { rank_code: 'king', name_zh_suffix: '国王', name_en: 'King', rank_order: 14 },
 ];
 

@@ -2,6 +2,7 @@ import type {
   CardOrientation,
   ReversalVariant,
   QuestionTemplate,
+  QuestionTag,
   Reading,
   TarotCard,
   TarotSuit,
@@ -11,6 +12,7 @@ import type {
 
 export type StatisticsFilter = {
   topicId?: UUID;
+  questionTagId?: UUID | null;
   dateFrom?: string;
   dateTo?: string;
   includeDrafts: boolean;
@@ -21,12 +23,14 @@ export type StatisticsCard = {
   reversalVariant?: ReversalVariant;
   tarotCard: TarotCard;
   positionOrder: number;
+  interpretation?: string | null;
 };
 export type StatisticsReading = {
   reading: Reading;
   cards: StatisticsCard[];
   topic: Topic | null;
   questionTemplate: QuestionTemplate | null;
+  questionTag?: QuestionTag | null;
   questionText: string;
 };
 export type TraceableCount = { count: number; readingIds: UUID[] };
@@ -36,11 +40,30 @@ export type CardStatistic = {
   totalCount: number;
   uprightCount: number;
   reversedCount: number;
+  ordinaryReversedCount: number;
+  leftCount: number;
+  rightCount: number;
   readingIds: UUID[];
+  occurrences: CardInterpretationOccurrence[];
+};
+export type CardInterpretationOccurrence = {
+  readingId: UUID;
+  readingAt: string;
+  readingTimezone: string;
+  questionText: string;
+  orientation: CardOrientation;
+  reversalVariant: ReversalVariant;
+  interpretation: string | null;
 };
 export type QuestionStatistic = {
   questionTemplateId: UUID | null;
   questionText: string;
+  readingIds: UUID[];
+  readingCount: number;
+};
+export type QuestionTagStatistic = {
+  questionTagId: UUID | null;
+  label: string;
   readingIds: UUID[];
   readingCount: number;
 };
@@ -63,6 +86,7 @@ export type StatisticsResult = {
   /** Complete card distribution for downstream review snapshots. */
   cardStatistics: CardStatistic[];
   questionStatistics: QuestionStatistic[];
+  questionTagStatistics: QuestionTagStatistic[];
   streaks: CardStreak[];
   recent7Days: TraceableCount;
   recent30Days: TraceableCount;

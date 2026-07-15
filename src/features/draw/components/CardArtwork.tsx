@@ -9,7 +9,7 @@ import {
   getCardFrontSource,
 } from '@/features/tarot/artwork/tarotArtworkRegistry';
 
-export type ArtworkSize = 'river' | 'table' | 'focus';
+export type ArtworkSize = 'river' | 'table' | 'focus' | 'picker';
 
 export const TAROT_CARD_ASPECT_RATIO = 456 / 787;
 
@@ -17,6 +17,7 @@ const dimensions = {
   river: { width: 74, height: 128 },
   table: { width: 82, height: 142 },
   focus: { width: 240, height: 414 },
+  picker: { width: 46, height: 79 },
 } as const;
 
 export const CARD_TABLE_WIDTH = dimensions.table.width;
@@ -57,23 +58,35 @@ export const TarotCardArtworkImage = memo(function TarotCardArtworkImage({
       style={[styles.frame, side === 'front' ? styles.frontFrame : null, dimensions[size]]}
       testID={`tarot-artwork-${side}`}
     >
-      <Animated.Image
-        accessibilityLabel={label}
-        fadeDuration={0}
-        onError={() => setFailed(true)}
-        resizeMode="contain"
-        source={source}
-        style={[
-          styles.image,
-          side === 'front'
-            ? {
-                transform: animatedRotation
-                  ? [{ rotate: animatedRotation }]
-                  : artworkRotation(orientation, reversalVariant),
-              }
-            : null,
-        ]}
-      />
+      {side === 'back' || animatedRotation === undefined ? (
+        <Image
+          accessibilityLabel={label}
+          fadeDuration={0}
+          onError={() => setFailed(true)}
+          resizeMode="contain"
+          source={source}
+          style={[
+            styles.image,
+            side === 'front' ? { transform: artworkRotation(orientation, reversalVariant) } : null,
+          ]}
+        />
+      ) : (
+        <Animated.Image
+          accessibilityLabel={label}
+          fadeDuration={0}
+          onError={() => setFailed(true)}
+          resizeMode="contain"
+          source={source}
+          style={[
+            styles.image,
+            {
+              transform: animatedRotation
+                ? [{ rotate: animatedRotation }]
+                : artworkRotation(orientation, reversalVariant),
+            },
+          ]}
+        />
+      )}
     </View>
   );
 });

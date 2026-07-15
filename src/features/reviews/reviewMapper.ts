@@ -28,6 +28,7 @@ const STATISTICS_KEYS = [
   'topCards',
   'cardStatistics',
   'questionStatistics',
+  'questionTagStatistics',
   'streaks',
   'recent7Days',
   'recent30Days',
@@ -35,7 +36,6 @@ const STATISTICS_KEYS = [
   'trace',
   'filterError',
 ] as const;
-const LEGACY_STATISTICS_KEYS = STATISTICS_KEYS.filter((key) => key !== 'dualReversalDistribution');
 
 function fail(field: string): never {
   throw new ValidationRepositoryError(`Invalid database value for ${field}.`, 'mapReview');
@@ -80,12 +80,21 @@ function snapshot(value: unknown): ReviewStatisticsSnapshot {
   const current = record(result.current, 'statistics_snapshot.current');
   const previous = record(result.previous, 'statistics_snapshot.previous');
   const normalizeStatistics = (statistics: Row, field: string) => {
-    const isLegacy = !Object.keys(statistics).includes('dualReversalDistribution');
-    exactKeys(statistics, isLegacy ? LEGACY_STATISTICS_KEYS : STATISTICS_KEYS, field);
+    const optionalLegacyKeys = new Set(['dualReversalDistribution', 'questionTagStatistics']);
+    const keys = Object.keys(statistics);
+    if (
+      keys.some((key) => !(STATISTICS_KEYS as readonly string[]).includes(key)) ||
+      STATISTICS_KEYS.some(
+        (key) =>
+          !optionalLegacyKeys.has(key) && !Object.prototype.hasOwnProperty.call(statistics, key),
+      )
+    )
+      fail(field);
     statistics.dualReversalDistribution ??= {
       left: { count: 0, total: 0, ratio: 0, readingIds: [] },
       right: { count: 0, total: 0, ratio: 0, readingIds: [] },
     };
+    statistics.questionTagStatistics ??= [];
   };
   normalizeStatistics(current, 'statistics_snapshot.current');
   normalizeStatistics(previous, 'statistics_snapshot.previous');

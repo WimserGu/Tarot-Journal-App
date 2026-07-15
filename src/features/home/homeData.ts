@@ -1,5 +1,6 @@
 import type {
   CardOrientation,
+  ReversalVariant,
   QuestionTemplate,
   Reading,
   ReadingCard,
@@ -13,13 +14,15 @@ export type LastCardSummary = {
   card_key: string;
   name_zh: string;
   orientation: CardOrientation;
+  reversalVariant: ReversalVariant;
+  tarot_card_id: number;
 };
 
 export type TodayQuestionSummary = {
   question_template: QuestionTemplate;
   topic: Topic;
   last_reading_at: string | null;
-  last_card: LastCardSummary | null;
+  last_cards: LastCardSummary[];
   is_completed_today: boolean;
 };
 
@@ -29,8 +32,17 @@ export type TopicSummary = {
   record_count: number;
 };
 
+export type RecentReadingSummary = {
+  cards: LastCardSummary[];
+  is_today: boolean;
+  question_text: string;
+  reading: Reading;
+  topic: Topic | null;
+};
+
 export type HomeData = {
   greeting: string;
+  recent_reading: RecentReadingSummary | null;
   today_questions: TodayQuestionSummary[];
   topics: TopicSummary[];
 };
@@ -41,7 +53,10 @@ export type HomeDataInput = {
   topics: readonly Topic[];
   question_templates: readonly QuestionTemplate[];
   readings: readonly Reading[];
-  reading_cards: readonly ReadingCard[];
+  reading_cards: readonly Pick<
+    ReadingCard,
+    'orientation' | 'position_order' | 'reading_id' | 'reversalVariant' | 'tarot_card_id'
+  >[];
   tarot_cards: readonly TarotCard[];
 };
 
@@ -89,34 +104,32 @@ function getLatestCompletedReading(
     .sort((first, second) => Date.parse(second.reading_at) - Date.parse(first.reading_at))[0];
 }
 
-function getLastCardSummary(
+function getLastCardSummaries(
   reading: Reading | undefined,
-  readingCards: readonly ReadingCard[],
+  readingCards: HomeDataInput['reading_cards'],
   tarotCards: readonly TarotCard[],
-): LastCardSummary | null {
+): LastCardSummary[] {
   if (!reading) {
-    return null;
+    return [];
   }
 
-  const readingCard = readingCards
+  return readingCards
     .filter((card) => card.reading_id === reading.id && card.tarot_card_id !== null)
-    .sort((first, second) => first.position_order - second.position_order)[0];
-
-  if (!readingCard || readingCard.tarot_card_id === null) {
-    return null;
-  }
-
-  const tarotCard = tarotCards.find((card) => card.id === readingCard.tarot_card_id);
-
-  if (!tarotCard) {
-    return null;
-  }
-
-  return {
-    card_key: tarotCard.card_key,
-    name_zh: tarotCard.name_zh,
-    orientation: readingCard.orientation,
-  };
+    .sort((first, second) => first.position_order - second.position_order)
+    .flatMap((readingCard) => {
+      const tarotCard = tarotCards.find((card) => card.id === readingCard.tarot_card_id);
+      return tarotCard
+        ? [
+            {
+              card_key: tarotCard.card_key,
+              name_zh: tarotCard.name_zh,
+              orientation: readingCard.orientation,
+              reversalVariant: readingCard.reversalVariant,
+              tarot_card_id: tarotCard.id,
+            },
+          ]
+        : [];
+    });
 }
 
 function isQuestionDueToday(
@@ -210,7 +223,7 @@ export function buildHomeData({
           question_template: template,
           topic,
           last_reading_at: latestReading?.reading_at ?? null,
-          last_card: getLastCardSummary(latestReading, reading_cards, tarot_cards),
+          last_cards: getLastCardSummaries(latestReading, reading_cards, tarot_cards),
           is_completed_today:
             latestReading !== undefined &&
             getDateKey(latestReading.reading_at, time_zone) === getDateKey(now, time_zone),
@@ -240,8 +253,33 @@ export function buildHomeData({
       (first, second) => Date.parse(second.topic.updated_at) - Date.parse(first.topic.updated_at),
     );
 
+  const latestCompletedReading = [...readings]
+    .filter((reading) => reading.status === 'completed')
+    .sort((first, second) => Date.parse(second.reading_at) - Date.parse(first.reading_at))[0];
+  const latestTemplate = latestCompletedReading?.question_template_id
+    ? question_templates.find(
+        (template) => template.id === latestCompletedReading.question_template_id,
+      )
+    : null;
+  const recentReading = latestCompletedReading
+    ? {
+        cards: getLastCardSummaries(latestCompletedReading, reading_cards, tarot_cards),
+        is_today:
+          getDateKey(latestCompletedReading.reading_at, time_zone) === getDateKey(now, time_zone),
+        question_text:
+          latestCompletedReading.question_text_snapshot ??
+          latestTemplate?.question_text ??
+          '未命名问题',
+        reading: latestCompletedReading,
+        topic: latestCompletedReading.topic_id
+          ? (activeTopicById.get(latestCompletedReading.topic_id) ?? null)
+          : null,
+      }
+    : null;
+
   return {
     greeting: getTimeGreeting(now),
+    recent_reading: recentReading,
     today_questions: todayQuestions,
     topics: topicSummaries,
   };

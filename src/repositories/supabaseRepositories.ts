@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { QuestionTemplate, Reading, Topic, UUID } from '../domain/types';
+import type { QuestionTag, QuestionTemplate, Reading, Topic, UUID } from '../domain/types';
 import { tarotCards } from '../domain/tarotCards';
 import type {
   QuestionTemplateRepository,
@@ -13,6 +13,7 @@ import {
 } from '../features/questions/questionTemplateRepository';
 import type {
   ReadingRepository,
+  BatchAssignQuestionTagInput,
   CreateReadingInput,
   UpdateReadingInput,
   ReadingDetail,
@@ -30,6 +31,7 @@ import {
   buildReadingFormContext,
   buildTopicTimeline,
   ReadingNotFoundError,
+  ReadingValidationError,
 } from '../features/readings/readingRepository';
 import type {
   TopicRepository,
@@ -40,6 +42,14 @@ import type {
 import { buildTopicDetail, TopicNotFoundError } from '../features/topics/topicRepository';
 import type { TopicFormValues } from '../features/topics/topicSchema';
 import { topicFormSchema } from '../features/topics/topicSchema';
+import {
+  normalizeQuestionTagName,
+  questionTagNameSchema,
+  QuestionTagNotFoundError,
+  QuestionTagValidationError,
+  type CreateQuestionTagInput,
+  type QuestionTagRepository,
+} from '../features/questionTags/questionTagRepository';
 import type { JournalData } from './journalData';
 import {
   ConflictRepositoryError,
@@ -53,6 +63,7 @@ import {
 import { encodeStoredReversalVariant } from './reversalStorage';
 import {
   mapQuestionTemplatePositionRow,
+  mapQuestionTagRow,
   mapQuestionTemplateRow,
   mapReadingCardRow,
   mapReadingRow,
@@ -60,6 +71,23 @@ import {
 } from './supabaseMappers';
 
 type DbError = { code?: string; message?: string } | null;
+
+function isQuestionTagsUnavailable(error: DbError): boolean {
+  if (!error) return false;
+  return (
+    error.code === '42P01' ||
+    error.code === 'PGRST205' ||
+    /question_tags.*(?:does not exist|schema cache)/i.test(error.message ?? '')
+  );
+}
+
+function isLegacyReadingRpcSignature(error: DbError): boolean {
+  if (!error) return false;
+  return (
+    error.code === 'PGRST202' ||
+    /(?:create|update)_reading_with_cards.*p_question_tag_id/i.test(error.message ?? '')
+  );
+}
 function mapError(error: DbError, operation: string): RepositoryError {
   if (!error) return new UnknownRepositoryError(operation);
   if (error.code === '42501' || /permission|row-level security/i.test(error.message ?? ''))
@@ -93,26 +121,83 @@ abstract class SupabaseRepositoryBase {
   }
   protected async loadData(): Promise<JournalData> {
     await this.requireUser();
-    const [topics, templates, positions, readings, cards] = await Promise.all([
+    const [topics, templates, positions, tags, readings, cards] = await Promise.all([
       this.client.from('topics').select('*'),
       this.client.from('question_templates').select('*'),
       this.client.from('question_template_positions').select('*'),
+      this.client.from('question_tags').select('*'),
       this.client.from('readings').select('*'),
       this.client.from('reading_cards').select('*'),
     ]);
     [topics, templates, positions, readings, cards].forEach((result) =>
       this.check(result.error, 'loadData'),
     );
+    if (!isQuestionTagsUnavailable(tags.error)) this.check(tags.error, 'loadData.questionTags');
     return {
       topics: (topics.data ?? []).map(mapTopicRow),
       question_templates: (templates.data ?? []).map(mapQuestionTemplateRow),
       question_template_positions: (positions.data ?? []).map(mapQuestionTemplatePositionRow),
+      question_tags: tags.error ? [] : (tags.data ?? []).map(mapQuestionTagRow),
       readings: (readings.data ?? []).map(mapReadingRow),
       reading_cards: (cards.data ?? []).map(mapReadingCardRow),
       reading_follow_ups: [],
       draw_sessions: [],
       tarot_cards: tarotCards,
     };
+  }
+}
+
+export class SupabaseQuestionTagRepository
+  extends SupabaseRepositoryBase
+  implements QuestionTagRepository
+{
+  async listQuestionTags(topicId: UUID): Promise<QuestionTag[]> {
+    await this.requireUser();
+    const { data, error } = await this.client
+      .from('question_tags')
+      .select('*')
+      .eq('topic_id', topicId)
+      .order('name');
+    this.check(error, 'listQuestionTags');
+    return (data ?? []).map(mapQuestionTagRow);
+  }
+
+  async createOrReuseQuestionTag(input: CreateQuestionTagInput): Promise<QuestionTag> {
+    const user = await this.requireUser();
+    const name = questionTagNameSchema.parse(input.name);
+    const normalizedName = normalizeQuestionTagName(name);
+    const { data, error } = await this.client
+      .from('question_tags')
+      .insert({
+        user_id: user,
+        topic_id: input.topic_id,
+        name,
+      })
+      .select('*')
+      .single();
+    if (error?.code === '23505') {
+      const existing = (await this.listQuestionTags(input.topic_id)).find(
+        (tag) => tag.normalized_name === normalizedName,
+      );
+      if (existing) return existing;
+    }
+    this.check(error, 'createQuestionTag');
+    if (!data) throw new QuestionTagValidationError('无法创建问题标签。');
+    this.notify();
+    return mapQuestionTagRow(data as Record<string, unknown>);
+  }
+
+  async deleteQuestionTag(id: UUID): Promise<void> {
+    await this.requireUser();
+    const { data, error } = await this.client
+      .from('question_tags')
+      .delete()
+      .eq('id', id)
+      .select('id')
+      .maybeSingle();
+    this.check(error, 'deleteQuestionTag');
+    if (!data) throw new QuestionTagNotFoundError();
+    this.notify();
   }
 }
 
@@ -295,10 +380,11 @@ export class SupabaseReadingRepository extends SupabaseRepositoryBase implements
   async getReadingFormContext(): Promise<ReadingFormContext> {
     return buildReadingFormContext(await this.loadData(), await this.requireUser());
   }
-  private rpcInput(input: CreateReadingInput) {
+  private rpcInput(input: CreateReadingInput, includeQuestionTag = true) {
     return {
       p_topic_id: input.topic_id,
       p_question_template_id: input.question_template_id,
+      ...(includeQuestionTag ? { p_question_tag_id: input.question_tag_id ?? null } : {}),
       p_temporary_question: input.temporary_question,
       p_reading_at: input.reading_at,
       p_reading_timezone: input.reading_timezone,
@@ -314,32 +400,72 @@ export class SupabaseReadingRepository extends SupabaseRepositoryBase implements
         source: card.source,
         draw_session_id: card.drawSessionId,
         spread_position_id: card.spreadPositionId,
+        interpretation: card.interpretation ?? null,
       })),
     };
   }
   async createReading(input: CreateReadingInput): Promise<Reading> {
     await this.requireUser();
-    const { data, error } = await this.client.rpc(
-      'create_reading_with_cards',
-      this.rpcInput(input),
-    );
-    this.check(error, 'createReading');
-    const detail = await this.getReadingDetail(String(data));
+    let response = await this.client.rpc('create_reading_with_cards', this.rpcInput(input));
+    if (input.question_tag_id == null && isLegacyReadingRpcSignature(response.error as DbError)) {
+      response = await this.client.rpc('create_reading_with_cards', this.rpcInput(input, false));
+    }
+    this.check(response.error as DbError, 'createReading');
+    const detail = await this.getReadingDetail(String(response.data));
     if (!detail) throw new UnknownRepositoryError('createReading');
     this.notify();
     return detail.reading;
   }
   async updateReading(id: UUID, input: UpdateReadingInput): Promise<Reading> {
     await this.requireUser();
-    const { data, error } = await this.client.rpc('update_reading_with_cards', {
+    let response = await this.client.rpc('update_reading_with_cards', {
       p_reading_id: id,
       ...this.rpcInput(input),
     });
-    this.check(error, 'updateReading');
-    const detail = await this.getReadingDetail(String(data));
+    if (input.question_tag_id == null && isLegacyReadingRpcSignature(response.error as DbError)) {
+      response = await this.client.rpc('update_reading_with_cards', {
+        p_reading_id: id,
+        ...this.rpcInput(input, false),
+      });
+    }
+    this.check(response.error as DbError, 'updateReading');
+    const detail = await this.getReadingDetail(String(response.data));
     if (!detail) throw new ReadingNotFoundError();
     this.notify();
     return detail.reading;
+  }
+  async assignQuestionTag(input: BatchAssignQuestionTagInput): Promise<Reading[]> {
+    await this.requireUser();
+    const readingIds = [...new Set(input.reading_ids)];
+    if (readingIds.length === 0)
+      throw new ReadingValidationError('请至少选择一条需要添加标签的记录。');
+    const tagResponse = await this.client
+      .from('question_tags')
+      .select('id')
+      .eq('id', input.question_tag_id)
+      .eq('topic_id', input.topic_id)
+      .maybeSingle();
+    this.check(tagResponse.error, 'assignQuestionTag.tag');
+    if (!tagResponse.data) throw new ReadingValidationError('选择的问题标签不属于当前 Topic。');
+    const existing = await this.client
+      .from('readings')
+      .select('id')
+      .eq('topic_id', input.topic_id)
+      .in('id', readingIds);
+    this.check(existing.error, 'assignQuestionTag.readings');
+    if ((existing.data ?? []).length !== readingIds.length)
+      throw new ReadingValidationError('选择中包含不属于当前 Topic 的记录。');
+    const response = await this.client
+      .from('readings')
+      .update({ question_tag_id: input.question_tag_id, updated_at: new Date().toISOString() })
+      .eq('topic_id', input.topic_id)
+      .in('id', readingIds)
+      .select('*');
+    this.check(response.error, 'assignQuestionTag');
+    if ((response.data ?? []).length !== readingIds.length)
+      throw new ReadingValidationError('部分记录未能添加问题标签，请重新加载后再试。');
+    this.notify();
+    return (response.data ?? []).map((row) => mapReadingRow(row as Record<string, unknown>));
   }
   async getReadingDetail(id: UUID): Promise<ReadingDetail | null> {
     const user = await this.requireUser();

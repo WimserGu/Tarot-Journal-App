@@ -3,6 +3,7 @@ import { ValidationRepositoryError } from '../repositoryErrors';
 import {
   mapQuestionTemplatePositionRow,
   mapQuestionTemplateRow,
+  mapQuestionTagRow,
   mapReadingCardRow,
   mapReadingRow,
   mapTopicRow,
@@ -41,6 +42,18 @@ describe('Supabase mappers', () => {
     expect(template.displayOrder).toBe(2);
     expect(template).not.toHaveProperty('display_order');
   });
+  it('maps a Topic-scoped question tag', () => {
+    expect(
+      mapQuestionTagRow({
+        id: 'tag',
+        user_id: 'user',
+        topic_id: 'topic',
+        name: '对方的想法',
+        normalized_name: '对方的想法',
+        ...timestamps,
+      }),
+    ).toMatchObject({ id: 'tag', topic_id: 'topic', name: '对方的想法' });
+  });
   it('maps positions, readings and cards with ISO/null/enum validation', () => {
     expect(
       mapQuestionTemplatePositionRow({
@@ -77,9 +90,10 @@ describe('Supabase mappers', () => {
         position_order: 1,
         position_name: null,
         orientation: 'reversed',
+        interpretation: '保持边界。',
         ...timestamps,
-      }).orientation,
-    ).toBe('reversed');
+      }),
+    ).toMatchObject({ orientation: 'reversed', interpretation: '保持边界。' });
   });
   it('maps unified card-entry fields and defaults legacy rows to manual', () => {
     const base = {
@@ -109,6 +123,26 @@ describe('Supabase mappers', () => {
       drawSessionId: '40000000-0000-4000-8000-000000000001',
       reversalVariant: 'left',
     });
+  });
+  it('accepts tarot card id 0 for the Fool and rejects ids outside the 78-card catalog', () => {
+    const foolRow = {
+      id: 'c',
+      user_id: 'u',
+      reading_id: 'r',
+      tarot_card_id: 0,
+      position_order: 1,
+      position_name: null,
+      orientation: 'upright',
+      ...timestamps,
+    };
+
+    expect(mapReadingCardRow(foolRow).tarot_card_id).toBe(0);
+    expect(() => mapReadingCardRow({ ...foolRow, tarot_card_id: -1 })).toThrow(
+      ValidationRepositoryError,
+    );
+    expect(() => mapReadingCardRow({ ...foolRow, tarot_card_id: 78 })).toThrow(
+      ValidationRepositoryError,
+    );
   });
   it('rejects illegal card-entry combinations', () => {
     expect(() =>

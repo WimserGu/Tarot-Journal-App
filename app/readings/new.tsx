@@ -9,6 +9,7 @@ import { IconButton } from '@/features/topics/components/IconButton';
 import { getCurrentTimeZone } from '@/features/topics/topicPresentation';
 import { ReadingForm } from '@/features/readings/components/ReadingForm';
 import { buildInitialReadingFormValues } from '@/features/readings/readingFormState';
+import { navigateAfterReadingSave } from '@/features/readings/readingSaveNavigation';
 import { drawSessionCardsToForm } from '@/features/draw/drawSessionStore';
 import { drawSessionRepository, readingRepository } from '@/repositories/repositoryFactory';
 import type { DrawSession } from '@/features/draw/drawTypes';
@@ -29,11 +30,13 @@ export default function NewReadingScreen() {
     topicId?: string | string[];
     questionTemplateId?: string | string[];
     questionText?: string | string[];
+    questionTagId?: string | string[];
     drawSessionId?: string | string[];
   }>();
   const topicId = firstRouteParam(params.topicId);
   const questionTemplateId = firstRouteParam(params.questionTemplateId);
   const questionText = firstRouteParam(params.questionText);
+  const questionTagId = firstRouteParam(params.questionTagId);
   const drawSessionId = firstRouteParam(params.drawSessionId);
   const {
     data: context,
@@ -64,12 +67,18 @@ export default function NewReadingScreen() {
       return null;
     }
 
+    const sourceTopicId = drawSession?.configuration.sourceTopicId ?? topicId;
+    const sourceQuestionTemplateId =
+      drawSession?.configuration.sourceQuestionTemplateId ?? questionTemplateId;
     const values = buildInitialReadingFormValues(
       context,
       {
-        topic_id: topicId,
-        question_template_id: questionTemplateId,
-        temporary_question: drawSession?.configuration.questionText ?? questionText,
+        topic_id: sourceTopicId,
+        question_template_id: sourceQuestionTemplateId,
+        temporary_question: sourceQuestionTemplateId
+          ? undefined
+          : (drawSession?.configuration.questionText ?? questionText),
+        question_tag_id: questionTagId,
       },
       new Date(),
       timeZone,
@@ -84,7 +93,7 @@ export default function NewReadingScreen() {
           cards: drawSessionCardsToForm(drawSession),
         }
       : values;
-  }, [context, drawSession, questionTemplateId, questionText, timeZone, topicId]);
+  }, [context, drawSession, questionTagId, questionTemplateId, questionText, timeZone, topicId]);
 
   const saveReading = async (values: ReadingFormValues, status: 'draft' | 'completed') => {
     await submissionGuard.current.run(async () => {
@@ -105,7 +114,7 @@ export default function NewReadingScreen() {
           });
         }
         allowNextNavigation();
-        router.replace({ pathname: '/readings/[readingId]', params: { readingId: reading.id } });
+        navigateAfterReadingSave(router, reading.id, drawSession !== null);
       } catch (error) {
         setSaveError(error instanceof Error ? error.message : '暂时无法保存这条记录。');
       } finally {

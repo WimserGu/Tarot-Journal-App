@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   DECK_DRAG_THRESHOLD,
+  TABLE_CARD_PICKUP_THRESHOLD,
   TABLE_EDGE_SCROLL_INDICATOR_VISIBLE,
   centeredLoopOffset,
+  deckCardGestureIntent,
   deckGestureIntent,
   loopedDeckItems,
   naturalCardOffset,
@@ -17,6 +19,17 @@ describe('tarot table presentation helpers', () => {
   it('treats movement at the drag threshold as deck scrolling', () => {
     expect(deckGestureIntent(DECK_DRAG_THRESHOLD, 0)).toBe('drag');
     expect(deckGestureIntent(0, -DECK_DRAG_THRESHOLD)).toBe('drag');
+  });
+
+  it('distinguishes a direct upward table drag from horizontal deck scrolling', () => {
+    expect(deckCardGestureIntent(2, -12)).toBe('table-drag');
+    expect(deckCardGestureIntent(12, -2)).toBe('scroll');
+    expect(deckCardGestureIntent(2, -2)).toBe('select');
+  });
+
+  it('picks up a river card after only a small deliberate vertical movement', () => {
+    expect(TABLE_CARD_PICKUP_THRESHOLD).toBeLessThan(DECK_DRAG_THRESHOLD);
+    expect(deckCardGestureIntent(0, -TABLE_CARD_PICKUP_THRESHOLD)).toBe('table-drag');
   });
 
   it('uses deterministic natural offsets without changing draw order', () => {

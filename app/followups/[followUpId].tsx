@@ -96,7 +96,7 @@ export default function FollowUpDetailScreen() {
             {reversalStateLabel(card.orientation, card.reversalVariant)}
           </Text>
         ))}
-        <Text>当时的解读：{data.reading.reading.interpretation ?? '未填写'}</Text>
+        <Text>当时的总体解读：{data.reading.reading.interpretation ?? '未填写'}</Text>
         <Text>当时的后续反馈：{data.reading.reading.reality_feedback ?? '未填写'}</Text>
       </View>
       <View style={styles.section}>

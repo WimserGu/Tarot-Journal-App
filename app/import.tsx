@@ -1,6 +1,15 @@
 import * as Clipboard from 'expo-clipboard';
-import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Keyboard,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
@@ -22,12 +31,14 @@ import {
   type ImportParseResult,
 } from '@/features/import/importParser';
 import { importUnsavedChangesGuardCopy } from '@/features/import/importUiCopy';
+import { shouldScrollAfterImportPaste } from '@/features/import/importScrollBehavior';
 import {
   createOrReuseImportTopic,
   findExactImportTopic,
   type ImportTopicChoice,
 } from '@/features/import/importTopics';
 import { tarotCards } from '@/domain/tarotCards';
+import type { QuestionTag } from '@/domain/types';
 import { readingRepository, topicRepository } from '@/repositories/repositoryFactory';
 import { colors, spacing } from '@/theme/tokens';
 import { useUnsavedChangesGuard } from '@/features/readings/useUnsavedChangesGuard';
@@ -39,19 +50,25 @@ export default function ImportScreen() {
   const [preview, setPreview] = useState<ImportParseResult | null>(null);
   const [topics, setTopics] = useState<ImportTopicChoice[]>([]);
   const [topicIds, setTopicIds] = useState(new Map<string, string>());
+  const [questionTags, setQuestionTags] = useState<QuestionTag[]>([]);
+  const [questionTagIds, setQuestionTagIds] = useState(new Map<string, string>());
   const [open, setOpen] = useState(new Set<string>());
   const [result, setResult] = useState<BatchImportResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [creatingTopic, setCreatingTopic] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const parseButtonY = useRef(0);
+  const pendingPasteScroll = useRef(false);
   useUnsavedChangesGuard(
     raw.length > 0 || preview !== null || Boolean(result?.failed.length),
     importUnsavedChangesGuardCopy,
   );
   const loadTopics = () =>
-    void readingRepository
-      .getReadingFormContext()
-      .then((c) => setTopics(c.topics.map((t) => ({ id: t.id, title: t.title }))));
+    void readingRepository.getReadingFormContext().then((c) => {
+      setTopics(c.topics.map((t) => ({ id: t.id, title: t.title })));
+      setQuestionTags(c.question_tags);
+    });
   useEffect(loadTopics, []);
   const parse = () => {
     const next = parseImportText(raw);
@@ -62,6 +79,7 @@ export default function ImportScreen() {
       if (found) selected.set(c.importId, found.id);
     });
     setTopicIds(selected);
+    setQuestionTagIds(new Map());
     setResult(null);
   };
   const change = (
@@ -83,6 +101,7 @@ export default function ImportScreen() {
     const next = await importReviewedReadings({
       candidates: selected,
       topicIds,
+      questionTagIds,
       topics: [] as never,
       repository: readingRepository,
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
@@ -112,6 +131,7 @@ export default function ImportScreen() {
             setRaw('');
             setPreview(null);
             setTopicIds(new Map());
+            setQuestionTagIds(new Map());
             setResult(null);
             setOpen(new Set());
           },
@@ -126,8 +146,31 @@ export default function ImportScreen() {
       setNotice('复制失败，请手动复制。');
     }
   };
+  const scrollToParseButton = () => {
+    if (!pendingPasteScroll.current) return;
+    pendingPasteScroll.current = false;
+    Keyboard.dismiss();
+    scrollRef.current?.scrollTo({
+      animated: true,
+      y: Math.max(0, parseButtonY.current - spacing.md),
+    });
+  };
+  const updateRawText = (nextRaw: string) => {
+    const shouldScroll = shouldScrollAfterImportPaste(raw, nextRaw);
+    if (shouldScroll) {
+      pendingPasteScroll.current = true;
+    }
+    setRaw(nextRaw);
+    if (shouldScroll) {
+      requestAnimationFrame(() => requestAnimationFrame(scrollToParseButton));
+    }
+  };
+  const measureParseButton = (event: LayoutChangeEvent) => {
+    parseButtonY.current = event.nativeEvent.layout.y;
+    scrollToParseButton();
+  };
   return (
-    <Screen scroll>
+    <Screen scroll scrollRef={scrollRef}>
       <Text variant="eyebrow">1. 模板 · 2. 粘贴 · 3. 解析 · 4. 编辑 · 5. 导入 · 6. 结果</Text>
       <Text variant="title">导入历史记录</Text>
       <Text variant="muted">
@@ -140,11 +183,13 @@ export default function ImportScreen() {
         accessibilityLabel="粘贴整理结果"
         multiline
         value={raw}
-        onChangeText={setRaw}
+        onChangeText={updateRawText}
         placeholder="[Reading]"
         style={styles.input}
       />
-      <Button label="本地解析" onPress={parse} />
+      <View onLayout={measureParseButton}>
+        <Button label="本地解析" onPress={parse} />
+      </View>
       {preview ? (
         <>
           <Text variant="subtitle">编辑和确认：{preview.readings.length} 条</Text>
@@ -238,6 +283,11 @@ export default function ImportScreen() {
                                 : [...current, topic],
                             );
                             setTopicIds(new Map(topicIds).set(c.importId, topic.id));
+                            setQuestionTagIds((current) => {
+                              const next = new Map(current);
+                              next.delete(c.importId);
+                              return next;
+                            });
                           } catch (error) {
                             setNotice(error instanceof Error ? error.message : '创建 Topic 失败。');
                           } finally {
@@ -250,9 +300,42 @@ export default function ImportScreen() {
                       <Button
                         key={t.id}
                         label={t.title}
-                        onPress={() => setTopicIds(new Map(topicIds).set(c.importId, t.id))}
+                        onPress={() => {
+                          setTopicIds(new Map(topicIds).set(c.importId, t.id));
+                          setQuestionTagIds((current) => {
+                            const next = new Map(current);
+                            next.delete(c.importId);
+                            return next;
+                          });
+                        }}
                       />
                     ))}
+                    {topicIds.has(c.importId) ? (
+                      <View style={styles.tagGroup}>
+                        <Text>问题标签（可选）</Text>
+                        <Button
+                          label="未分类"
+                          onPress={() =>
+                            setQuestionTagIds((current) => {
+                              const next = new Map(current);
+                              next.delete(c.importId);
+                              return next;
+                            })
+                          }
+                        />
+                        {questionTags
+                          .filter((tag) => tag.topic_id === topicIds.get(c.importId))
+                          .map((tag) => (
+                            <Button
+                              key={tag.id}
+                              label={`${questionTagIds.get(c.importId) === tag.id ? '✓ ' : ''}${tag.name}`}
+                              onPress={() =>
+                                setQuestionTagIds(new Map(questionTagIds).set(c.importId, tag.id))
+                              }
+                            />
+                          ))}
+                      </View>
+                    ) : null}
                     <Button
                       label={c.excluded ? '恢复' : '排除'}
                       onPress={() =>
@@ -381,4 +464,5 @@ const styles = StyleSheet.create({
   input: { borderColor: colors.border, borderWidth: 1, minHeight: 44, padding: spacing.sm },
   card: { borderColor: colors.border, borderWidth: 1, gap: spacing.sm, padding: spacing.sm },
   error: { color: colors.danger },
+  tagGroup: { gap: spacing.xs },
 });

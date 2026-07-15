@@ -8,6 +8,8 @@ import type {
 
 export type TableBounds = { width: number; height: number };
 export type CardBounds = { width: number; height: number };
+export type WindowPoint = { x: number; y: number };
+export type WindowTableBounds = TableBounds & { x: number; y: number };
 
 const MAX_Z_INDEX = 1000;
 
@@ -61,6 +63,7 @@ export function withInitialTablePlacement(
   configuration: DrawConfiguration,
   cardId: string,
   index: number,
+  placement?: NormalizedTablePlacement,
 ): DrawConfiguration {
   const placements = configuration.table?.placementsByCardId ?? {};
   if (placements[cardId]) return configuration;
@@ -69,7 +72,9 @@ export function withInitialTablePlacement(
     table: {
       placementsByCardId: {
         ...placements,
-        [cardId]: defaultTablePlacement(index),
+        [cardId]: placement
+          ? normalizeTablePlacement(placement, index)
+          : defaultTablePlacement(index),
       },
     },
   };
@@ -102,6 +107,27 @@ export function placementFromPixels(
     y: availableHeight === 0 ? 0 : clampNormalized(top / availableHeight),
     zIndex: Math.max(1, Math.min(MAX_Z_INDEX, Math.trunc(zIndex))),
   };
+}
+
+export function placementFromWindowDrop(
+  point: WindowPoint,
+  table: WindowTableBounds,
+  card: CardBounds,
+  zIndex: number,
+): NormalizedTablePlacement | null {
+  const isInside =
+    point.x >= table.x &&
+    point.x <= table.x + table.width &&
+    point.y >= table.y &&
+    point.y <= table.y + table.height;
+  if (!isInside) return null;
+  return placementFromPixels(
+    point.x - table.x - card.width / 2,
+    point.y - table.y - card.height / 2,
+    table,
+    card,
+    zIndex,
+  );
 }
 
 export function nextTableZIndex(state: TarotTableState): number {

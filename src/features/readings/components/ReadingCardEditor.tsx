@@ -22,6 +22,7 @@ type ReadingCardEditorProps = {
     variant: NonNullable<ReadingCardFormValue['reversalVariant']> | null,
   ) => void;
   onPositionNameChange: (value: string) => void;
+  onInterpretationChange: (value: string) => void;
   onRemove: () => void;
   selectedCard: TarotCard | null;
   value: ReadingCardFormValue;
@@ -70,6 +71,7 @@ export function ReadingCardEditor({
   onOrientationChange,
   onReversalVariantChange,
   onPositionNameChange,
+  onInterpretationChange,
   onRemove,
   selectedCard,
   value,
@@ -171,6 +173,23 @@ export function ReadingCardEditor({
       <Text variant="muted">
         来源：{(value.source ?? 'manual') === 'drawn' ? 'App 抽取' : '手动添加'}
       </Text>
+
+      <View style={styles.field}>
+        <Text variant="muted">这张牌的解读（可选）</Text>
+        <TextInput
+          accessibilityLabel={`第 ${index + 1} 张牌的解读`}
+          editable={!disabled}
+          maxLength={5000}
+          multiline
+          numberOfLines={3}
+          onChangeText={onInterpretationChange}
+          placeholder="记录这张牌在本次问题中的含义"
+          placeholderTextColor={colors.textMuted}
+          style={[styles.input, styles.interpretationInput]}
+          textAlignVertical="top"
+          value={value.interpretation ?? ''}
+        />
+      </View>
     </View>
   );
 }
@@ -234,6 +253,9 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+  },
+  interpretationInput: {
+    minHeight: 88,
   },
   pressed: {
     opacity: 0.72,

@@ -14,6 +14,7 @@ function item(
     card: typeof fool;
     orientation: 'upright' | 'reversed';
     reversalVariant?: 'left' | 'right' | null;
+    interpretation?: string | null;
   }[],
   options: {
     status?: 'draft' | 'completed';
@@ -45,6 +46,7 @@ function item(
       orientation: value.orientation,
       reversalVariant: value.reversalVariant ?? null,
       positionOrder: index + 1,
+      interpretation: value.interpretation ?? null,
     })),
     topic: null,
     questionTemplate: null,
@@ -101,8 +103,78 @@ describe('calculateStatistics', () => {
     expect(variantResult.dualReversalDistribution.left).toMatchObject({ count: 1, total: 2 });
     expect(variantResult.dualReversalDistribution.right).toMatchObject({ count: 1, total: 2 });
   });
+  it('keeps per-card interpretations traceable by orientation variant', () => {
+    const interpreted = [
+      item('left', '2026-03-10T12:00:00-04:00', [
+        {
+          card: fool,
+          orientation: 'reversed',
+          reversalVariant: 'left',
+          interpretation: '先停下来观察。',
+        },
+      ]),
+      item('right', '2026-03-11T12:00:00-04:00', [
+        {
+          card: fool,
+          orientation: 'reversed',
+          reversalVariant: 'right',
+          interpretation: '可以尝试新的方向。',
+        },
+      ]),
+    ];
+    const card = calculateStatistics(interpreted, { includeDrafts: false }, 0).cardStatistics[0]!;
+
+    expect(card).toMatchObject({ totalCount: 2, leftCount: 1, rightCount: 1 });
+    expect(card.occurrences.map((occurrence) => occurrence.interpretation)).toEqual([
+      '先停下来观察。',
+      '可以尝试新的方向。',
+    ]);
+  });
   it('counts fixed questions and safely skips temporary questions', () =>
     expect(result.questionStatistics.map((q) => q.readingCount)).toEqual([3]));
+  it('groups readings by Topic-scoped question tag and keeps unclassified visible', () => {
+    const tagged = item('tagged', '2026-03-10T12:00:00-04:00', [], { topic: 'relationship' });
+    tagged.questionTag = {
+      id: 'tag-thoughts',
+      user_id: 'user',
+      topic_id: 'relationship',
+      name: '对方的想法',
+      normalized_name: '对方的想法',
+      created_at: '2026-03-01T00:00:00.000Z',
+      updated_at: '2026-03-01T00:00:00.000Z',
+    };
+    const unclassified = item('untagged', '2026-03-11T12:00:00-04:00', [], {
+      topic: 'relationship',
+    });
+    const tagResult = calculateStatistics(
+      [tagged, unclassified],
+      { includeDrafts: false, topicId: 'relationship' },
+      '2026-03-12T00:00:00-04:00',
+    );
+
+    expect(tagResult.questionTagStatistics).toEqual([
+      expect.objectContaining({ label: '对方的想法', readingCount: 1 }),
+      expect.objectContaining({ label: '未分类', readingCount: 1 }),
+    ]);
+    expect(
+      calculateStatistics(
+        [tagged, unclassified],
+        {
+          includeDrafts: false,
+          topicId: 'relationship',
+          questionTagId: 'tag-thoughts',
+        },
+        '2026-03-12T00:00:00-04:00',
+      ).readingCount.readingIds,
+    ).toEqual(['tagged']);
+    expect(
+      calculateStatistics(
+        [tagged, unclassified],
+        { includeDrafts: false, topicId: 'relationship', questionTagId: null },
+        '2026-03-12T00:00:00-04:00',
+      ).readingCount.readingIds,
+    ).toEqual(['untagged']);
+  });
   it('excludes and includes drafts', () => {
     expect(result.readingCount.readingIds).not.toContain('draft');
     expect(calculateStatistics(readings, { includeDrafts: true }, 0).readingCount.count).toBe(5);

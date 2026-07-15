@@ -45,6 +45,7 @@ export class RepositoryStatisticsRepository implements StatisticsRepository {
                 reversalVariant: card.reversalVariant,
                 tarotCard: card.tarot_card,
                 positionOrder: card.position_order,
+                interpretation: card.interpretation ?? null,
               },
             ]
           : [],
@@ -53,6 +54,7 @@ export class RepositoryStatisticsRepository implements StatisticsRepository {
       questionTemplate: item.reading.question_template_id
         ? (templateById.get(item.reading.question_template_id) ?? item.question_template)
         : null,
+      questionTag: item.question_tag ?? null,
       questionText: item.question_text,
     }));
   }

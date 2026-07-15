@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   QuestionTemplate,
   QuestionTemplatePosition,
+  QuestionTag,
   Reading,
   ReadingCard,
   ReadingFollowUp,
@@ -13,7 +14,7 @@ import type { DrawSession } from '../features/draw/drawTypes';
 
 import type { JournalData, MutableJournalData } from './journalData';
 
-export const JOURNAL_SCHEMA_VERSION = 6;
+export const JOURNAL_SCHEMA_VERSION = 8;
 
 const storagePrefix = '@tarot-journal/v1';
 const schemaKey = `${storagePrefix}/schema`;
@@ -25,6 +26,7 @@ const tableKeys: Record<PersistedTable, string> = {
   topics: `${storagePrefix}/topics`,
   question_templates: `${storagePrefix}/question_templates`,
   question_template_positions: `${storagePrefix}/question_template_positions`,
+  question_tags: `${storagePrefix}/question_tags`,
   readings: `${storagePrefix}/readings`,
   reading_cards: `${storagePrefix}/reading_cards`,
   reading_follow_ups: `${storagePrefix}/reading_follow_ups`,
@@ -70,6 +72,7 @@ function cloneSeed(data: JournalData): MutableJournalData {
     topics: [...data.topics],
     question_templates: [...data.question_templates],
     question_template_positions: [...data.question_template_positions],
+    question_tags: [...(data.question_tags ?? [])],
     readings: [...data.readings],
     reading_cards: [...data.reading_cards],
     reading_follow_ups: [...data.reading_follow_ups],
@@ -116,6 +119,17 @@ function validQuestionPosition(value: unknown): value is QuestionTemplatePositio
   );
 }
 
+function validQuestionTag(value: unknown): value is QuestionTag {
+  return (
+    hasIdentity(value) &&
+    typeof value.topic_id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.normalized_name === 'string' &&
+    typeof value.created_at === 'string' &&
+    typeof value.updated_at === 'string'
+  );
+}
+
 function validReading(value: unknown): value is Reading {
   return (
     hasIdentity(value) &&
@@ -149,6 +163,10 @@ function validReadingCard(value: unknown): value is ReadingCard {
     spreadPositionId === undefined ||
     spreadPositionId === null ||
     typeof spreadPositionId === 'string';
+  const interpretationValid =
+    value.interpretation === undefined ||
+    value.interpretation === null ||
+    (typeof value.interpretation === 'string' && value.interpretation.length <= 5000);
   const stateValid = value.orientation !== 'upright' || variant === undefined || variant === null;
   const sourceLinkValid =
     source === undefined ||
@@ -159,6 +177,7 @@ function validReadingCard(value: unknown): value is ReadingCard {
     variantValid &&
     drawSessionValid &&
     spreadPositionValid &&
+    interpretationValid &&
     stateValid &&
     sourceLinkValid
   );
@@ -236,6 +255,7 @@ const validators: {
   topics: validTopic,
   question_templates: validQuestionTemplate,
   question_template_positions: validQuestionPosition,
+  question_tags: validQuestionTag,
   readings: validReading,
   reading_cards: validReadingCard,
   reading_follow_ups: validReadingFollowUp,
@@ -298,7 +318,7 @@ export class JournalPersistence {
   async save(data: JournalData): Promise<void> {
     try {
       for (const table of Object.keys(tableKeys) as PersistedTable[]) {
-        await this.storage.setItem(tableKeys[table], JSON.stringify(data[table]));
+        await this.storage.setItem(tableKeys[table], JSON.stringify(data[table] ?? []));
       }
       await this.storage.setItem(schemaKey, JSON.stringify({ version: JOURNAL_SCHEMA_VERSION }));
     } catch (error) {
@@ -359,6 +379,7 @@ export class JournalPersistence {
   private normalizeReadingCards(data: MutableJournalData): void {
     data.readings.forEach((reading) => {
       reading.spread_id ??= null;
+      reading.question_tag_id ??= null;
     });
     data.reading_cards.forEach((card) => {
       const legacyCard = card as ReadingCard & { reversalExpression?: unknown };
@@ -368,6 +389,7 @@ export class JournalPersistence {
       delete legacyCard.reversalExpression;
       card.drawSessionId ??= null;
       card.spreadPositionId ??= null;
+      card.interpretation ??= null;
     });
     data.draw_sessions.forEach((session) => {
       const legacyConfiguration = session.configuration as typeof session.configuration & {

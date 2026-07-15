@@ -28,6 +28,7 @@ function valid(candidate: ImportReadingCandidate, topicId?: string): string | nu
 export async function importReviewedReadings(args: {
   candidates: readonly ImportReadingCandidate[];
   topicIds: ReadonlyMap<string, string>;
+  questionTagIds?: ReadonlyMap<string, string>;
   topics: readonly Topic[];
   repository: ReadingRepository;
   timeZone: string;
@@ -59,6 +60,7 @@ export async function importReviewedReadings(args: {
       try {
         const reading = await args.repository.createReading({
           topic_id: topicId!,
+          question_tag_id: args.questionTagIds?.get(candidate.importId) ?? null,
           question_template_id: null,
           temporary_question: candidate.question,
           spread_id: null,

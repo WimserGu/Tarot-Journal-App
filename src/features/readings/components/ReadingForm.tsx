@@ -70,6 +70,7 @@ export function ReadingForm({
   const selectedSpreadId = useWatch({ control, name: 'spread_id' });
   const questionMode = useWatch({ control, name: 'question_mode' });
   const selectedTemplateId = useWatch({ control, name: 'question_template_id' });
+  const selectedQuestionTagId = useWatch({ control, name: 'question_tag_id' });
   const [isTopicPickerVisible, setTopicPickerVisible] = useState(false);
   const [isQuestionPickerVisible, setQuestionPickerVisible] = useState(false);
   const [isSpreadPickerVisible, setSpreadPickerVisible] = useState(false);
@@ -84,6 +85,9 @@ export function ReadingForm({
   );
   const availableQuestions = context.question_templates.filter(
     (template) => template.topic_id === selectedTopicId,
+  );
+  const availableQuestionTags = context.question_tags.filter(
+    (tag) => tag.topic_id === selectedTopicId,
   );
   const selectedSpread = selectedSpreadId ? spreadRepository.getSpread(selectedSpreadId) : null;
 
@@ -128,6 +132,10 @@ export function ReadingForm({
     if (currentTemplate?.topic_id !== topicId) {
       setValue('question_mode', 'temporary', { shouldDirty: true, shouldValidate: true });
       setValue('question_template_id', null, { shouldDirty: true, shouldValidate: true });
+    }
+    const currentTag = context.question_tags.find((tag) => tag.id === getValues('question_tag_id'));
+    if (currentTag?.topic_id !== topicId) {
+      setValue('question_tag_id', null, { shouldDirty: true, shouldValidate: true });
     }
 
     setTopicPickerVisible(false);
@@ -258,6 +266,69 @@ export function ReadingForm({
         </Pressable>
         {errors.topic_id?.message ? (
           <Text style={styles.errorText}>{errors.topic_id.message}</Text>
+        ) : null}
+      </View>
+
+      <View style={styles.field}>
+        <Text variant="subtitle">问题标签（可选）</Text>
+        <Text variant="muted">标签只属于当前 Topic，用于汇总不同时间里表达相近的问题。</Text>
+        {!selectedTopicId ? (
+          <Pressable
+            accessibilityLabel="先选择长期议题，再选择问题标签"
+            accessibilityRole="button"
+            disabled={disabled}
+            onPress={() => setTopicPickerVisible(true)}
+            style={({ pressed }) => [
+              styles.selector,
+              pressed && !disabled ? styles.pressed : null,
+              disabled ? styles.disabled : null,
+            ]}
+          >
+            <Text>先选择长期议题</Text>
+            <Ionicons color={colors.textMuted} name="chevron-forward" size={20} />
+          </Pressable>
+        ) : (
+          <View style={styles.segmentedControl}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: selectedQuestionTagId === null }}
+              disabled={disabled}
+              onPress={() =>
+                setValue('question_tag_id', null, { shouldDirty: true, shouldValidate: true })
+              }
+              style={[
+                styles.segment,
+                selectedQuestionTagId === null ? styles.segmentSelected : null,
+              ]}
+            >
+              <Text style={selectedQuestionTagId === null ? styles.segmentTextSelected : undefined}>
+                未分类
+              </Text>
+            </Pressable>
+            {availableQuestionTags.map((tag) => {
+              const selected = selectedQuestionTagId === tag.id;
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  disabled={disabled}
+                  key={tag.id}
+                  onPress={() =>
+                    setValue('question_tag_id', tag.id, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                  style={[styles.segment, selected ? styles.segmentSelected : null]}
+                >
+                  <Text style={selected ? styles.segmentTextSelected : undefined}>{tag.name}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+        {selectedTopicId && availableQuestionTags.length === 0 ? (
+          <Text variant="muted">可在 Topic 详情页添加问题标签和关系类推荐标签。</Text>
         ) : null}
       </View>
 
@@ -430,6 +501,9 @@ export function ReadingForm({
                 if (selectedSpreadId === null)
                   setValue(`cards.${index}.position_name`, positionName, { shouldDirty: true });
               }}
+              onInterpretationChange={(interpretation) =>
+                setValue(`cards.${index}.interpretation`, interpretation, { shouldDirty: true })
+              }
               onRemove={() => {
                 if (selectedSpread?.isOpen || selectedSpreadId === null) {
                   const remaining = getValues('cards').filter(
@@ -478,20 +552,20 @@ export function ReadingForm({
       </View>
 
       <View style={styles.field}>
-        <Text variant="subtitle">个人解读</Text>
+        <Text variant="subtitle">总体解读</Text>
         <Controller
           control={control}
           name="interpretation"
           render={({ field: { onBlur, onChange, value } }) => (
             <TextInput
-              accessibilityLabel="个人解读"
+              accessibilityLabel="总体解读"
               editable={!disabled}
               maxLength={5000}
               multiline
               numberOfLines={5}
               onBlur={onBlur}
               onChangeText={onChange}
-              placeholder="写下当下的观察和感受"
+              placeholder="写下这次抽牌的整体观察和感受"
               placeholderTextColor={colors.textMuted}
               style={[styles.input, styles.interpretationInput]}
               textAlignVertical="top"

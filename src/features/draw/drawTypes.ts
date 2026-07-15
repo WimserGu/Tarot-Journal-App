@@ -27,6 +27,8 @@ export type DrawConfiguration = {
   reversedProbability: number;
   rightProbabilityWhenReversed: number;
   questionText?: string;
+  sourceTopicId?: UUID;
+  sourceQuestionTemplateId?: UUID;
   hiddenDeckCardIds?: number[];
   table?: TarotTableState;
   ritual?: {

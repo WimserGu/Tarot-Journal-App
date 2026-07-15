@@ -10,6 +10,8 @@ describe('DrawSession Supabase mappers', () => {
       drawConfigurationRow({
         configuration: {
           ...DEFAULT_DRAW_CONFIGURATION,
+          sourceTopicId: 'topic-1',
+          sourceQuestionTemplateId: 'question-1',
           hiddenDeckCardIds: [3, 1, 2],
           ritual: {
             stage: 'reveal',
@@ -26,6 +28,8 @@ describe('DrawSession Supabase mappers', () => {
         },
       }),
     ).toMatchObject({
+      source_topic_id: 'topic-1',
+      source_question_template_id: 'question-1',
       hidden_deck_card_ids: [3, 1, 2],
       ritual: {
         revealed_position_indexes: [0],
@@ -56,6 +60,8 @@ describe('DrawSession Supabase mappers', () => {
         reversed_probability: 0.5,
         right_probability_when_reversed: 0.5,
         question_text: 'What should I notice?',
+        source_topic_id: 'topic-1',
+        source_question_template_id: 'question-1',
         ritual: { stage: 'reveal', drawn_count: 1, revealed_position_indexes: [0] },
         table: {
           placements_by_card_id: {
@@ -80,6 +86,8 @@ describe('DrawSession Supabase mappers', () => {
       linkedReadingId: 'reading-1',
       configuration: {
         questionText: 'What should I notice?',
+        sourceTopicId: 'topic-1',
+        sourceQuestionTemplateId: 'question-1',
         ritual: { stage: 'reveal', drawnCount: 1, revealedPositionIndexes: [0] },
         table: {
           placementsByCardId: {

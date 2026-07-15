@@ -15,7 +15,7 @@ export default function OnboardingScreen() {
   const { completeOnboarding } = useAuth();
   const [step, setStep] = useState(0);
   const [topicName, setTopicName] = useState('');
-  const [question, setQuestion] = useState('');
+  const [question, setQuestion] = useState('今日日运如何？');
   const [topicId, setTopicId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -57,7 +57,7 @@ export default function OnboardingScreen() {
       await questionTemplateRepository.createQuestionTemplate({
         topic_id: topicId,
         question_text: question,
-        frequency: 'as_needed',
+        frequency: 'daily',
         is_active: true,
         is_pinned: false,
         position_names: [],

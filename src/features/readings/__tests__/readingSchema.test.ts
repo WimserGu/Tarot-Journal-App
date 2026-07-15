@@ -13,6 +13,7 @@ describe('readingFormSchema', () => {
       topic_id: 'topic-id',
       question_mode: 'temporary',
       question_template_id: null,
+      question_tag_id: null,
       temporary_question: '   ',
       reading_date: '2026-07-10',
       reading_time: '08:30',
@@ -28,6 +29,42 @@ describe('readingFormSchema', () => {
     expect(getCompletedCardsError([createEmptyReadingCard()])).toBe('正式记录至少需要一张牌。');
   });
 
+  it('accepts the Fool card id 0 and rejects ids outside the canonical catalog', () => {
+    const values = {
+      spread_id: null,
+      topic_id: 'topic-id',
+      question_mode: 'temporary' as const,
+      question_template_id: null,
+      question_tag_id: null,
+      temporary_question: '愚人提醒我关注什么？',
+      reading_date: '2026-07-11',
+      reading_time: '12:00',
+      cards: [
+        {
+          tarot_card_id: 0,
+          position_name: '',
+          orientation: 'upright' as const,
+          reversalVariant: null,
+        },
+      ],
+      interpretation: '',
+    };
+
+    expect(readingFormSchema.safeParse(values).success).toBe(true);
+    expect(
+      readingFormSchema.safeParse({
+        ...values,
+        cards: [{ ...values.cards[0], tarot_card_id: -1 }],
+      }).success,
+    ).toBe(false);
+    expect(
+      readingFormSchema.safeParse({
+        ...values,
+        cards: [{ ...values.cards[0], tarot_card_id: 78 }],
+      }).success,
+    ).toBe(false);
+  });
+
   it('normalizes visible card order into continuous persistence order', () => {
     const input = toReadingCreateInput(
       {
@@ -35,6 +72,7 @@ describe('readingFormSchema', () => {
         topic_id: 'topic-id',
         question_mode: 'temporary',
         question_template_id: null,
+        question_tag_id: null,
         temporary_question: '今天应该先关注什么？',
         reading_date: '2026-07-10',
         reading_time: '08:30',
@@ -59,6 +97,7 @@ describe('readingFormSchema', () => {
         source: 'manual',
         drawSessionId: null,
         spreadPositionId: null,
+        interpretation: null,
       },
       {
         tarot_card_id: 57,
@@ -69,9 +108,39 @@ describe('readingFormSchema', () => {
         source: 'manual',
         drawSessionId: null,
         spreadPositionId: null,
+        interpretation: null,
       },
     ]);
     expect(input.interpretation).toBe('先缩小范围。');
+  });
+
+  it('keeps a separate normalized interpretation for each card', () => {
+    const input = toReadingCreateInput(
+      {
+        spread_id: null,
+        topic_id: 'topic-id',
+        question_mode: 'temporary',
+        question_template_id: null,
+        question_tag_id: null,
+        temporary_question: '这张牌提醒我什么？',
+        reading_date: '2026-07-15',
+        reading_time: '09:30',
+        cards: [
+          {
+            tarot_card_id: 0,
+            position_name: '',
+            orientation: 'upright',
+            interpretation: '  允许自己重新开始。  ',
+          },
+        ],
+        interpretation: '总体来看，需要给变化留出空间。',
+      },
+      'completed',
+      'Africa/Nairobi',
+    );
+
+    expect(input.cards[0]?.interpretation).toBe('允许自己重新开始。');
+    expect(input.interpretation).toBe('总体来看，需要给变化留出空间。');
   });
 
   it('rejects a reversal variant on an upright card', () => {
@@ -80,6 +149,7 @@ describe('readingFormSchema', () => {
       topic_id: 'topic',
       question_mode: 'temporary',
       question_template_id: null,
+      question_tag_id: null,
       temporary_question: 'Question',
       reading_date: '2026-07-13',
       reading_time: '12:00',
@@ -104,6 +174,7 @@ describe('readingFormSchema', () => {
       topic_id: 'topic',
       question_mode: 'temporary',
       question_template_id: null,
+      question_tag_id: null,
       temporary_question: 'Unified entry',
       reading_date: '2026-07-13',
       reading_time: '14:01',
@@ -140,6 +211,7 @@ describe('readingFormSchema', () => {
         topic_id: 'topic-id',
         question_mode: 'temporary',
         question_template_id: null,
+        question_tag_id: null,
         temporary_question: '删除中间一张牌后，还应关注什么？',
         reading_date: '2026-07-10',
         reading_time: '08:30',

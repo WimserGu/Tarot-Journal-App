@@ -1,5 +1,12 @@
 # Project Status
 
+## UI 2.0 Phase 1 — Lunar Mystic / Moonlight
+
+- Added an extensible app-theme registry, persisted theme preference interface, Moonlight tokens and reusable Mystic components without adding a native UI dependency.
+- Migrated Home and Reading Detail to a responsive moonlit glass presentation while retaining their existing repositories, navigation, fixed-question, Follow-up, card interpretation, sharing, favorite, edit and delete behavior.
+- Added a shared TarotCardDisplay that reuses the existing upright / ordinary reversed / left / right artwork rotation and accessibility labels.
+- Remaining screens intentionally retain the legacy visual system until later UI 2.0 phases. No database schema or migration was added for this work.
+
 ## Expo SDK 54 Upgrade
 
 - Upgraded the managed Expo app from SDK 53 to SDK 54 using Expo CLI compatibility resolution.
@@ -530,3 +537,19 @@ Implementation status: complete and verified.
 - TypeScript: passed.
 - Vitest: 12 test files and 60 tests passed.
 - Expo Web: `expo export --platform web --clear` completed successfully.
+
+## Topic-scoped question tags — Phase 1
+
+Implementation status: complete locally; Supabase migration deployment and authenticated RLS
+verification pending.
+
+- Added one optional Topic-scoped question tag per Reading, including new/edit forms, Reading detail,
+  and Import Assistant selection.
+- Topic detail supports custom tags plus the explicit relationship presets: 对方的想法、我的状态、
+  关系走向、沟通、行动建议. Exact normalized duplicates are reused; no fuzzy or automatic
+  classification is performed.
+- Insights shows tag counts and an explicit 未分类 bucket after a Topic is selected. Statistics remain
+  Reading-based and no AI service is involved.
+- Local schema version 7 safely initializes legacy data with no tags. Migration
+  `20260714180000_question_tags_phase_1.sql` adds the RLS-protected table and same-user/same-Topic
+  Reading foreign key; it has not been pushed to Supabase.

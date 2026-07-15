@@ -11,8 +11,8 @@ const candidate = (importId: string, sourceOrder: number): ImportReadingCandidat
   question: `Question ${importId}`,
   cards: [
     {
-      tarotCardId: 1,
-      rawCardName: '愚者',
+      tarotCardId: 0,
+      rawCardName: '愚人',
       orientation: 'upright',
       reversalVariant: null,
       warnings: [],
@@ -52,6 +52,37 @@ describe('importReviewedReadings', () => {
     expect(createReading).not.toHaveBeenCalled();
     expect(result.failed).toEqual([{ importId: 'blocked', error: 'Date is required.' }]);
     expect(result.skipped).toEqual([{ importId: 'excluded', error: 'skipped' }]);
+  });
+
+  it('preserves the Fool card id 0 in the Reading create input', async () => {
+    const createReading = vi.fn().mockResolvedValue({ id: 'reading-fool' });
+
+    const result = await importCandidates([candidate('fool', 1)], repositoryFor(createReading));
+
+    expect(result.succeeded).toEqual([{ importId: 'fool', readingId: 'reading-fool' }]);
+    expect(createReading).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cards: [expect.objectContaining({ tarot_card_id: 0 })],
+      }),
+    );
+  });
+
+  it('maps an explicitly selected Topic-scoped question tag', async () => {
+    const createReading = vi.fn().mockResolvedValue({ id: 'reading-tagged' });
+    const item = candidate('tagged', 1);
+
+    await importReviewedReadings({
+      candidates: [item],
+      topicIds: new Map([[item.importId, 'topic-1']]),
+      questionTagIds: new Map([[item.importId, 'tag-thoughts']]),
+      topics: [],
+      repository: repositoryFor(createReading),
+      timeZone: 'Africa/Nairobi',
+    });
+
+    expect(createReading).toHaveBeenCalledWith(
+      expect.objectContaining({ question_tag_id: 'tag-thoughts', topic_id: 'topic-1' }),
+    );
   });
 
   it('retries only failures and never resubmits successful candidates', async () => {

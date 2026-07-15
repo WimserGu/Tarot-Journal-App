@@ -1,4 +1,4 @@
-import { PropsWithChildren } from 'react';
+import { type PropsWithChildren, type Ref } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -6,9 +6,10 @@ import { colors, spacing } from '@/theme/tokens';
 
 type ScreenProps = PropsWithChildren<{
   scroll?: boolean;
+  scrollRef?: Ref<ScrollView>;
 }>;
 
-export function Screen({ children, scroll = false }: ScreenProps) {
+export function Screen({ children, scroll = false, scrollRef }: ScreenProps) {
   const content = <View style={styles.content}>{children}</View>;
 
   return (
@@ -21,6 +22,7 @@ export function Screen({ children, scroll = false }: ScreenProps) {
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
+            ref={scrollRef}
           >
             {content}
           </ScrollView>

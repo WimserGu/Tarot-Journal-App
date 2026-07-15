@@ -39,12 +39,15 @@ import { setActiveDrawSession } from '@/features/draw/drawSessionStore';
 import {
   DEFAULT_DRAW_CONFIGURATION,
   type DrawSession,
+  type NormalizedTablePlacement,
   type ReversalMode,
 } from '@/features/draw/drawTypes';
 import {
   nextTableZIndex,
+  placementFromWindowDrop,
   tablePlacementKey,
   tableStateForSession,
+  type WindowTableBounds,
   updateTablePlacement,
   withInitialTablePlacement,
 } from '@/features/draw/tablePlacement';
@@ -53,10 +56,19 @@ import { spreadRepository } from '@/features/spreads/spreadRepository';
 import { preloadTarotCardFront } from '@/features/tarot/artwork/tarotArtworkPreload';
 import { borderRadii, colors, spacing } from '@/theme/tokens';
 
+function firstRouteParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' | 'three' } = {}) {
   const router = useRouter();
-  const params = useLocalSearchParams<{ mode?: string }>();
-  const [question, setQuestion] = useState('');
+  const params = useLocalSearchParams<{
+    mode?: string | string[];
+    questionText?: string | string[];
+    topicId?: string | string[];
+    questionTemplateId?: string | string[];
+  }>();
+  const [question, setQuestion] = useState(() => firstRouteParam(params.questionText) ?? '');
   const [reversalMode, setReversalMode] = useState<ReversalMode>(
     DEFAULT_DRAW_CONFIGURATION.reversalMode,
   );
@@ -66,6 +78,7 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
   const [error, setError] = useState<string | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [tableBounds, setTableBounds] = useState({ width: 0, height: 0 });
+  const [windowTableBounds, setWindowTableBounds] = useState<WindowTableBounds | null>(null);
   const version = useRef(0);
   const sessionRef = useRef<DrawSession | null>(null);
   const writeQueue = useMemo(
@@ -80,7 +93,7 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
     [],
   );
   const cardsById = useMemo(() => new Map(tarotCards.map((card) => [card.id, card])), []);
-  const mode = initialMode ?? params.mode;
+  const mode = initialMode ?? firstRouteParam(params.mode);
   const modeTitle = mode === 'single' ? '单张牌阵' : mode === 'three' ? '三张牌阵' : '自由牌桌';
   const draftMode = draft ? drawModeForSession(draft) : null;
   const draftRoute = draft ? drawRouteForSession(draft) : '/draw/table';
@@ -165,6 +178,8 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
           spreadPositionIds: spread?.positions.map((position) => position.id) ?? [],
           reversalMode: reversalModeForDraw(mode, reversalMode),
           questionText: question.trim(),
+          sourceTopicId: firstRouteParam(params.topicId),
+          sourceQuestionTemplateId: firstRouteParam(params.questionTemplateId),
           hiddenDeckCardIds: createHiddenDeck(tarotCards),
           ritual: { stage: 'draw', drawnCount: 0, revealedPositionIndexes: [], cardNotes: {} },
         },
@@ -179,7 +194,7 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
       setBusy(false);
     }
   };
-  const selectFromDeck = (tarotCardId: number) => {
+  const selectFromDeck = (tarotCardId: number, initialPlacement?: NormalizedTablePlacement) => {
     const currentSession = sessionRef.current ?? session;
     if (!currentSession) return;
     if (currentSession.cards.some((card) => card.tarotCardId === tarotCardId)) return;
@@ -201,6 +216,7 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
       currentSession.configuration,
       `position:${index}`,
       index,
+      initialPlacement,
     );
     persist({
       ...currentSession,
@@ -382,6 +398,7 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
       <TarotTableSurface
         empty={session.cards.length === 0}
         onLayout={(event) => setTableBounds(event.nativeEvent.layout)}
+        onWindowBoundsChange={setWindowTableBounds}
       >
         {session.cards.map((card, index) => {
           const revealed = ritual.revealedPositionIndexes.includes(index);
@@ -423,7 +440,20 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
         })}
       </TarotTableSurface>
       {canSelectMore ? (
-        <TableEdge cardIds={remainingDeck} onSelect={selectFromDeck} />
+        <TableEdge
+          cardIds={remainingDeck}
+          onDrop={(tarotCardId, point) => {
+            if (!windowTableBounds) return;
+            const placement = placementFromWindowDrop(
+              point,
+              windowTableBounds,
+              { width: CARD_TABLE_WIDTH, height: CARD_TABLE_HEIGHT },
+              dragZIndex,
+            );
+            if (placement) selectFromDeck(tarotCardId, placement);
+          }}
+          onSelect={selectFromDeck}
+        />
       ) : (
         <View style={styles.closedDeckEdge}>
           <Text style={styles.tableMessage}>此牌阵的牌已全部选完，你仍可按任意顺序揭示。</Text>

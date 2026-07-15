@@ -1,10 +1,30 @@
 import type { ImportCardCandidate, ImportReadingCandidate } from './importParser';
 import { tarotCards } from '../../domain/tarotCards';
+
+const cardWarningCodes = new Set([
+  'invalid_cards',
+  'malformed_card',
+  'unknown_card',
+  'upright_variant',
+]);
+
 function normalize(candidate: ImportReadingCandidate): ImportReadingCandidate {
   const cards = candidate.cards.map((card) => ({
     ...card,
     reversalVariant: card.orientation === 'upright' ? null : card.reversalVariant,
   }));
+  const hasInvalidCard = cards.some(
+    (card) =>
+      card.tarotCardId === null ||
+      card.orientation === null ||
+      (card.orientation === 'upright' && card.reversalVariant !== null),
+  );
+  const warnings = [
+    ...candidate.warnings.filter((warning) => !cardWarningCodes.has(warning.code)),
+    ...(hasInvalidCard
+      ? [{ code: 'invalid_cards', message: '存在未解决的牌面错误。', field: 'Cards' }]
+      : []),
+  ];
   const blocked =
     !candidate.date ||
     !candidate.question.trim() ||
@@ -15,7 +35,7 @@ function normalize(candidate: ImportReadingCandidate): ImportReadingCandidate {
         card.orientation === null ||
         (card.orientation === 'upright' && card.reversalVariant),
     );
-  return { ...candidate, cards, isValid: !blocked && candidate.warnings.length === 0 };
+  return { ...candidate, cards, warnings, isValid: !blocked && warnings.length === 0 };
 }
 export const editCandidate = (
   candidate: ImportReadingCandidate,

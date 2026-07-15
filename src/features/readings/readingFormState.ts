@@ -7,6 +7,7 @@ export type ReadingPrefill = {
   topic_id?: string;
   question_template_id?: string;
   temporary_question?: string;
+  question_tag_id?: string;
 };
 
 function getTemplateCards(context: ReadingFormContext, template: QuestionTemplate | undefined) {
@@ -27,6 +28,7 @@ function getTemplateCards(context: ReadingFormContext, template: QuestionTemplat
         source: 'manual' as const,
         drawSessionId: null,
         spreadPositionId: `open.card.${position.position_order}`,
+        interpretation: '',
       }))
     : [createEmptyReadingCard()];
 }
@@ -50,6 +52,13 @@ export function buildInitialReadingFormValues(
     topic_id: topicIdFromTemplate ?? (hasPrefilledTopic ? (prefill.topic_id ?? '') : ''),
     question_mode: temporaryQuestion.length > 0 ? 'temporary' : template ? 'template' : 'temporary',
     question_template_id: temporaryQuestion.length > 0 ? null : (template?.id ?? null),
+    question_tag_id: context.question_tags.some(
+      (tag) =>
+        tag.id === prefill.question_tag_id &&
+        tag.topic_id === (topicIdFromTemplate ?? prefill.topic_id),
+    )
+      ? (prefill.question_tag_id ?? null)
+      : null,
     temporary_question: temporaryQuestion,
     reading_date: readingDate,
     reading_time: readingTime,
@@ -75,6 +84,7 @@ export function buildReadingFormValuesFromDetail(
     topic_id: detail.topic.id,
     question_mode: templateIsAvailable ? 'template' : 'temporary',
     question_template_id: templateIsAvailable ? (detail.question_template?.id ?? null) : null,
+    question_tag_id: detail.question_tag?.id ?? null,
     temporary_question: templateIsAvailable ? '' : detail.question_text,
     reading_date: readingDate,
     reading_time: readingTime,
@@ -88,6 +98,7 @@ export function buildReadingFormValuesFromDetail(
             source: card.source,
             drawSessionId: card.drawSessionId,
             spreadPositionId: card.spreadPositionId,
+            interpretation: card.interpretation ?? '',
           }))
         : [{ ...createEmptyReadingCard(), spreadPositionId: null }],
     interpretation: detail.reading.interpretation ?? '',

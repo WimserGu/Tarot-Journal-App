@@ -120,7 +120,13 @@ describe('Journal persistence', () => {
       interpretation: '已更新',
       status: 'completed',
       cards: [
-        { tarot_card_id: 71, position_name: null, orientation: 'upright', position_order: 1 },
+        {
+          tarot_card_id: 71,
+          position_name: null,
+          orientation: 'upright',
+          position_order: 1,
+          interpretation: '这张牌提醒我先完成眼前的一步。',
+        },
       ],
     });
     const restartedRepository = new MockReadingRepository(createStore(storage, 'reading-restart'));
@@ -128,6 +134,10 @@ describe('Journal persistence', () => {
     expect((await restartedRepository.getReadingDetail(created.id))?.reading.status).toBe(
       'completed',
     );
+    expect(
+      (await restartedRepository.getReadingDetail(created.id))?.cards[0]?.reading_card
+        .interpretation,
+    ).toBe('这张牌提醒我先完成眼前的一步。');
     await restartedRepository.deleteReading(created.id);
     expect(await restartedRepository.getReadingDetail(created.id)).toBeNull();
   });
@@ -177,6 +187,7 @@ describe('Journal persistence', () => {
       source: 'manual',
       reversalVariant: 'left',
       drawSessionId: null,
+      interpretation: null,
     });
     await store.mutate(() => undefined);
     const restored = createStore(storage, 'legacy-card-restored');

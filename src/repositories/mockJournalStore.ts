@@ -25,6 +25,7 @@ export type JournalStoreOptions = {
       | 'reading-follow-up'
       | 'question-template'
       | 'question-template-position'
+      | 'question-tag'
       | 'draw-session',
   ) => UUID;
   now?: () => ISODateTime;
@@ -46,6 +47,7 @@ function defaultCreateId(
     | 'reading-follow-up'
     | 'question-template'
     | 'question-template-position'
+    | 'question-tag'
     | 'draw-session',
 ): UUID {
   return `local-${entity}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -56,6 +58,7 @@ function copyData(data: JournalData): MutableJournalData {
     topics: [...data.topics],
     question_templates: [...data.question_templates],
     question_template_positions: [...data.question_template_positions],
+    question_tags: [...(data.question_tags ?? [])],
     readings: [...data.readings],
     reading_cards: [...data.reading_cards],
     reading_follow_ups: [...data.reading_follow_ups],
@@ -68,6 +71,7 @@ export const journalSeedData: JournalData = {
   topics: mockTopics,
   question_templates: mockQuestionTemplates,
   question_template_positions: mockQuestionTemplatePositions,
+  question_tags: [],
   readings: mockReadings,
   reading_cards: mockReadingCards,
   reading_follow_ups: [],
@@ -87,6 +91,7 @@ export class JournalStore {
       | 'reading-follow-up'
       | 'question-template'
       | 'question-template-position'
+      | 'question-tag'
       | 'draw-session',
   ) => UUID;
   private readonly listeners = new Set<() => void>();
@@ -126,6 +131,7 @@ export class JournalStore {
       | 'reading-follow-up'
       | 'question-template'
       | 'question-template-position'
+      | 'question-tag'
       | 'draw-session',
   ): UUID {
     return this.idProvider(entity);
@@ -152,6 +158,7 @@ export class JournalStore {
       data.topics = seed.topics;
       data.question_templates = seed.question_templates;
       data.question_template_positions = seed.question_template_positions;
+      data.question_tags = seed.question_tags;
       data.readings = seed.readings;
       data.reading_cards = seed.reading_cards;
       data.reading_follow_ups = seed.reading_follow_ups;

@@ -13,6 +13,7 @@ import {
 import { tarotCards } from '../../../domain/tarotCards';
 import { MockJournalStore } from '../../../repositories/mockJournalStore';
 import { MockTopicRepository } from '../../topics/mockTopicRepository';
+import { MockQuestionTagRepository } from '../../questionTags/mockQuestionTagRepository';
 import { buildInitialReadingFormValues } from '../readingFormState';
 import { MockReadingRepository } from '../mockReadingRepository';
 import { ReadingValidationError } from '../readingRepository';
@@ -39,6 +40,83 @@ function createStore() {
 }
 
 describe('MockReadingRepository', () => {
+  it('assigns one Topic-scoped question tag to multiple readings', async () => {
+    const store = createStore();
+    const readings = new MockReadingRepository(store);
+    const tags = new MockQuestionTagRepository(store);
+    const tag = await tags.createOrReuseQuestionTag({
+      topic_id: MOCK_TOPIC_IDS.relationship,
+      name: '沟通',
+    });
+    const sourceReading = store
+      .snapshot()
+      .readings.find((reading) => reading.topic_id === MOCK_TOPIC_IDS.relationship)!;
+    await store.mutate((data) => {
+      data.readings.push({ ...sourceReading, id: 'batch-reading-2' });
+    });
+    const selected = store
+      .snapshot()
+      .readings.filter((reading) => reading.topic_id === MOCK_TOPIC_IDS.relationship)
+      .slice(0, 2);
+
+    await readings.assignQuestionTag({
+      topic_id: MOCK_TOPIC_IDS.relationship,
+      question_tag_id: tag.id,
+      reading_ids: selected.map((reading) => reading.id),
+    });
+
+    expect(
+      store
+        .snapshot()
+        .readings.filter((reading) => selected.some((item) => item.id === reading.id))
+        .map((reading) => reading.question_tag_id),
+    ).toEqual([tag.id, tag.id]);
+    const otherTopicReading = store
+      .snapshot()
+      .readings.find((reading) => reading.topic_id === MOCK_TOPIC_IDS.thesis)!;
+    await expect(
+      readings.assignQuestionTag({
+        topic_id: MOCK_TOPIC_IDS.relationship,
+        question_tag_id: tag.id,
+        reading_ids: [otherTopicReading.id],
+      }),
+    ).rejects.toThrow('当前 Topic');
+  });
+
+  it('persists a tag from the same Topic and rejects a cross-Topic tag', async () => {
+    const store = createStore();
+    const readings = new MockReadingRepository(store);
+    const tags = new MockQuestionTagRepository(store);
+    const tag = await tags.createOrReuseQuestionTag({
+      topic_id: MOCK_TOPIC_IDS.relationship,
+      name: '对方的想法',
+    });
+    const input = {
+      topic_id: MOCK_TOPIC_IDS.relationship,
+      question_template_id: null,
+      question_tag_id: tag.id,
+      temporary_question: '她想说什么？',
+      reading_at: '2026-07-12T08:30:00.000Z',
+      reading_timezone: 'Africa/Nairobi',
+      interpretation: null,
+      status: 'completed' as const,
+      cards: [
+        {
+          tarot_card_id: 0,
+          position_name: null,
+          orientation: 'upright' as const,
+          position_order: 1,
+        },
+      ],
+    };
+
+    const reading = await readings.createReading(input);
+    expect((await readings.getReadingDetail(reading.id))?.question_tag?.name).toBe('对方的想法');
+    await expect(
+      readings.createReading({ ...input, topic_id: MOCK_TOPIC_IDS.thesis }),
+    ).rejects.toThrow('选择的问题标签不属于当前 Topic');
+  });
+
   it('prefills a fixed question with its saved default positions', async () => {
     const repository = new MockReadingRepository(createStore());
     const context = await repository.getReadingFormContext();

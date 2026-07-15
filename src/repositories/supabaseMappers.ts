@@ -2,6 +2,7 @@ import type {
   CardOrientation,
   CardEntrySource,
   QuestionFrequency,
+  QuestionTag,
   QuestionTemplate,
   QuestionTemplatePosition,
   Reading,
@@ -40,6 +41,10 @@ function integer(row: Row, key: string, positive = false): number {
   return typeof value === 'number' && Number.isInteger(value) && (!positive || value > 0)
     ? value
     : fail(key);
+}
+function integerInRange(row: Row, key: string, minimum: number, maximum: number): number {
+  const value = integer(row, key);
+  return value >= minimum && value <= maximum ? value : fail(key);
 }
 function iso(row: Row, key: string): string {
   const value = string(row, key);
@@ -98,12 +103,25 @@ export function mapQuestionTemplatePositionRow(row: Row): QuestionTemplatePositi
   };
 }
 
+export function mapQuestionTagRow(row: Row): QuestionTag {
+  return {
+    id: string(row, 'id'),
+    user_id: string(row, 'user_id'),
+    topic_id: string(row, 'topic_id'),
+    name: string(row, 'name'),
+    normalized_name: string(row, 'normalized_name'),
+    created_at: iso(row, 'created_at'),
+    updated_at: iso(row, 'updated_at'),
+  };
+}
+
 export function mapReadingRow(row: Row): Reading {
   return {
     id: string(row, 'id'),
     user_id: string(row, 'user_id'),
     topic_id: nullableString(row, 'topic_id'),
     question_template_id: nullableString(row, 'question_template_id'),
+    question_tag_id: optionalNullableString(row, 'question_tag_id'),
     question_text_snapshot: nullableString(row, 'question_text_snapshot'),
     spread_id: optionalNullableString(row, 'spread_id'),
     reading_at: iso(row, 'reading_at'),
@@ -136,7 +154,7 @@ export function mapReadingCardRow(row: Row): ReadingCard {
     id: string(row, 'id'),
     user_id: string(row, 'user_id'),
     reading_id: string(row, 'reading_id'),
-    tarot_card_id: tarotCardId === null ? null : integer(row, 'tarot_card_id', true),
+    tarot_card_id: tarotCardId === null ? null : integerInRange(row, 'tarot_card_id', 0, 77),
     position_order: integer(row, 'position_order', true),
     position_name: nullableString(row, 'position_name'),
     spreadPositionId: optionalNullableString(row, 'spread_position_id'),
@@ -144,6 +162,7 @@ export function mapReadingCardRow(row: Row): ReadingCard {
     reversalVariant,
     source,
     drawSessionId,
+    interpretation: optionalNullableString(row, 'interpretation'),
     created_at: iso(row, 'created_at'),
     updated_at: iso(row, 'updated_at'),
   };
@@ -177,6 +196,10 @@ function drawConfiguration(value: unknown): DrawConfiguration {
     rightProbabilityWhenReversed: rightProbability,
   };
   if (typeof value.question_text === 'string') configuration.questionText = value.question_text;
+  if (typeof value.source_topic_id === 'string')
+    configuration.sourceTopicId = value.source_topic_id;
+  if (typeof value.source_question_template_id === 'string')
+    configuration.sourceQuestionTemplateId = value.source_question_template_id;
   if (
     Array.isArray(value.hidden_deck_card_ids) &&
     value.hidden_deck_card_ids.every(Number.isInteger)
@@ -256,7 +279,7 @@ export function mapDrawSessionCardRow(row: Row): DrawnCard {
   if (orientation === 'upright' && reversalVariant !== null) fail('reversal_expression');
   return {
     id: string(row, 'id'),
-    tarotCardId: integer(row, 'tarot_card_id'),
+    tarotCardId: integerInRange(row, 'tarot_card_id', 0, 77),
     positionIndex: integer(row, 'position_index'),
     spreadPositionId: string(row, 'spread_position_id'),
     positionSnapshot: string(row, 'position_snapshot'),

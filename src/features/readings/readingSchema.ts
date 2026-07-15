@@ -14,6 +14,7 @@ export type ReadingCardFormValue = {
   source?: CardEntrySource;
   drawSessionId?: UUID | null;
   spreadPositionId?: string | null;
+  interpretation?: string;
 };
 
 function isValidLocalDate(value: string): boolean {
@@ -46,13 +47,14 @@ function isValidLocalTime(value: string): boolean {
 
 export const readingCardFormSchema = z
   .object({
-    tarot_card_id: z.number().int().positive().nullable(),
+    tarot_card_id: z.number().int().min(0).max(77).nullable(),
     position_name: z.string().trim().max(120, '牌阵位置不能超过 120 个字符。'),
     orientation: z.enum(['upright', 'reversed']),
     reversalVariant: z.enum(['left', 'right']).nullable().optional(),
     source: z.enum(['drawn', 'manual']).optional(),
     drawSessionId: z.string().nullable().optional(),
     spreadPositionId: z.string().nullable().optional(),
+    interpretation: z.string().trim().max(5000, '单牌解读不能超过 5000 个字符。').optional(),
   })
   .superRefine((value, context) => {
     if (value.orientation === 'upright' && value.reversalVariant !== null) {
@@ -77,11 +79,12 @@ export const readingFormSchema = z
     topic_id: z.string().trim().min(1, '请选择长期议题。'),
     question_mode: z.enum(['template', 'temporary']),
     question_template_id: z.string().trim().nullable(),
+    question_tag_id: z.string().trim().nullable(),
     temporary_question: z.string().trim().max(1000, '问题文字不能超过 1000 个字符。'),
     reading_date: z.string().refine(isValidLocalDate, '请输入有效日期，例如 2026-07-10。'),
     reading_time: z.string().refine(isValidLocalTime, '请输入有效时间，例如 08:30。'),
     cards: z.array(readingCardFormSchema),
-    interpretation: z.string().trim().max(5000, '个人解读不能超过 5000 个字符。'),
+    interpretation: z.string().trim().max(5000, '总体解读不能超过 5000 个字符。'),
   })
   .superRefine((value, context) => {
     if (value.question_mode === 'template' && value.question_template_id === null) {
@@ -112,6 +115,7 @@ export function createEmptyReadingCard(): ReadingCardFormValue {
     source: 'manual',
     drawSessionId: null,
     spreadPositionId: 'open.card.1',
+    interpretation: '',
   };
 }
 
@@ -160,6 +164,7 @@ export function toReadingCreateInput(
     source: card.source ?? 'manual',
     drawSessionId: card.drawSessionId ?? null,
     spreadPositionId: card.spreadPositionId ?? null,
+    interpretation: card.interpretation?.trim() || null,
     position_order: index + 1,
   }));
 
@@ -167,6 +172,7 @@ export function toReadingCreateInput(
     spread_id: values.spread_id,
     topic_id: values.topic_id,
     question_template_id: values.question_mode === 'template' ? values.question_template_id : null,
+    question_tag_id: values.question_tag_id,
     temporary_question:
       values.question_mode === 'temporary' ? values.temporary_question.trim() || null : null,
     reading_at: toIsoDateTime(values.reading_date, values.reading_time),
