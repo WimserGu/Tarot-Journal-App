@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import {
+  GlassPanel,
+  MoonButton,
+  MysticHeader,
+  MysticScreen,
+  MysticText,
+} from '@/components/mystic';
 import { AuthField } from '@/features/auth/AuthField';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { AuthError } from '@/features/auth/authErrors';
@@ -50,29 +54,29 @@ export default function RecoveryScreen() {
     }
   };
   return (
-    <Screen>
-      {!ready && !error ? <Text accessibilityRole="progressbar">正在验证恢复链接…</Text> : null}
-      <Text variant="title">设置新密码</Text>
-      {error ? <Text accessibilityLiveRegion="polite">{error}</Text> : null}
-      {ready ? (
-        <>
-          <AuthField label="新密码" value={password} onChangeText={setPassword} secureTextEntry />
-          <AuthField
-            label="确认新密码"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            onSubmitEditing={() => void submit()}
-          />
-          <Button
-            disabled={busy}
-            label={busy ? '正在更新…' : '更新密码'}
-            onPress={() => void submit()}
-          />
-        </>
-      ) : (
-        <Button label="重新申请" onPress={() => router.replace('/(auth)/forgot-password')} />
-      )}
-    </Screen>
+    <MysticScreen maxWidth={560}>
+      <MysticHeader title="设置新密码" />
+      <GlassPanel variant="elevated">
+        {!ready && !error ? (
+          <MysticText accessibilityRole="progressbar">正在验证恢复链接…</MysticText>
+        ) : null}
+        {error ? <MysticText accessibilityLiveRegion="polite">{error}</MysticText> : null}
+        {ready ? (
+          <>
+            <AuthField label="新密码" value={password} onChangeText={setPassword} secureTextEntry />
+            <AuthField
+              label="确认新密码"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              onSubmitEditing={() => void submit()}
+            />
+            <MoonButton label="更新密码" loading={busy} onPress={() => void submit()} />
+          </>
+        ) : (
+          <MoonButton label="重新申请" onPress={() => router.replace('/(auth)/forgot-password')} />
+        )}
+      </GlassPanel>
+    </MysticScreen>
   );
 }

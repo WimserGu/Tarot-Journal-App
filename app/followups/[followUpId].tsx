@@ -1,9 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
-import { Button } from '../../src/components/Button';
-import { Screen } from '../../src/components/Screen';
-import { Text } from '../../src/components/Text';
+import { Alert, View } from 'react-native';
+import {
+  GlassPanel,
+  MoonButton as Button,
+  MysticHeader,
+  MysticScreen as Screen,
+  MysticText as Text,
+} from '@/components/mystic';
 import {
   addFollowUpCalendarDays,
   formatFollowUpDate,
@@ -12,12 +16,13 @@ import { outcomeLabels } from '../../src/features/followups/followUpPresentation
 import { reversalStateLabel } from '../../src/features/draw/reversalPresentation';
 import { useFollowUpDetail } from '../../src/features/followups/useFollowUps';
 import { followUpRepository } from '../../src/repositories/repositoryFactory';
-import { colors, spacing } from '../../src/theme/tokens';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
 export default function FollowUpDetailScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
   const id = first(useLocalSearchParams<{ followUpId?: string | string[] }>().followUpId);
   const { data, loading, error, reload } = useFollowUpDetail(id);
   const [acting, setActing] = useState(false);
@@ -78,10 +83,13 @@ export default function FollowUpDetailScreen() {
     ]);
 
   return (
-    <Screen scroll>
-      <Text variant="title">当前回顾</Text>
-      <Text variant="muted">这是你对后来情况的记录，不是系统对塔罗准确性的判断。</Text>
-      <View style={styles.section}>
+    <Screen maxWidth={840} scroll>
+      <MysticHeader
+        onBack={() => router.back()}
+        subtitle="这是你对后来情况的记录，不是系统对塔罗准确性的判断。"
+        title="当前回顾"
+      />
+      <GlassPanel>
         <Text variant="subtitle">当时的记录</Text>
         <Text>{data.reading.question_text}</Text>
         <Text variant="muted">
@@ -98,8 +106,8 @@ export default function FollowUpDetailScreen() {
         ))}
         <Text>当时的总体解读：{data.reading.reading.interpretation ?? '未填写'}</Text>
         <Text>当时的后续反馈：{data.reading.reading.reality_feedback ?? '未填写'}</Text>
-      </View>
-      <View style={styles.section}>
+      </GlassPanel>
+      <GlassPanel variant="elevated">
         <Text variant="subtitle">后来发生的情况</Text>
         <Text>计划回顾：{formatFollowUpDate(data.followUp.scheduledFor, timezone)}</Text>
         {data.followUp.reviewedAt ? (
@@ -107,7 +115,7 @@ export default function FollowUpDetailScreen() {
         ) : null}
         <Text>{data.followUp.outcome ? outcomeLabels[data.followUp.outcome] : '仍待回顾'}</Text>
         <Text>{data.followUp.reflection ?? '尚未填写当前回顾。'}</Text>
-      </View>
+      </GlassPanel>
       {data.followUp.status === 'scheduled' ? (
         <>
           <Button
@@ -120,7 +128,7 @@ export default function FollowUpDetailScreen() {
               })
             }
           />
-          <View style={styles.actions}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
             <Button label="7 天后提醒" disabled={acting} onPress={() => void snooze(7)} />
             <Button label="30 天后提醒" disabled={acting} onPress={() => void snooze(30)} />
             <Button
@@ -153,18 +161,12 @@ export default function FollowUpDetailScreen() {
           })
         }
       />
-      <Button label="删除回顾" disabled={acting} onPress={confirmDelete} />
+      <Button label="删除回顾" disabled={acting} onPress={confirmDelete} variant="destructive" />
       {actionError ? (
-        <Text accessibilityLiveRegion="polite" style={styles.error}>
+        <Text accessibilityLiveRegion="polite" style={{ color: theme.colors.danger }}>
           {actionError}
         </Text>
       ) : null}
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  error: { color: colors.danger },
-  section: { gap: spacing.sm },
-});

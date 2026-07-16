@@ -1,19 +1,22 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Text } from '@/components/Text';
-import { colors } from '@/theme/tokens';
+import { MysticText as Text } from '@/components/mystic';
+import { useAppTheme } from '@/theme/useAppTheme';
 export function ObservationOverlay({ onDismiss }: { onDismiss: () => void }) {
+  const { theme } = useAppTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="退出观察模式"
       onPress={onDismiss}
-      style={styles.overlay}
+      style={[styles.overlay, { backgroundColor: theme.colors.overlay }]}
     >
       <View>
-        <Text variant="title" style={styles.text}>
-          Observe
+        <Text variant="pageTitle" style={styles.text}>
+          静静观察
         </Text>
-        <Text style={styles.text}>Tap anywhere to return to the table tools.</Text>
+        <Text variant="muted" style={styles.text}>
+          轻触任意位置返回牌桌工具。
+        </Text>
       </View>
     </Pressable>
   );
@@ -21,7 +24,6 @@ export function ObservationOverlay({ onDismiss }: { onDismiss: () => void }) {
 const styles = StyleSheet.create({
   overlay: {
     alignItems: 'center',
-    backgroundColor: '#0A1713CC',
     bottom: 0,
     justifyContent: 'center',
     left: 0,
@@ -29,5 +31,5 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
   },
-  text: { color: colors.surface, textAlign: 'center' },
+  text: { textAlign: 'center' },
 });

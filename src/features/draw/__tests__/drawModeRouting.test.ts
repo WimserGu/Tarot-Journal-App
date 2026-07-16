@@ -22,7 +22,7 @@ describe('draw mode information architecture', () => {
     expect(selectionSource).toContain('三张牌阵');
     expect(selectionSource).toContain('自定义牌阵');
     expect(selectionSource).not.toContain('手动录入实体牌');
-    expect(selectionSource).toContain('<Text variant="subtitle">其他</Text>');
+    expect(selectionSource).toContain('<SectionLabel title="其他"');
     expect(selectionSource).toContain('抽牌历史');
   });
 

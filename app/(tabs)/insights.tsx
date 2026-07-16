@@ -2,8 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import { MysticHeader, MysticScreen, MysticText as Text } from '@/components/mystic';
 import { StatBar } from '@/features/statistics/components/StatBar';
 import { ReadingTraceLinks } from '@/features/statistics/components/ReadingTraceLinks';
 import { readingDetailRoute } from '@/features/statistics/statisticsPageModel';
@@ -22,7 +21,8 @@ import {
   type StatisticsFilter,
 } from '@/features/statistics/statisticsTypes';
 import { useStatisticsData } from '@/features/statistics/useStatistics';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 type CardDirectionFilter = 'all' | 'upright' | 'reversed' | 'left' | 'right';
 
@@ -46,7 +46,14 @@ function formatOccurrenceDate(value: string, timeZone: string): string {
   }).format(new Date(value));
 }
 
+function useInsightsStyles() {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  return { styles, theme };
+}
+
 export default function InsightsScreen() {
+  const { styles, theme } = useInsightsStyles();
   const router = useRouter();
   const { readings, topics, loading, error } = useStatisticsData();
   const [filter, setFilter] = useState<StatisticsFilter>(defaultStatisticsFilter);
@@ -101,10 +108,12 @@ export default function InsightsScreen() {
     setShowAllInterpretations(false);
   };
   return (
-    <Screen scroll>
-      <Text variant="eyebrow">Traceable Insights</Text>
-      <Text variant="title">Insights</Text>
-      <Text variant="muted">只描述历史记录；所有结论都可追溯到原始 Reading。</Text>
+    <MysticScreen scroll maxWidth={1120}>
+      <MysticHeader
+        eyebrow="Traceable Insights"
+        title="Insights"
+        subtitle="只描述历史记录；所有结论都可追溯到原始 Reading。"
+      />
       <Pressable
         accessibilityLabel={filtersExpanded ? '收起 Insights 筛选' : '修改 Insights 筛选'}
         accessibilityRole="button"
@@ -119,7 +128,7 @@ export default function InsightsScreen() {
         <View style={styles.inlineAction}>
           <Text style={styles.actionText}>{filtersExpanded ? '收起' : '修改筛选'}</Text>
           <Ionicons
-            color={colors.accent}
+            color={theme.colors.primarySoft}
             name={filtersExpanded ? 'chevron-up' : 'chevron-down'}
             size={18}
           />
@@ -207,7 +216,7 @@ export default function InsightsScreen() {
                   setFilter((current) => ({ ...current, dateFrom: dateFrom || undefined }))
                 }
                 placeholder="开始日期 YYYY-MM-DD"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={theme.colors.textMuted}
                 style={[styles.input, styles.dateInput]}
                 value={filter.dateFrom ?? ''}
               />
@@ -217,7 +226,7 @@ export default function InsightsScreen() {
                   setFilter((current) => ({ ...current, dateTo: dateTo || undefined }))
                 }
                 placeholder="结束日期 YYYY-MM-DD"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={theme.colors.textMuted}
                 style={[styles.input, styles.dateInput]}
                 value={filter.dateTo ?? ''}
               />
@@ -380,7 +389,7 @@ export default function InsightsScreen() {
                   if (cardChoices[0]) selectCard(cardChoices[0].tarotCard.id);
                 }}
                 placeholder="搜索中文或英文牌名"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={theme.colors.textMuted}
                 style={styles.input}
                 value={cardQuery}
               />
@@ -555,7 +564,7 @@ export default function InsightsScreen() {
           ) : null}
         </>
       ) : null}
-    </Screen>
+    </MysticScreen>
   );
 }
 function ViewTab({
@@ -567,6 +576,7 @@ function ViewTab({
   label: string;
   onPress: () => void;
 }) {
+  const { styles } = useInsightsStyles();
   return (
     <Pressable
       accessibilityRole="tab"
@@ -587,6 +597,7 @@ function FilterButton({
   active: boolean;
   onPress: () => void;
 }) {
+  const { styles } = useInsightsStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -599,6 +610,7 @@ function FilterButton({
   );
 }
 function Metric({ label, value, onPress }: { label: string; value: number; onPress?: () => void }) {
+  const { styles } = useInsightsStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -612,6 +624,7 @@ function Metric({ label, value, onPress }: { label: string; value: number; onPre
   );
 }
 function Comparison({ label, value }: { label: string; value: number | null }) {
+  const { styles } = useInsightsStyles();
   return (
     <View style={styles.row}>
       <Text>{label}</Text>
@@ -620,6 +633,7 @@ function Comparison({ label, value }: { label: string; value: number | null }) {
   );
 }
 function CompactOpenReading({ onOpen }: { onOpen: () => void }) {
+  const { styles } = useInsightsStyles();
   return (
     <Pressable accessibilityRole="button" onPress={onOpen} style={styles.textButton}>
       <Text style={styles.actionText}>打开 Reading</Text>
@@ -633,6 +647,7 @@ function CollapsibleReadingLinks({
   readingIds: string[];
   onOpen: (id: string) => void;
 }) {
+  const { styles, theme } = useInsightsStyles();
   const [expanded, setExpanded] = useState(false);
   return (
     <View style={styles.traceSection}>
@@ -645,159 +660,173 @@ function CollapsibleReadingLinks({
         <Text style={styles.actionText}>
           {expanded ? '收起来源记录' : `查看 ${readingIds.length} 条来源记录`}
         </Text>
-        <Ionicons color={colors.accent} name={expanded ? 'chevron-up' : 'chevron-down'} size={16} />
+        <Ionicons
+          color={theme.colors.primarySoft}
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={16}
+        />
       </Pressable>
       {expanded ? <ReadingTraceLinks readingIds={readingIds} onOpen={onOpen} /> : null}
     </View>
   );
 }
-const styles = StyleSheet.create({
-  actionText: {
-    color: colors.accent,
-    fontWeight: '700',
-  },
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  filter: {
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  active: { backgroundColor: colors.text },
-  activeText: { color: colors.surface },
-  dateInput: {
-    flex: 1,
-    minWidth: 180,
-  },
-  dateInputs: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  errorText: {
-    color: colors.danger,
-  },
-  filterSummary: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: spacing.md,
-    justifyContent: 'space-between',
-    minHeight: 64,
-    padding: spacing.md,
-  },
-  filterSummaryCopy: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    color: colors.text,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadii.md,
-    gap: spacing.md,
-    padding: spacing.md,
-  },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  metric: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadii.md,
-    minWidth: '45%',
-    padding: spacing.md,
-  },
-  item: {
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-    gap: spacing.xs,
-    paddingBottom: spacing.sm,
-  },
-  cardInsight: {
-    gap: spacing.md,
-  },
-  interpretationItem: {
-    borderTopColor: colors.border,
-    borderTopWidth: 1,
-    gap: spacing.xs,
-    paddingTop: spacing.sm,
-  },
-  inlineAction: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  pressed: {
-    opacity: 0.72,
-  },
-  searchResult: {
-    alignItems: 'center',
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    gap: spacing.md,
-    justifyContent: 'space-between',
-    minHeight: 52,
-    paddingVertical: spacing.sm,
-  },
-  searchResultCopy: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  searchResults: {
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-  },
-  searchResultsViewport: {
-    maxHeight: 300,
-  },
-  countBadge: {
-    color: colors.accent,
-    fontWeight: '700',
-  },
-  textButton: {
-    alignSelf: 'flex-start',
-    justifyContent: 'center',
-    minHeight: 44,
-  },
-  traceSection: {
-    gap: spacing.xs,
-  },
-  viewTab: {
-    alignItems: 'center',
-    borderBottomColor: colors.border,
-    borderBottomWidth: 2,
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 48,
-    minWidth: 72,
-    paddingHorizontal: spacing.sm,
-  },
-  viewTabActive: {
-    borderBottomColor: colors.accent,
-  },
-  viewTabTextActive: {
-    color: colors.accent,
-    fontWeight: '700',
-  },
-  viewTabs: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadii.md,
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    actionText: {
+      color: theme.colors.primarySoft,
+      fontWeight: '700',
+    },
+    wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs },
+    filter: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.pill,
+      borderWidth: 1,
+      minHeight: 44,
+      justifyContent: 'center',
+      paddingHorizontal: theme.spacing.md,
+    },
+    active: { backgroundColor: theme.colors.primary },
+    activeText: { color: theme.colors.textPrimary },
+    dateInput: {
+      flex: 1,
+      minWidth: 180,
+    },
+    dateInputs: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.sm,
+    },
+    errorText: {
+      color: theme.colors.danger,
+    },
+    filterSummary: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.glassElevated,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+      justifyContent: 'space-between',
+      minHeight: 64,
+      padding: theme.spacing.md,
+    },
+    filterSummaryCopy: {
+      flex: 1,
+      gap: theme.spacing.xs,
+    },
+    input: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      color: theme.colors.textPrimary,
+      minHeight: 48,
+      paddingHorizontal: theme.spacing.md,
+    },
+    card: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: theme.borders.hairline,
+      gap: theme.spacing.md,
+      padding: theme.spacing.lg,
+    },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
+    metric: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: theme.borders.hairline,
+      minWidth: '45%',
+      padding: theme.spacing.md,
+    },
+    item: {
+      borderBottomColor: theme.colors.divider,
+      borderBottomWidth: 1,
+      gap: theme.spacing.xs,
+      paddingBottom: theme.spacing.sm,
+    },
+    cardInsight: {
+      gap: theme.spacing.md,
+    },
+    interpretationItem: {
+      borderTopColor: theme.colors.divider,
+      borderTopWidth: 1,
+      gap: theme.spacing.xs,
+      paddingTop: theme.spacing.sm,
+    },
+    inlineAction: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: theme.spacing.xs,
+    },
+    pressed: {
+      opacity: 0.72,
+    },
+    searchResult: {
+      alignItems: 'center',
+      borderBottomColor: theme.colors.divider,
+      borderBottomWidth: 1,
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+      justifyContent: 'space-between',
+      minHeight: 52,
+      paddingVertical: theme.spacing.sm,
+    },
+    searchResultCopy: {
+      flex: 1,
+      gap: theme.spacing.xs,
+    },
+    searchResults: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      gap: theme.spacing.xs,
+      paddingHorizontal: theme.spacing.md,
+    },
+    searchResultsViewport: {
+      maxHeight: 300,
+    },
+    countBadge: {
+      color: theme.colors.primarySoft,
+      fontWeight: '700',
+    },
+    textButton: {
+      alignSelf: 'flex-start',
+      justifyContent: 'center',
+      minHeight: 44,
+    },
+    traceSection: {
+      gap: theme.spacing.xs,
+    },
+    viewTab: {
+      alignItems: 'center',
+      borderBottomColor: theme.colors.divider,
+      borderBottomWidth: 2,
+      flex: 1,
+      justifyContent: 'center',
+      minHeight: 48,
+      minWidth: 72,
+      paddingHorizontal: theme.spacing.sm,
+    },
+    viewTabActive: {
+      borderBottomColor: theme.colors.primarySoft,
+    },
+    viewTabTextActive: {
+      color: theme.colors.primarySoft,
+      fontWeight: '700',
+    },
+    viewTabs: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: theme.borders.hairline,
+      flexDirection: 'row',
+      overflow: 'hidden',
+    },
+    row: { flexDirection: 'row', justifyContent: 'space-between' },
+  });
+}

@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import {
+  GlassPanel,
+  MoonButton,
+  MysticHeader,
+  MysticScreen,
+  MysticText,
+} from '@/components/mystic';
 import { AuthField } from '@/features/auth/AuthField';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { AuthError } from '@/features/auth/authErrors';
@@ -40,31 +44,45 @@ export default function SignUpScreen() {
     }
   };
   return (
-    <Screen scroll>
-      <Text variant="title">创建账号</Text>
-      <AuthField
-        label="邮箱"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
+    <MysticScreen maxWidth={560} scroll>
+      <MysticHeader
+        onBack={() => router.back()}
+        subtitle="建立一个用于长期记录与回顾的私人空间。"
+        title="创建账号"
       />
-      <AuthField
-        label="密码（至少 8 个字符）"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <AuthField
-        label="确认密码"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-        onSubmitEditing={() => void submit()}
-      />
-      {error ? <Text accessibilityLiveRegion="polite">{error}</Text> : null}
-      <Button disabled={busy} label={busy ? '正在注册…' : '注册'} onPress={() => void submit()} />
-      <Button label="返回登录" onPress={() => router.replace('/(auth)/sign-in')} />
-    </Screen>
+      <GlassPanel variant="elevated">
+        <AuthField
+          label="邮箱"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        <AuthField
+          label="密码（至少 8 个字符）"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+        <AuthField
+          label="确认密码"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          onSubmitEditing={() => void submit()}
+        />
+        {error ? (
+          <MysticText accessibilityLiveRegion="polite" variant="caption">
+            {error}
+          </MysticText>
+        ) : null}
+        <MoonButton label="注册" loading={busy} onPress={() => void submit()} />
+        <MoonButton
+          label="返回登录"
+          onPress={() => router.replace('/(auth)/sign-in')}
+          variant="ghost"
+        />
+      </GlassPanel>
+    </MysticScreen>
   );
 }

@@ -1,9 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
-import { Button } from '../../src/components/Button';
-import { Screen } from '../../src/components/Screen';
-import { Text } from '../../src/components/Text';
+import { TextInput, View } from 'react-native';
+import {
+  GlassPanel,
+  MoonButton as Button,
+  MysticHeader,
+  MysticScreen as Screen,
+  MysticText as Text,
+} from '@/components/mystic';
 import {
   addFollowUpCalendarDays,
   customFollowUpDate,
@@ -11,13 +15,14 @@ import {
 } from '../../src/features/followups/followUpDate';
 import { useReadingDetail } from '../../src/features/readings/useReadings';
 import { followUpRepository } from '../../src/repositories/repositoryFactory';
-import { borderRadii, colors, spacing } from '../../src/theme/tokens';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 type Choice = '7' | '30' | 'custom';
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
 export default function NewFollowUpScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
   const readingId = first(useLocalSearchParams<{ readingId?: string | string[] }>().readingId);
   const { data, is_loading: loading } = useReadingDetail(readingId);
   const [choice, setChoice] = useState<Choice>('7');
@@ -70,58 +75,64 @@ export default function NewFollowUpScreen() {
   };
 
   return (
-    <Screen scroll>
-      <Text variant="title">安排回顾</Text>
-      <Text>{data.question_text}</Text>
-      <Text variant="muted">
-        日期以原 Reading 的 {data.reading.reading_timezone} 当地日历计算。
-      </Text>
-      <View style={styles.actions}>
-        <Button label="7 天后" onPress={() => setChoice('7')} />
-        <Button label="30 天后" onPress={() => setChoice('30')} />
-        <Button label="自定义日期" onPress={() => setChoice('custom')} />
-      </View>
-      {choice === 'custom' ? (
-        <View style={styles.field}>
-          <Text nativeID="custom-date-label">回顾日期（YYYY-MM-DD）</Text>
-          <TextInput
-            accessibilityLabelledBy="custom-date-label"
-            autoCapitalize="none"
-            placeholder="2026-08-01"
-            style={styles.input}
-            value={customDate}
-            onChangeText={setCustomDate}
+    <Screen maxWidth={720} scroll>
+      <MysticHeader
+        onBack={() => router.back()}
+        subtitle={`日期以原 Reading 的 ${data.reading.reading_timezone} 当地日历计算。`}
+        title="安排回顾"
+      />
+      <GlassPanel variant="elevated">
+        <Text variant="sectionTitle">{data.question_text}</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+          <Button
+            label="7 天后"
+            onPress={() => setChoice('7')}
+            variant={choice === '7' ? 'primary' : 'secondary'}
+          />
+          <Button
+            label="30 天后"
+            onPress={() => setChoice('30')}
+            variant={choice === '30' ? 'primary' : 'secondary'}
+          />
+          <Button
+            label="自定义日期"
+            onPress={() => setChoice('custom')}
+            variant={choice === 'custom' ? 'primary' : 'secondary'}
           />
         </View>
-      ) : (
-        <Text>计划日期：{followUpDateInputValue(preview!, data.reading.reading_timezone)}</Text>
-      )}
-      <Text variant="muted">创建提醒时不需要填写结果；同一 Reading 可以安排多次回顾。</Text>
-      {error ? (
-        <Text accessibilityLiveRegion="polite" style={styles.error}>
-          {error}
-        </Text>
-      ) : null}
-      <Button
-        label={submitting ? '正在保存…' : '保存回顾提醒'}
-        disabled={submitting}
-        onPress={() => void submit()}
-      />
-      <Button label="取消" disabled={submitting} onPress={() => router.back()} />
+        {choice === 'custom' ? (
+          <View style={{ gap: theme.spacing.xs }}>
+            <Text nativeID="custom-date-label">回顾日期（YYYY-MM-DD）</Text>
+            <TextInput
+              accessibilityLabelledBy="custom-date-label"
+              autoCapitalize="none"
+              placeholder="2026-08-01"
+              placeholderTextColor={theme.colors.textMuted}
+              style={{
+                backgroundColor: theme.colors.glassSubtle,
+                borderColor: theme.colors.glassBorder,
+                borderRadius: theme.radii.md,
+                borderWidth: theme.borders.hairline,
+                color: theme.colors.textPrimary,
+                minHeight: 48,
+                paddingHorizontal: theme.spacing.md,
+              }}
+              value={customDate}
+              onChangeText={setCustomDate}
+            />
+          </View>
+        ) : (
+          <Text>计划日期：{followUpDateInputValue(preview!, data.reading.reading_timezone)}</Text>
+        )}
+        <Text variant="muted">创建提醒时不需要填写结果；同一 Reading 可以安排多次回顾。</Text>
+        {error ? (
+          <Text accessibilityLiveRegion="polite" style={{ color: theme.colors.danger }}>
+            {error}
+          </Text>
+        ) : null}
+        <Button label="保存回顾提醒" loading={submitting} onPress={() => void submit()} />
+        <Button label="取消" disabled={submitting} onPress={() => router.back()} variant="ghost" />
+      </GlassPanel>
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  error: { color: colors.danger },
-  field: { gap: spacing.xs },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-  },
-});

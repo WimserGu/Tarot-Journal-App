@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Text } from '@/components/Text';
+import { MysticText as Text } from '@/components/mystic';
 import { formatTopicDate } from '@/features/topics/topicPresentation';
 import type { TopicListItem } from '@/features/topics/topicRepository';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 import { TopicIcon } from './TopicIcon';
 
@@ -15,21 +15,42 @@ type TopicListCardProps = {
 };
 
 export function TopicListCard({ item, timeZone, onPress }: TopicListCardProps) {
+  const { theme } = useAppTheme();
   return (
     <Pressable
       accessibilityLabel={`查看议题：${item.topic.title}`}
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: theme.colors.glass,
+          borderColor: theme.colors.glassBorder,
+          borderRadius: theme.radii.lg,
+          gap: theme.spacing.md,
+          opacity: pressed ? theme.opacity.pressed : 1,
+          padding: theme.spacing.lg,
+        },
+      ]}
     >
-      <View style={styles.iconBox}>
+      <View
+        style={[
+          styles.iconBox,
+          { backgroundColor: theme.colors.glassElevated, borderRadius: theme.radii.md },
+        ]}
+      >
         <TopicIcon icon={item.topic.icon} />
       </View>
       <View style={styles.content}>
         <View style={styles.titleRow}>
           <Text variant="subtitle">{item.topic.title}</Text>
           {item.topic.is_pinned ? (
-            <Ionicons accessibilityLabel="已置顶" color={colors.accent} name="pin" size={16} />
+            <Ionicons
+              accessibilityLabel="已置顶"
+              color={theme.colors.primarySoft}
+              name="pin"
+              size={16}
+            />
           ) : null}
         </View>
         {item.topic.description ? <Text variant="muted">{item.topic.description}</Text> : null}
@@ -39,7 +60,7 @@ export function TopicListCard({ item, timeZone, onPress }: TopicListCardProps) {
           <Text variant="muted">更新于 {formatTopicDate(item.latest_activity_at, timeZone)}</Text>
         </View>
       </View>
-      <Ionicons color={colors.textMuted} name="chevron-forward" size={20} />
+      <Ionicons color={theme.colors.textMuted} name="chevron-forward" size={20} />
     </Pressable>
   );
 }
@@ -47,23 +68,16 @@ export function TopicListCard({ item, timeZone, onPress }: TopicListCardProps) {
 const styles = StyleSheet.create({
   card: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: spacing.md,
-    padding: spacing.md,
   },
   content: {
     flex: 1,
     flexShrink: 1,
-    gap: spacing.xs,
+    gap: 4,
   },
   iconBox: {
     alignItems: 'center',
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: borderRadii.md,
     height: 48,
     justifyContent: 'center',
     width: 48,
@@ -71,15 +85,12 @@ const styles = StyleSheet.create({
   metadata: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  pressed: {
-    opacity: 0.8,
+    gap: 8,
   },
   titleRow: {
     alignItems: 'center',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
+    gap: 4,
   },
 });

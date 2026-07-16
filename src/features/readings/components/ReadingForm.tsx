@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { Button } from '@/components/Button';
-import { Text } from '@/components/Text';
+import { MoonButton as Button, MysticText as Text } from '@/components/mystic';
 import type { TarotCard } from '@/domain/types';
-import { borderRadii, colors, fontSizes, spacing } from '@/theme/tokens';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 import { cardsForSpread } from '@/features/spreads/spreadMapping';
 import { spreadRepository } from '@/features/spreads/spreadRepository';
 
@@ -52,6 +52,15 @@ export function ReadingForm({
   unspecifiedSpreadLabel = LEGACY_UNSPECIFIED_SPREAD_LABEL,
   reversalMode,
 }: ReadingFormProps) {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const colors = useMemo(
+    () => ({
+      accent: theme.colors.primarySoft,
+      textMuted: theme.colors.textMuted,
+    }),
+    [theme],
+  );
   const {
     clearErrors,
     control,
@@ -580,32 +589,23 @@ export function ReadingForm({
 
       {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
       <View style={styles.saveActions}>
-        <Pressable
+        <Button
           accessibilityLabel="暂存草稿"
-          accessibilityRole="button"
           disabled={disabled}
+          label="暂存草稿"
+          loading={disabled}
           onPress={() => save('draft')}
-          style={({ pressed }) => [
-            styles.draftButton,
-            pressed && !disabled ? styles.pressed : null,
-            disabled ? styles.disabled : null,
-          ]}
-        >
-          <Text style={styles.draftButtonLabel}>{disabled ? '正在保存' : '暂存草稿'}</Text>
-        </Pressable>
-        <Pressable
+          style={styles.saveAction}
+          variant="secondary"
+        />
+        <Button
           accessibilityLabel="保存正式记录"
-          accessibilityRole="button"
           disabled={disabled}
+          label="保存记录"
+          loading={disabled}
           onPress={() => save('completed')}
-          style={({ pressed }) => [
-            styles.saveButton,
-            pressed && !disabled ? styles.pressed : null,
-            disabled ? styles.disabled : null,
-          ]}
-        >
-          <Text style={styles.saveButtonLabel}>{disabled ? '正在保存' : '保存记录'}</Text>
-        </Pressable>
+          style={styles.saveAction}
+        />
       </View>
 
       <SelectionModal
@@ -645,134 +645,119 @@ export function ReadingForm({
   );
 }
 
-const styles = StyleSheet.create({
-  addCardButton: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    gap: spacing.xs,
-    minHeight: 44,
-    paddingHorizontal: spacing.sm,
-  },
-  addCardLabel: {
-    color: colors.accent,
-    fontWeight: '700',
-  },
-  cardsSection: {
-    gap: spacing.md,
-  },
-  dateInput: {
-    flex: 1,
-    minWidth: 160,
-  },
-  dateTimeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  disabled: {
-    opacity: 0.45,
-  },
-  draftButton: {
-    alignItems: 'center',
-    borderColor: colors.text,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-  },
-  draftButtonLabel: {
-    color: colors.text,
-    fontWeight: '700',
-  },
-  emptyState: {
-    gap: spacing.md,
-    paddingVertical: spacing.lg,
-  },
-  errorText: {
-    color: colors.danger,
-  },
-  field: {
-    gap: spacing.sm,
-  },
-  form: {
-    gap: spacing.xl,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    color: colors.text,
-    fontSize: fontSizes.body,
-    lineHeight: 24,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  interpretationInput: {
-    minHeight: 144,
-  },
-  pressed: {
-    opacity: 0.75,
-  },
-  questionInput: {
-    minHeight: 96,
-  },
-  saveActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  saveButton: {
-    alignItems: 'center',
-    backgroundColor: colors.text,
-    borderRadius: borderRadii.md,
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-  },
-  saveButtonLabel: {
-    color: colors.surface,
-    fontWeight: '700',
-  },
-  segment: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: spacing.sm,
-  },
-  segmentedControl: {
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  segmentSelected: {
-    backgroundColor: colors.accent,
-  },
-  segmentTextSelected: {
-    color: colors.surface,
-    fontWeight: '700',
-  },
-  selector: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    minHeight: 52,
-    paddingHorizontal: spacing.md,
-  },
-  timeInput: {
-    flexBasis: 104,
-    flexGrow: 1,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    addCardButton: {
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      flexDirection: 'row',
+      gap: theme.spacing.xs,
+      minHeight: 44,
+      paddingHorizontal: theme.spacing.sm,
+    },
+    addCardLabel: {
+      color: theme.colors.primarySoft,
+      fontWeight: '700',
+    },
+    cardsSection: {
+      gap: theme.spacing.lg,
+    },
+    dateInput: {
+      flex: 1,
+      minWidth: 160,
+    },
+    dateTimeRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.sm,
+    },
+    disabled: {
+      opacity: theme.opacity.disabled,
+    },
+    emptyState: {
+      gap: theme.spacing.md,
+      paddingVertical: theme.spacing.lg,
+    },
+    errorText: {
+      color: theme.colors.danger,
+    },
+    field: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: theme.borders.hairline,
+      gap: theme.spacing.sm,
+      padding: theme.spacing.lg,
+    },
+    form: {
+      gap: theme.spacing.lg,
+    },
+    input: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      color: theme.colors.textPrimary,
+      fontSize: theme.typography.body,
+      lineHeight: 24,
+      minHeight: 48,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+    },
+    interpretationInput: {
+      minHeight: 144,
+    },
+    pressed: {
+      opacity: theme.opacity.pressed,
+    },
+    questionInput: {
+      minHeight: 96,
+    },
+    saveActions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.sm,
+    },
+    saveAction: {
+      flex: 1,
+      minWidth: 180,
+    },
+    segment: {
+      alignItems: 'center',
+      flex: 1,
+      justifyContent: 'center',
+      minHeight: 44,
+      paddingHorizontal: theme.spacing.sm,
+    },
+    segmentedControl: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      flexDirection: 'row',
+      overflow: 'hidden',
+    },
+    segmentSelected: {
+      backgroundColor: theme.colors.primary,
+    },
+    segmentTextSelected: {
+      color: theme.colors.textPrimary,
+      fontWeight: '700',
+    },
+    selector: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      minHeight: 52,
+      paddingHorizontal: theme.spacing.md,
+    },
+    timeInput: {
+      flexBasis: 104,
+      flexGrow: 1,
+    },
+  });
+}

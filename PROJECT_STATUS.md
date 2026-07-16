@@ -1,5 +1,42 @@
 # Project Status
 
+## Tarot Table sizing and pinch zoom
+
+- Enlarged the interactive table and reduced the question/progress header footprint on small screens.
+- Added focal two-finger pinch zoom from 75% to 160%; the region under the fingers stays anchored while DrawSession card coordinates remain normalized and unchanged.
+- Card dragging and deck-to-table drops are converted through the current scale so interaction remains accurate while zoomed.
+- No database schema, DrawSession persistence or migration was changed.
+
+## UI 2.0 Phase 5 — History, Onboarding and Artwork
+
+- Migrated Draw History and DrawSession Detail to Moonlight while preserving draft continuation, deletion, immutable card snapshots and related Reading navigation.
+- Migrated fixed Question History while retaining its virtualized `FlatList`, same-question comparison and Reading detail links.
+- Migrated first-run/review Onboarding without changing Topic or Question Template creation behavior.
+- Migrated the Tarot artwork attribution page while preserving the verified manifest and external source link.
+- No database schema, repository contract or migration was changed.
+
+## UI 2.0 Phase 4 — Settings, Auth, Reviews and Follow-up
+
+- Migrated Settings and the complete email authentication and password recovery flow to Moonlight surfaces while preserving auth validation, privacy behavior and local development mode.
+- Migrated weekly/monthly Review creation and detail pages while retaining traceable statistics snapshots, source Reading links and regeneration behavior.
+- Migrated Follow-up list, scheduling, detail, completion and editing screens while preserving repository behavior, due-state filtering and outcome statistics.
+- Updated shared Auth fields and Follow-up cards to use theme tokens, accessible glass inputs and Moonlight actions.
+- No database schema, repository contract or migration was changed.
+
+## UI 2.0 Phase 3 — Insights, Topics and Import
+
+- Migrated Insights, its global filters and traceable statistics components to Moonlight while preserving all calculation and filtering services.
+- Migrated Topics list, detail, create/edit, timeline and shared Topic controls without changing Topic, question-tag or Reading repositories.
+- Migrated the Import Assistant six-step workflow, editable candidates and results while retaining local parsing, privacy boundaries, partial failure and retry behavior.
+- Added a source-level regression test that prevents these surfaces from returning to legacy Screen/theme tokens. No migration or schema change was introduced.
+
+## UI 2.0 Phase 2 — Draw/Table and Reading Editor
+
+- Migrated draw-mode selection, question preparation, the interactive Tarot Table, deck edge, toolbar, observation overlay and Focus Card to Moonlight surfaces and tokens.
+- Migrated Reading create/edit screens, the form hierarchy, card editor, selectors and Tarot card picker while preserving React Hook Form, Zod, Repository, DrawSession linking and unsaved-change behavior.
+- Added compact themed Tarot card previews to Reading card editors without changing stored card data or orientation rules.
+- No database schema, migration, DrawSession state machine or repository contract was changed.
+
 ## UI 2.0 Phase 1 — Lunar Mystic / Moonlight
 
 - Added an extensible app-theme registry, persisted theme preference interface, Moonlight tokens and reusable Mystic components without adding a native UI dependency.

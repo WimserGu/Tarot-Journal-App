@@ -1,12 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { Text } from '@/components/Text';
+import { MysticText as Text } from '@/components/mystic';
 import type { TarotCard } from '@/domain/types';
 import type { ReadingCardFormValue } from '@/features/readings/readingSchema';
 import type { ReversalMode } from '@/features/draw/drawTypes';
 import { reversalStatesForMode } from '@/features/draw/reversalPresentation';
-import { borderRadii, colors, fontSizes, spacing } from '@/theme/tokens';
+import { TarotCardDisplay } from '@/features/draw/components/TarotCardDisplay';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 type ReadingCardEditorProps = {
   canRemove?: boolean;
@@ -42,6 +45,7 @@ function ToolButton({
   onPress: () => void;
   tone?: 'default' | 'danger';
 }) {
+  const { theme } = useAppTheme();
   return (
     <Pressable
       accessibilityLabel={accessibilityLabel}
@@ -49,12 +53,15 @@ function ToolButton({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
-        styles.toolButton,
-        disabled ? styles.toolButtonDisabled : null,
-        pressed && !disabled ? styles.pressed : null,
+        baseStyles.toolButton,
+        { opacity: disabled ? theme.opacity.disabled : pressed ? theme.opacity.pressed : 1 },
       ]}
     >
-      <Ionicons color={tone === 'danger' ? colors.danger : colors.text} name={icon} size={20} />
+      <Ionicons
+        color={tone === 'danger' ? theme.colors.danger : theme.icons.primary}
+        name={icon}
+        size={20}
+      />
     </Pressable>
   );
 }
@@ -77,6 +84,8 @@ export function ReadingCardEditor({
   value,
   reversalMode,
 }: ReadingCardEditorProps) {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -111,7 +120,7 @@ export function ReadingCardEditor({
           editable={!disabled}
           onChangeText={onPositionNameChange}
           placeholder="例如：现状"
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           style={styles.input}
           value={value.position_name}
         />
@@ -130,11 +139,20 @@ export function ReadingCardEditor({
             disabled ? styles.toolButtonDisabled : null,
           ]}
         >
+          {selectedCard ? (
+            <TarotCardDisplay
+              cardId={selectedCard.id}
+              name={selectedCard.name_zh}
+              orientation={value.orientation}
+              reversalVariant={value.reversalVariant ?? null}
+              size="compact"
+            />
+          ) : null}
           <View style={styles.cardSelectorCopy}>
             <Text>{selectedCard ? selectedCard.name_zh : '选择塔罗牌'}</Text>
             {selectedCard ? <Text variant="muted">{selectedCard.name_en}</Text> : null}
           </View>
-          <Ionicons color={colors.textMuted} name="chevron-forward" size={20} />
+          <Ionicons color={theme.colors.textMuted} name="chevron-forward" size={20} />
         </Pressable>
       </View>
 
@@ -184,7 +202,7 @@ export function ReadingCardEditor({
           numberOfLines={3}
           onChangeText={onInterpretationChange}
           placeholder="记录这张牌在本次问题中的含义"
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           style={[styles.input, styles.interpretationInput]}
           textAlignVertical="top"
           value={value.interpretation ?? ''}
@@ -194,90 +212,97 @@ export function ReadingCardEditor({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    gap: spacing.md,
-    padding: spacing.md,
-  },
-  cardSelector: {
-    alignItems: 'center',
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: spacing.md,
-    minHeight: 52,
-    paddingHorizontal: spacing.md,
-  },
-  cardSelectorCopy: {
-    flex: 1,
-    flexShrink: 1,
-    gap: spacing.xs,
-  },
-  field: {
-    gap: spacing.xs,
-  },
-  variantOption: {
-    alignItems: 'center',
-    borderColor: colors.border,
-    borderRadius: borderRadii.sm,
-    borderWidth: 1,
-    flexGrow: 1,
-    justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: spacing.sm,
-  },
-  variantOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing.sm,
-    justifyContent: 'space-between',
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    color: colors.text,
-    fontSize: fontSizes.body,
-    lineHeight: 24,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  interpretationInput: {
-    minHeight: 88,
-  },
-  pressed: {
-    opacity: 0.72,
-  },
-  segmentSelected: {
-    backgroundColor: colors.accent,
-  },
-  segmentTextSelected: {
-    color: colors.surface,
-    fontWeight: '700',
-  },
+const baseStyles = StyleSheet.create({
   toolButton: {
     alignItems: 'center',
     height: 36,
     justifyContent: 'center',
     width: 36,
   },
-  toolButtonDisabled: {
-    opacity: 0.35,
-  },
-  tools: {
-    flexDirection: 'row',
-    flexShrink: 0,
-  },
 });
+
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      gap: theme.spacing.md,
+      padding: theme.spacing.lg,
+    },
+    cardSelector: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+      minHeight: 52,
+      padding: theme.spacing.sm,
+    },
+    cardSelectorCopy: {
+      flex: 1,
+      flexShrink: 1,
+      gap: theme.spacing.xs,
+    },
+    field: {
+      gap: theme.spacing.xs,
+    },
+    variantOption: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.sm,
+      borderWidth: 1,
+      flexGrow: 1,
+      justifyContent: 'center',
+      minHeight: 44,
+      paddingHorizontal: theme.spacing.sm,
+    },
+    variantOptions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.xs,
+    },
+    header: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: theme.spacing.sm,
+      justifyContent: 'space-between',
+    },
+    input: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      color: theme.colors.textPrimary,
+      fontSize: theme.typography.body,
+      lineHeight: 24,
+      minHeight: 48,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+    },
+    interpretationInput: {
+      minHeight: 88,
+    },
+    pressed: {
+      opacity: theme.opacity.pressed,
+    },
+    segmentSelected: {
+      backgroundColor: theme.colors.primary,
+    },
+    segmentTextSelected: {
+      color: theme.colors.textPrimary,
+      fontWeight: '700',
+    },
+    toolButtonDisabled: {
+      opacity: theme.opacity.disabled,
+    },
+    tools: {
+      flexDirection: 'row',
+      flexShrink: 0,
+    },
+  });
+}

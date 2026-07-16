@@ -1,16 +1,20 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/Button';
-import { Text } from '@/components/Text';
+import {
+  EmptyMysticState,
+  MoonButton as Button,
+  MysticHeader,
+  MysticScreen as Screen,
+  MysticText as Text,
+} from '@/components/mystic';
 import type { ReadingTimelineItem } from '@/features/readings/readingRepository';
 import { useQuestionHistory } from '@/features/readings/useReadings';
-import { IconButton } from '@/features/topics/components/IconButton';
 import { reversalStateLabel } from '@/features/draw/reversalPresentation';
 import { formatTopicDate, orientationLabel } from '@/features/topics/topicPresentation';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -22,6 +26,7 @@ function cardNames(cards: readonly { name_zh: string }[]): string {
 
 export default function QuestionHistoryScreen() {
   const router = useRouter();
+  const styles = useQuestionHistoryStyles();
   const params = useLocalSearchParams<{
     currentReadingId?: string | string[];
     questionTemplateId?: string | string[];
@@ -45,12 +50,12 @@ export default function QuestionHistoryScreen() {
 
   if (!topicId || !questionTemplateId) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <Screen maxWidth={900}>
         <View style={styles.state}>
           <Text variant="subtitle">缺少固定问题标识</Text>
           <Button label="返回议题列表" onPress={() => router.replace('/topics')} />
         </View>
-      </SafeAreaView>
+      </Screen>
     );
   }
 
@@ -85,61 +90,58 @@ export default function QuestionHistoryScreen() {
 
   if (history.is_loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <Screen maxWidth={900}>
         <View style={styles.state}>
           <Text variant="muted">正在加载同题历史…</Text>
         </View>
-      </SafeAreaView>
+      </Screen>
     );
   }
 
   if (history.error_message) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <Screen maxWidth={900}>
         <View style={styles.state}>
           <Text>{history.error_message}</Text>
           <Button label="重新加载" onPress={() => void history.reload()} />
         </View>
-      </SafeAreaView>
+      </Screen>
     );
   }
 
   if (!history.data) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <Screen maxWidth={900}>
         <View style={styles.state}>
           <Text variant="subtitle">找不到这个固定问题</Text>
           <Button label="返回议题详情" onPress={() => router.back()} />
         </View>
-      </SafeAreaView>
+      </Screen>
     );
   }
 
   const { comparison } = history.data;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <Screen maxWidth={1040}>
       <FlatList
         contentContainerStyle={styles.content}
         data={history.data.records}
         keyExtractor={(item) => item.reading.id}
         ListEmptyComponent={
-          <View style={styles.state}>
-            <Text variant="subtitle">这个固定问题还没有记录</Text>
-            <Text variant="muted">保存记录后，这里会保留每次当时的问题快照和牌面。</Text>
-          </View>
+          <EmptyMysticState
+            description="保存记录后，这里会保留每次当时的问题快照和牌面。"
+            title="这个固定问题还没有记录"
+          />
         }
         ListHeaderComponent={
           <View style={styles.headerContent}>
-            <View style={styles.topBar}>
-              <IconButton
-                accessibilityLabel="返回"
-                icon="arrow-back"
-                onPress={() => router.back()}
-              />
-              <Text variant="title">同题历史</Text>
-              <View style={styles.topBarSpacer} />
-            </View>
+            <MysticHeader
+              eyebrow="Question history"
+              onBack={() => router.back()}
+              subtitle="比较同一个固定问题在不同时间留下的牌面与方向。"
+              title="同题历史"
+            />
             <View style={styles.summary}>
               <Text variant="subtitle">{history.data.question_template.question_text}</Text>
               <Text>累计记录 {history.data.total_reading_count} 次</Text>
@@ -186,34 +188,50 @@ export default function QuestionHistoryScreen() {
           </View>
         }
         renderItem={renderItem}
+        style={styles.list}
       />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  comparison: {
-    backgroundColor: colors.surfaceMuted,
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
-  completedLabel: { color: colors.accent, fontWeight: '700' },
-  content: { flexGrow: 1, gap: spacing.sm, padding: spacing.lg },
-  draftLabel: { color: colors.textMuted, fontWeight: '700' },
-  headerContent: { gap: spacing.lg, paddingBottom: spacing.md },
-  pressed: { opacity: 0.72 },
-  recordHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  recordItem: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    gap: spacing.xs,
-    padding: spacing.md,
-  },
-  safeArea: { backgroundColor: colors.background, flex: 1 },
-  state: { gap: spacing.md, padding: spacing.xl },
-  summary: { gap: spacing.sm },
-  topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  topBarSpacer: { width: 44 },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    comparison: {
+      backgroundColor: theme.colors.glassElevated,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: theme.borders.hairline,
+      gap: theme.spacing.sm,
+      padding: theme.spacing.lg,
+    },
+    completedLabel: { color: theme.colors.success, fontWeight: '700' },
+    content: { flexGrow: 1, gap: theme.spacing.sm },
+    draftLabel: { color: theme.colors.textMuted, fontWeight: '700' },
+    headerContent: { gap: theme.spacing.lg, paddingBottom: theme.spacing.md },
+    list: { flex: 1 },
+    pressed: { opacity: theme.opacity.pressed },
+    recordHeader: { flexDirection: 'row', gap: theme.spacing.sm, justifyContent: 'space-between' },
+    recordItem: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: theme.borders.hairline,
+      gap: theme.spacing.xs,
+      padding: theme.spacing.lg,
+    },
+    state: { gap: theme.spacing.md, padding: theme.spacing.xl },
+    summary: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: theme.borders.hairline,
+      gap: theme.spacing.sm,
+      padding: theme.spacing.lg,
+    },
+  });
+}
+
+function useQuestionHistoryStyles() {
+  const { theme } = useAppTheme();
+  return createStyles(theme);
+}

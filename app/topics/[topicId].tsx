@@ -1,11 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import { MoonButton as Button, MysticScreen, MysticText as Text } from '@/components/mystic';
 import { IconButton } from '@/features/topics/components/IconButton';
 import { reversalStateLabel } from '@/features/draw/reversalPresentation';
 import { TopicIcon } from '@/features/topics/components/TopicIcon';
@@ -30,7 +28,8 @@ import {
 import { formatTopicDate, getCurrentTimeZone } from '@/features/topics/topicPresentation';
 import type { TopicDeletionSummary } from '@/features/topics/topicRepository';
 import { useTopicDetail } from '@/features/topics/useTopics';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -78,6 +77,8 @@ function mergeQuestionTags(
 }
 
 export default function TopicDetailScreen() {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const params = useLocalSearchParams<{ topicId?: string | string[] }>();
   const topicId = firstRouteParam(params.topicId);
@@ -257,35 +258,35 @@ export default function TopicDetailScreen() {
 
   if (isLoading) {
     return (
-      <Screen>
+      <MysticScreen>
         <Text variant="muted">正在加载议题…</Text>
-      </Screen>
+      </MysticScreen>
     );
   }
 
   if (errorMessage) {
     return (
-      <Screen>
+      <MysticScreen>
         <Text>{errorMessage}</Text>
         <Button label="重新加载" onPress={() => void reload()} />
         <Button label="返回议题列表" onPress={() => router.replace('/topics')} />
-      </Screen>
+      </MysticScreen>
     );
   }
 
   if (!detail) {
     return (
-      <Screen>
+      <MysticScreen>
         <Text variant="subtitle">找不到这个长期议题</Text>
         <Button label="返回议题列表" onPress={() => router.replace('/topics')} />
-      </Screen>
+      </MysticScreen>
     );
   }
 
   const isRelationshipTopic = detail.topic.icon === 'heart' || detail.topic.title.includes('关系');
 
   return (
-    <Screen scroll>
+    <MysticScreen scroll maxWidth={1040}>
       <View style={styles.topBar}>
         <IconButton
           accessibilityLabel="返回议题列表"
@@ -386,7 +387,7 @@ export default function TopicDetailScreen() {
                       pressed ? styles.pressed : null,
                     ]}
                   >
-                    <Ionicons color={colors.danger} name="close" size={14} />
+                    <Ionicons color={theme.colors.danger} name="close" size={14} />
                   </Pressable>
                 </View>
               ))
@@ -400,7 +401,7 @@ export default function TopicDetailScreen() {
             maxLength={40}
             onChangeText={setTagName}
             placeholder="例如：对方的想法"
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={theme.colors.textMuted}
             style={styles.input}
             value={tagName}
           />
@@ -578,8 +579,8 @@ export default function TopicDetailScreen() {
                     <Ionicons
                       color={
                         selectedReadingIds.has(reading.reading.id)
-                          ? colors.accent
-                          : colors.textMuted
+                          ? theme.colors.primarySoft
+                          : theme.colors.textMuted
                       }
                       name={
                         selectedReadingIds.has(reading.reading.id) ? 'checkbox' : 'square-outline'
@@ -591,7 +592,7 @@ export default function TopicDetailScreen() {
                     {reading.reading.status === 'draft' ? '草稿' : '已保存'}
                   </Text>
                   {!isBatchSelecting ? (
-                    <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />
+                    <Ionicons color={theme.colors.textMuted} name="chevron-forward" size={18} />
                   ) : null}
                 </View>
               </View>
@@ -605,174 +606,178 @@ export default function TopicDetailScreen() {
       </View>
 
       {deleteError ? <Text style={styles.errorText}>{deleteError}</Text> : null}
-    </Screen>
+    </MysticScreen>
   );
 }
 
-const styles = StyleSheet.create({
-  actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  batchPanel: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: borderRadii.md,
-    gap: spacing.md,
-    padding: spacing.md,
-  },
-  errorText: {
-    color: colors.danger,
-  },
-  historyLink: {
-    alignSelf: 'flex-start',
-    minHeight: 36,
-    justifyContent: 'center',
-  },
-  historyLinkLabel: {
-    color: colors.accent,
-    fontWeight: '700',
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    color: colors.text,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-  },
-  pinnedLabel: {
-    color: colors.accent,
-    fontWeight: '700',
-  },
-  pressed: {
-    opacity: 0.72,
-  },
-  recordHeader: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    justifyContent: 'space-between',
-  },
-  recordAction: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  recommendationPanel: {
-    gap: spacing.xs,
-  },
-  recommendationTab: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  recommendationTabAdded: {
-    opacity: 0.55,
-  },
-  recommendationTabSelected: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  recommendationTabTextSelected: {
-    color: colors.surface,
-    fontWeight: '700',
-  },
-  rowCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    gap: spacing.xs,
-    padding: spacing.md,
-  },
-  rowCardSelected: {
-    borderColor: colors.accent,
-    borderWidth: 2,
-  },
-  section: {
-    gap: spacing.md,
-  },
-  tagChip: {
-    alignItems: 'center',
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: borderRadii.md,
-    paddingLeft: spacing.sm,
-    paddingRight: spacing.lg,
-    paddingVertical: spacing.xs,
-    position: 'relative',
-  },
-  tagDeleteButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 20,
-    minWidth: 20,
-    position: 'absolute',
-    right: 0,
-    top: -4,
-  },
-  tagPanel: {
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-    gap: spacing.sm,
-    paddingBottom: spacing.md,
-  },
-  tagWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  statRow: {
-    alignItems: 'baseline',
-    borderBottomColor: colors.border,
-    borderTopColor: colors.border,
-    borderBottomWidth: 1,
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-  },
-  statValue: {
-    color: colors.accent,
-    fontSize: 28,
-    fontWeight: '700',
-    lineHeight: 34,
-  },
-  titleRow: {
-    alignItems: 'baseline',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  topActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  topBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  topicCopy: {
-    flex: 1,
-    flexShrink: 1,
-    gap: spacing.sm,
-  },
-  topicHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  topicIconBox: {
-    alignItems: 'center',
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: borderRadii.md,
-    height: 64,
-    justifyContent: 'center',
-    width: 64,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    actions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.sm,
+    },
+    batchPanel: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: theme.borders.hairline,
+      gap: theme.spacing.md,
+      padding: theme.spacing.lg,
+    },
+    errorText: {
+      color: theme.colors.danger,
+    },
+    historyLink: {
+      alignSelf: 'flex-start',
+      minHeight: 36,
+      justifyContent: 'center',
+    },
+    historyLinkLabel: {
+      color: theme.colors.primarySoft,
+      fontWeight: '700',
+    },
+    input: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      color: theme.colors.textPrimary,
+      minHeight: 48,
+      paddingHorizontal: theme.spacing.md,
+    },
+    pinnedLabel: {
+      color: theme.colors.primarySoft,
+      fontWeight: '700',
+    },
+    pressed: {
+      opacity: 0.72,
+    },
+    recordHeader: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.sm,
+      justifyContent: 'space-between',
+    },
+    recordAction: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: theme.spacing.xs,
+    },
+    recommendationPanel: {
+      gap: theme.spacing.xs,
+    },
+    recommendationTab: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.pill,
+      borderWidth: 1,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+    },
+    recommendationTabAdded: {
+      opacity: 0.55,
+    },
+    recommendationTabSelected: {
+      backgroundColor: theme.colors.primary,
+      borderColor: theme.colors.primarySoft,
+    },
+    recommendationTabTextSelected: {
+      color: theme.colors.textPrimary,
+      fontWeight: '700',
+    },
+    rowCard: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      gap: theme.spacing.xs,
+      padding: theme.spacing.lg,
+    },
+    rowCardSelected: {
+      borderColor: theme.colors.primarySoft,
+      borderWidth: 2,
+    },
+    section: {
+      gap: theme.spacing.md,
+    },
+    tagChip: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.glassElevated,
+      borderRadius: theme.radii.md,
+      paddingLeft: theme.spacing.sm,
+      paddingRight: theme.spacing.lg,
+      paddingVertical: theme.spacing.xs,
+      position: 'relative',
+    },
+    tagDeleteButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 20,
+      minWidth: 20,
+      position: 'absolute',
+      right: 0,
+      top: -4,
+    },
+    tagPanel: {
+      borderBottomColor: theme.colors.divider,
+      borderBottomWidth: 1,
+      gap: theme.spacing.sm,
+      paddingBottom: theme.spacing.md,
+    },
+    tagWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.xs,
+    },
+    statRow: {
+      alignItems: 'baseline',
+      borderBottomColor: theme.colors.divider,
+      borderTopColor: theme.colors.divider,
+      borderBottomWidth: 1,
+      borderTopWidth: 1,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: theme.spacing.md,
+    },
+    statValue: {
+      color: theme.colors.primarySoft,
+      fontSize: 28,
+      fontWeight: '700',
+      lineHeight: 34,
+    },
+    titleRow: {
+      alignItems: 'baseline',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.sm,
+    },
+    topActions: {
+      flexDirection: 'row',
+      gap: theme.spacing.sm,
+    },
+    topBar: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    topicCopy: {
+      flex: 1,
+      flexShrink: 1,
+      gap: theme.spacing.sm,
+    },
+    topicHeader: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+    },
+    topicIconBox: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.glassSubtle,
+      borderRadius: theme.radii.md,
+      height: 64,
+      justifyContent: 'center',
+      width: 64,
+    },
+  });
+}

@@ -2,9 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import {
+  GlassPanel,
+  MoonButton as Button,
+  MysticHeader,
+  MysticScreen as Screen,
+  MysticText as Text,
+} from '@/components/mystic';
 import type { Reading } from '@/domain/types';
 import { linkedReadingIsMissing } from '@/features/draw/drawSessionPresentation';
 import type { DrawSession } from '@/features/draw/drawTypes';
@@ -16,7 +20,8 @@ import {
   reversalModeLabel,
   reversalStateLabel,
 } from '@/features/draw/reversalPresentation';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -28,6 +33,7 @@ function orientationLabel(session: DrawSession['cards'][number]): string {
 
 export default function DrawSessionDetailScreen() {
   const router = useRouter();
+  const styles = useDrawDetailStyles();
   const params = useLocalSearchParams<{ drawSessionId?: string | string[] }>();
   const id = firstRouteParam(params.drawSessionId);
   const [session, setSession] = useState<DrawSession | null>(null);
@@ -70,26 +76,26 @@ export default function DrawSessionDetailScreen() {
     );
   const missingLinkedReading = linkedReadingIsMissing(session, relatedReadings);
   return (
-    <Screen scroll>
-      <Text variant="eyebrow">Draw session</Text>
-      <Text variant="title">抽牌详情</Text>
-      <Text variant="muted">
-        {new Date(session.createdAt).toLocaleString()} · {session.spreadId ?? '未命名牌阵'} ·{' '}
-        {session.status}
-      </Text>
-      <View style={styles.section}>
+    <Screen maxWidth={960} scroll>
+      <MysticHeader
+        eyebrow="Draw session"
+        onBack={() => router.back()}
+        subtitle={`${new Date(session.createdAt).toLocaleString()} · ${session.spreadId ?? '未命名牌阵'} · ${session.status}`}
+        title="抽牌详情"
+      />
+      <GlassPanel variant="subtle">
         <Text variant="subtitle">配置</Text>
         <Text>
           抽取 {session.configuration.cardCount} 张 ·{' '}
           {reversalModeLabel(session.configuration.reversalMode)}
         </Text>
-      </View>
+      </GlassPanel>
       <View style={styles.section}>
         <Text variant="subtitle">原始牌面</Text>
         {session.cards.map((card) => {
           const tarotCard = cardsById.get(card.tarotCardId);
           return (
-            <View key={card.id} style={styles.card}>
+            <GlassPanel key={card.id} style={styles.card}>
               <CardArtwork
                 accessibilityLabel={`${tarotCard?.name_zh ?? '未知牌面'}，${reversalAccessibilityLabel(card.orientation, card.reversalVariant)}`}
                 cardId={card.tarotCardId}
@@ -105,12 +111,12 @@ export default function DrawSessionDetailScreen() {
               <Text>{orientationLabel(card)}</Text>
               <Text variant="muted">来源：{card.source === 'drawn' ? 'App 抽取' : '手动补充'}</Text>
               <Text variant="muted">创建于 {new Date(session.createdAt).toLocaleString()}</Text>
-            </View>
+            </GlassPanel>
           );
         })}
       </View>
       {missingLinkedReading ? <Text variant="muted">此前关联的 Reading 已不存在。</Text> : null}
-      <View style={styles.section}>
+      <GlassPanel>
         <Text variant="subtitle">关联 Reading</Text>
         {relatedReadings.length === 0 ? (
           <Text variant="muted">尚未从此抽牌创建 Reading。</Text>
@@ -125,6 +131,7 @@ export default function DrawSessionDetailScreen() {
                   params: { readingId: reading.id },
                 })
               }
+              variant="secondary"
             />
           ))
         )}
@@ -134,19 +141,23 @@ export default function DrawSessionDetailScreen() {
             router.push({ pathname: '/readings/new', params: { drawSessionId: session.id } })
           }
         />
-      </View>
+      </GlassPanel>
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    gap: spacing.xs,
-    padding: spacing.md,
-  },
-  section: { gap: spacing.md },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    card: {
+      alignItems: 'center',
+      gap: theme.spacing.xs,
+      minWidth: 220,
+    },
+    section: { gap: theme.spacing.md },
+  });
+}
+
+function useDrawDetailStyles() {
+  const { theme } = useAppTheme();
+  return createStyles(theme);
+}

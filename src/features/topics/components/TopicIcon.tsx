@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 
 import type { TopicIcon as TopicIconValue } from '@/domain/types';
-import { colors } from '@/theme/tokens';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 const iconNames: Record<TopicIconValue, keyof typeof Ionicons.glyphMap> = {
   book: 'book-outline',
@@ -18,6 +18,7 @@ type TopicIconProps = {
   size?: number;
 };
 
-export function TopicIcon({ icon, color = colors.accent, size = 24 }: TopicIconProps) {
-  return <Ionicons color={color} name={iconNames[icon]} size={size} />;
+export function TopicIcon({ icon, color, size = 24 }: TopicIconProps) {
+  const { theme } = useAppTheme();
+  return <Ionicons color={color ?? theme.colors.primarySoft} name={iconNames[icon]} size={size} />;
 }

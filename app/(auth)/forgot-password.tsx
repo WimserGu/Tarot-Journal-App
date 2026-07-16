@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import {
+  GlassPanel,
+  MoonButton,
+  MysticHeader,
+  MysticScreen,
+  MysticText,
+} from '@/components/mystic';
 import { AuthField } from '@/features/auth/AuthField';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { AuthError } from '@/features/auth/authErrors';
@@ -37,24 +41,33 @@ export default function ForgotPasswordScreen() {
     }
   };
   return (
-    <Screen>
-      <Text variant="title">重置密码</Text>
-      <Text variant="muted">输入邮箱，我们会发送恢复说明。</Text>
-      <AuthField
-        label="邮箱"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        onSubmitEditing={() => void submit()}
+    <MysticScreen maxWidth={560}>
+      <MysticHeader
+        onBack={() => router.back()}
+        subtitle="输入邮箱，我们会发送恢复说明。"
+        title="重置密码"
       />
-      {message ? <Text accessibilityLiveRegion="polite">{message}</Text> : null}
-      <Button
-        disabled={busy}
-        label={busy ? '正在发送…' : '发送恢复邮件'}
-        onPress={() => void submit()}
-      />
-      <Button label="返回登录" onPress={() => router.replace('/(auth)/sign-in')} />
-    </Screen>
+      <GlassPanel variant="elevated">
+        <AuthField
+          autoCapitalize="none"
+          keyboardType="email-address"
+          label="邮箱"
+          onChangeText={setEmail}
+          onSubmitEditing={() => void submit()}
+          value={email}
+        />
+        {message ? (
+          <MysticText accessibilityLiveRegion="polite" variant="caption">
+            {message}
+          </MysticText>
+        ) : null}
+        <MoonButton label="发送恢复邮件" loading={busy} onPress={() => void submit()} />
+        <MoonButton
+          label="返回登录"
+          onPress={() => router.replace('/(auth)/sign-in')}
+          variant="ghost"
+        />
+      </GlassPanel>
+    </MysticScreen>
   );
 }

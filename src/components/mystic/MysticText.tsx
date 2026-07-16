@@ -4,7 +4,16 @@ import { Text, type StyleProp, type TextStyle } from 'react-native';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 export type MysticTextVariant =
-  'display' | 'pageTitle' | 'sectionTitle' | 'cardTitle' | 'body' | 'caption' | 'muted';
+  | 'display'
+  | 'pageTitle'
+  | 'sectionTitle'
+  | 'cardTitle'
+  | 'body'
+  | 'caption'
+  | 'muted'
+  | 'title'
+  | 'subtitle'
+  | 'eyebrow';
 
 type MysticTextProps = PropsWithChildren<{
   variant?: MysticTextVariant;
@@ -58,6 +67,27 @@ export function MysticText({ children, variant = 'body', style, ...props }: Myst
       color: theme.colors.textMuted,
       fontSize: sizes.body,
       lineHeight: 24,
+    },
+    title: {
+      color: theme.colors.textPrimary,
+      fontFamily: sizes.displayFamily,
+      fontSize: sizes.pageTitle,
+      fontWeight: '600',
+      lineHeight: 34,
+    },
+    subtitle: {
+      color: theme.colors.textPrimary,
+      fontSize: sizes.cardTitle,
+      fontWeight: '600',
+      lineHeight: 24,
+    },
+    eyebrow: {
+      color: theme.colors.primarySoft,
+      fontSize: sizes.caption,
+      fontWeight: '700',
+      letterSpacing: 1.1,
+      lineHeight: 19,
+      textTransform: 'uppercase',
     },
   };
   return (

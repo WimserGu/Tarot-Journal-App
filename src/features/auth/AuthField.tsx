@@ -1,37 +1,39 @@
 import type { ComponentProps } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import { Text } from '../../components/Text';
-import { borderRadii, colors, spacing } from '../../theme/tokens';
+import { MysticText } from '@/components/mystic';
+import { useAppTheme } from '@/theme/useAppTheme';
+
 type Props = ComponentProps<typeof TextInput> & { label: string; error?: string };
 export function AuthField({ label, error, ...props }: Props) {
+  const { theme } = useAppTheme();
+  const styles = StyleSheet.create({
+    field: { gap: theme.spacing.xs },
+    input: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: theme.borders.hairline,
+      color: theme.colors.textPrimary,
+      minHeight: 50,
+      paddingHorizontal: theme.spacing.md,
+    },
+    error: { color: theme.colors.danger },
+  });
   return (
     <View style={styles.field}>
-      <Text>{label}</Text>
+      <MysticText variant="caption">{label}</MysticText>
       <TextInput
         accessibilityLabel={label}
         aria-invalid={Boolean(error)}
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={theme.colors.textMuted}
         style={styles.input}
         {...props}
       />
       {error ? (
-        <Text accessibilityLiveRegion="polite" style={styles.error}>
+        <MysticText accessibilityLiveRegion="polite" style={styles.error}>
           {error}
-        </Text>
+        </MysticText>
       ) : null}
     </View>
   );
 }
-const styles = StyleSheet.create({
-  field: { gap: spacing.xs },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    color: colors.text,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-  },
-  error: { color: '#9f2d20' },
-});

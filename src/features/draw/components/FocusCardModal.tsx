@@ -1,7 +1,6 @@
 import { Modal, Pressable, StyleSheet, TextInput } from 'react-native';
-import { Button } from '@/components/Button';
-import { Text } from '@/components/Text';
-import { colors, spacing } from '@/theme/tokens';
+import { GlassPanel, MoonButton as Button, MysticText as Text } from '@/components/mystic';
+import { useAppTheme } from '@/theme/useAppTheme';
 import type { CardOrientation, ReversalVariant } from '@/domain/types';
 import {
   reversalAccessibilityLabel,
@@ -31,30 +30,49 @@ export function FocusCardModal({
   onNoteChange: (value: string) => void;
   onDismiss: () => void;
 }) {
+  const { theme } = useAppTheme();
   return (
     <Modal transparent visible={visible} onRequestClose={onDismiss}>
-      <Pressable style={styles.backdrop} onPress={onDismiss}>
+      <Pressable
+        style={[
+          styles.backdrop,
+          { backgroundColor: theme.colors.overlay, padding: theme.spacing.lg },
+        ]}
+        onPress={onDismiss}
+      >
         <Pressable style={styles.card} onPress={() => undefined}>
-          <Text variant="subtitle">{title}</Text>
-          <CardArtwork
-            accessibilityLabel={`${name}，${reversalAccessibilityLabel(orientation, reversalVariant)}`}
-            cardId={cardId}
-            orientation={orientation}
-            reversalVariant={reversalVariant}
-            size="focus"
-          />
-          <Text variant="title">{name}</Text>
-          {englishName ? <Text variant="muted">{englishName}</Text> : null}
-          <Text>{reversalStateLabel(orientation, reversalVariant)}</Text>
-          <TextInput
-            accessibilityLabel="临时卡片备注"
-            value={note}
-            onChangeText={onNoteChange}
-            multiline
-            placeholder="临时观察备注（不会自动写入 Reading）"
-            style={styles.input}
-          />
-          <Button label="Close" onPress={onDismiss} />
+          <GlassPanel variant="elevated">
+            <Text variant="subtitle">{title}</Text>
+            <CardArtwork
+              accessibilityLabel={`${name}，${reversalAccessibilityLabel(orientation, reversalVariant)}`}
+              cardId={cardId}
+              orientation={orientation}
+              reversalVariant={reversalVariant}
+              size="focus"
+            />
+            <Text variant="title">{name}</Text>
+            {englishName ? <Text variant="muted">{englishName}</Text> : null}
+            <Text>{reversalStateLabel(orientation, reversalVariant)}</Text>
+            <TextInput
+              accessibilityLabel="临时卡片备注"
+              value={note}
+              onChangeText={onNoteChange}
+              multiline
+              placeholder="临时观察备注（不会自动写入 Reading）"
+              placeholderTextColor={theme.colors.textMuted}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.colors.glassSubtle,
+                  borderColor: theme.colors.glassBorder,
+                  borderRadius: theme.radii.md,
+                  color: theme.colors.textPrimary,
+                  padding: theme.spacing.sm,
+                },
+              ]}
+            />
+            <Button label="关闭" onPress={onDismiss} />
+          </GlassPanel>
         </Pressable>
       </Pressable>
     </Modal>
@@ -63,18 +81,13 @@ export function FocusCardModal({
 const styles = StyleSheet.create({
   backdrop: {
     alignItems: 'center',
-    backgroundColor: '#00000088',
     flex: 1,
     justifyContent: 'center',
-    padding: spacing.lg,
   },
   card: {
     alignItems: 'center',
-    backgroundColor: colors.background,
-    gap: spacing.md,
     maxWidth: 420,
-    padding: spacing.lg,
     width: '100%',
   },
-  input: { borderColor: colors.border, borderWidth: 1, minHeight: 90, padding: spacing.sm },
+  input: { borderWidth: 1, minHeight: 90, width: '100%' },
 });

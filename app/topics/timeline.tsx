@@ -3,8 +3,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/Button';
-import { Text } from '@/components/Text';
+import { MoonButton as Button, MysticText as Text } from '@/components/mystic';
 import {
   SelectionModal,
   type SelectionOption,
@@ -14,7 +13,8 @@ import { useReadingFormContext, useTopicTimeline } from '@/features/readings/use
 import { IconButton } from '@/features/topics/components/IconButton';
 import { reversalStateLabel } from '@/features/draw/reversalPresentation';
 import { formatTopicDate, orientationLabel } from '@/features/topics/topicPresentation';
-import { borderRadii, colors, fontSizes, spacing } from '@/theme/tokens';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -29,6 +29,8 @@ function hasFilters(filters: TimelineFilterState): boolean {
 }
 
 export default function TopicTimelineScreen() {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const params = useLocalSearchParams<{ topicId?: string | string[] }>();
   const topicId = firstRouteParam(params.topicId);
@@ -164,7 +166,7 @@ export default function TopicTimelineScreen() {
                   setFilters((current) => ({ ...current, card_query: cardQuery }))
                 }
                 placeholder="按中文或英文牌名筛选"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={theme.colors.textMuted}
                 style={styles.input}
                 value={filters.card_query ?? ''}
               />
@@ -176,7 +178,7 @@ export default function TopicTimelineScreen() {
                     setFilters((current) => ({ ...current, date_from: dateFrom }))
                   }
                   placeholder="起始日期 YYYY-MM-DD"
-                  placeholderTextColor={colors.textMuted}
+                  placeholderTextColor={theme.colors.textMuted}
                   style={[styles.input, styles.dateInput]}
                   value={filters.date_from ?? ''}
                 />
@@ -187,7 +189,7 @@ export default function TopicTimelineScreen() {
                     setFilters((current) => ({ ...current, date_to: dateTo }))
                   }
                   placeholder="结束日期 YYYY-MM-DD"
-                  placeholderTextColor={colors.textMuted}
+                  placeholderTextColor={theme.colors.textMuted}
                   style={[styles.input, styles.dateInput]}
                   value={filters.date_to ?? ''}
                 />
@@ -268,68 +270,74 @@ export default function TopicTimelineScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  clearButton: { minHeight: 36, justifyContent: 'center', paddingHorizontal: spacing.xs },
-  clearButtonLabel: { color: colors.accent, fontWeight: '700' },
-  completedBadge: { color: colors.accent, fontWeight: '700' },
-  content: { flexGrow: 1, gap: spacing.sm, padding: spacing.lg },
-  dateInput: { flex: 1, minWidth: 150 },
-  dateRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  draftBadge: { color: colors.textMuted, fontWeight: '700' },
-  favoriteBadge: { color: colors.accent, fontWeight: '700' },
-  filterChip: {
-    alignItems: 'center',
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 40,
-    paddingHorizontal: spacing.sm,
-  },
-  filterChipSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
-  filterChipSelectedText: { color: colors.surface, fontWeight: '700' },
-  filterHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  filterSection: { gap: spacing.sm },
-  headerContent: { gap: spacing.lg, paddingBottom: spacing.md },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    color: colors.text,
-    fontSize: fontSizes.body,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  itemBadges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  itemHeader: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    justifyContent: 'space-between',
-  },
-  pressed: { opacity: 0.72 },
-  safeArea: { backgroundColor: colors.background, flex: 1 },
-  selector: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-  },
-  state: { gap: spacing.md, paddingVertical: spacing.xl },
-  timelineItem: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    gap: spacing.xs,
-    padding: spacing.md,
-  },
-  topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  topBarSpacer: { width: 44 },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    clearButton: { minHeight: 36, justifyContent: 'center', paddingHorizontal: theme.spacing.xs },
+    clearButtonLabel: { color: theme.colors.primarySoft, fontWeight: '700' },
+    completedBadge: { color: theme.colors.success, fontWeight: '700' },
+    content: { flexGrow: 1, gap: theme.spacing.sm, padding: theme.spacing.lg },
+    dateInput: { flex: 1, minWidth: 150 },
+    dateRow: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
+    draftBadge: { color: theme.colors.textMuted, fontWeight: '700' },
+    favoriteBadge: { color: theme.colors.primarySoft, fontWeight: '700' },
+    filterChip: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.pill,
+      borderWidth: 1,
+      justifyContent: 'center',
+      minHeight: 40,
+      paddingHorizontal: theme.spacing.sm,
+    },
+    filterChipSelected: {
+      backgroundColor: theme.colors.primary,
+      borderColor: theme.colors.primarySoft,
+    },
+    filterChipSelectedText: { color: theme.colors.textPrimary, fontWeight: '700' },
+    filterHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+    filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs },
+    filterSection: { gap: theme.spacing.sm },
+    headerContent: { gap: theme.spacing.lg, paddingBottom: theme.spacing.md },
+    input: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      color: theme.colors.textPrimary,
+      fontSize: theme.typography.body,
+      minHeight: 48,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+    },
+    itemBadges: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
+    itemHeader: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.sm,
+      justifyContent: 'space-between',
+    },
+    pressed: { opacity: theme.opacity.pressed },
+    safeArea: { backgroundColor: theme.colors.backgroundDeep, flex: 1 },
+    selector: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      justifyContent: 'center',
+      minHeight: 48,
+      paddingHorizontal: theme.spacing.md,
+    },
+    state: { gap: theme.spacing.md, paddingVertical: theme.spacing.xl },
+    timelineItem: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      gap: theme.spacing.xs,
+      padding: theme.spacing.lg,
+    },
+    topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+    topBarSpacer: { width: 44 },
+  });
+}

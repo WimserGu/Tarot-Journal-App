@@ -1,11 +1,15 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, View } from 'react-native';
 
-import { Button } from '@/components/Button';
-import { Text } from '@/components/Text';
-import { IconButton } from '@/features/topics/components/IconButton';
+import {
+  EmptyMysticState,
+  GlassPanel,
+  MoonButton as Button,
+  MysticHeader,
+  MysticScreen,
+  MysticText as Text,
+} from '@/components/mystic';
 import { getCurrentTimeZone } from '@/features/topics/topicPresentation';
 import { ReadingForm } from '@/features/readings/components/ReadingForm';
 import { buildReadingFormValuesFromDetail } from '@/features/readings/readingFormState';
@@ -14,7 +18,6 @@ import { toReadingCreateInput, type ReadingFormValues } from '@/features/reading
 import { createSubmissionGuard } from '@/features/readings/submissionGuard';
 import { useReadingDetail, useReadingFormContext } from '@/features/readings/useReadings';
 import { useUnsavedChangesGuard } from '@/features/readings/useUnsavedChangesGuard';
-import { colors, spacing } from '@/theme/tokens';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -84,86 +87,53 @@ export default function EditReadingScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
-      >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={styles.header}>
-            <IconButton
-              accessibilityLabel="返回记录详情"
-              icon="arrow-back"
-              onPress={() => router.back()}
-            />
-            <View style={styles.headerCopy}>
-              <Text variant="eyebrow">实体牌记录</Text>
-              <Text variant="title">编辑牌阵记录</Text>
-            </View>
-          </View>
+    <MysticScreen scroll maxWidth={900}>
+      <MysticHeader
+        eyebrow="私人塔罗日记"
+        title="编辑牌阵记录"
+        subtitle="调整牌面、问题与解读，不改变原始 Draw Session。"
+        onBack={() => router.back()}
+      />
 
-          {isLoading ? <Text variant="muted">正在准备编辑表单…</Text> : null}
-          {!isLoading && errorMessage ? (
-            <View style={styles.state}>
-              <Text>{errorMessage}</Text>
-              <Button
-                label="重新加载"
-                onPress={() => {
-                  void formContext.reload();
-                  void readingDetail.reload();
-                }}
-              />
-              <Button label="返回记录详情" onPress={() => router.back()} />
-            </View>
-          ) : null}
-          {!isLoading && !errorMessage && !readingDetail.data ? (
-            <View style={styles.state}>
-              <Text variant="subtitle">找不到这条记录</Text>
-              <Button label="返回议题列表" onPress={() => router.replace('/topics')} />
-            </View>
-          ) : null}
-          {!isLoading && !errorMessage && formContext.data && initialValues ? (
-            <ReadingForm
-              context={formContext.data}
-              initialValues={initialValues}
-              isSaving={isSaving}
-              onCreateTopic={() => router.push('/topics/new')}
-              onDirtyChange={setIsDirty}
-              onSave={saveReading}
-              saveError={saveError}
+      {isLoading ? (
+        <GlassPanel variant="subtle">
+          <Text variant="muted">正在准备编辑表单…</Text>
+        </GlassPanel>
+      ) : null}
+      {!isLoading && errorMessage ? (
+        <GlassPanel variant="elevated">
+          <View>
+            <Text>{errorMessage}</Text>
+            <Button
+              label="重新加载"
+              onPress={() => {
+                void formContext.reload();
+                void readingDetail.reload();
+              }}
             />
-          ) : null}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            <Button label="返回记录详情" onPress={() => router.back()} />
+          </View>
+        </GlassPanel>
+      ) : null}
+      {!isLoading && !errorMessage && !readingDetail.data ? (
+        <EmptyMysticState
+          title="找不到这条记录"
+          description="这条记录可能已经被删除，或当前账户无法访问。"
+          actionLabel="返回议题列表"
+          onAction={() => router.replace('/topics')}
+        />
+      ) : null}
+      {!isLoading && !errorMessage && formContext.data && initialValues ? (
+        <ReadingForm
+          context={formContext.data}
+          initialValues={initialValues}
+          isSaving={isSaving}
+          onCreateTopic={() => router.push('/topics/new')}
+          onDirtyChange={setIsDirty}
+          onSave={saveReading}
+          saveError={saveError}
+        />
+      ) : null}
+    </MysticScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    flexGrow: 1,
-    gap: spacing.xl,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
-  },
-  header: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  headerCopy: {
-    flex: 1,
-    flexShrink: 1,
-    gap: spacing.xs,
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  safeArea: {
-    backgroundColor: colors.background,
-    flex: 1,
-  },
-  state: {
-    gap: spacing.md,
-  },
-});

@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -11,9 +11,12 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import {
+  MoonButton as Button,
+  MysticHeader,
+  MysticScreen,
+  MysticText as Text,
+} from '@/components/mystic';
 import {
   addCard,
   deleteCard,
@@ -40,11 +43,14 @@ import {
 import { tarotCards } from '@/domain/tarotCards';
 import type { QuestionTag } from '@/domain/types';
 import { readingRepository, topicRepository } from '@/repositories/repositoryFactory';
-import { colors, spacing } from '@/theme/tokens';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 import { useUnsavedChangesGuard } from '@/features/readings/useUnsavedChangesGuard';
 
 const SAMPLE = `[Reading]\nDate: 2026-07-13\nTopic: 关系\nQuestion: 她现在想对我说什么？\nCards:\n- 星币国王 | upright\n- 权杖七 | reversed\n- 星币四 | reversed | left\nNotes:\n这是多行备注的第一行。\n这是第二行。`;
 export default function ImportScreen() {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const [raw, setRaw] = useState('');
   const [preview, setPreview] = useState<ImportParseResult | null>(null);
@@ -152,7 +158,7 @@ export default function ImportScreen() {
     Keyboard.dismiss();
     scrollRef.current?.scrollTo({
       animated: true,
-      y: Math.max(0, parseButtonY.current - spacing.md),
+      y: Math.max(0, parseButtonY.current - theme.spacing.md),
     });
   };
   const updateRawText = (nextRaw: string) => {
@@ -170,14 +176,29 @@ export default function ImportScreen() {
     scrollToParseButton();
   };
   return (
-    <Screen scroll scrollRef={scrollRef}>
-      <Text variant="eyebrow">1. 模板 · 2. 粘贴 · 3. 解析 · 4. 编辑 · 5. 导入 · 6. 结果</Text>
-      <Text variant="title">导入历史记录</Text>
+    <MysticScreen scroll scrollRef={scrollRef} maxWidth={960}>
+      <MysticHeader
+        eyebrow="Import Assistant"
+        title="导入历史记录"
+        subtitle="整理、解析、审核，再由你决定哪些记录保存到日记。"
+        onBack={() => router.back()}
+      />
+      <Text variant="caption">1. 模板 · 2. 粘贴 · 3. 解析 · 4. 编辑 · 5. 导入 · 6. 结果</Text>
       <Text variant="muted">
         模板只复制到剪贴板。你自行决定是否交给外部 AI；App 不会上传粘贴内容，解析不等于保存。
       </Text>
-      <Button label="复制 AI 整理模板" onPress={() => void copy(IMPORT_AI_PROMPT, '模板')} />
-      <Button label="复制示例格式" onPress={() => void copy(SAMPLE, '示例')} />
+      <View style={styles.actionRow}>
+        <Button
+          label="复制 AI 整理模板"
+          variant="secondary"
+          onPress={() => void copy(IMPORT_AI_PROMPT, '模板')}
+        />
+        <Button
+          label="复制示例格式"
+          variant="secondary"
+          onPress={() => void copy(SAMPLE, '示例')}
+        />
+      </View>
       {notice ? <Text>{notice}</Text> : null}
       <TextInput
         accessibilityLabel="粘贴整理结果"
@@ -185,7 +206,8 @@ export default function ImportScreen() {
         value={raw}
         onChangeText={updateRawText}
         placeholder="[Reading]"
-        style={styles.input}
+        placeholderTextColor={theme.colors.textMuted}
+        style={[styles.input, styles.rawInput]}
       />
       <View onLayout={measureParseButton}>
         <Button label="本地解析" onPress={parse} />
@@ -456,13 +478,33 @@ export default function ImportScreen() {
           <Button label="重置导入" onPress={reset} />
         </>
       ) : null}
-      <Button label="返回" onPress={() => router.back()} />
-    </Screen>
+    </MysticScreen>
   );
 }
-const styles = StyleSheet.create({
-  input: { borderColor: colors.border, borderWidth: 1, minHeight: 44, padding: spacing.sm },
-  card: { borderColor: colors.border, borderWidth: 1, gap: spacing.sm, padding: spacing.sm },
-  error: { color: colors.danger },
-  tagGroup: { gap: spacing.xs },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
+    input: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      color: theme.colors.textPrimary,
+      fontSize: theme.typography.body,
+      minHeight: 48,
+      padding: theme.spacing.lg,
+      textAlignVertical: 'top',
+    },
+    rawInput: { minHeight: 180 },
+    card: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      gap: theme.spacing.sm,
+      padding: theme.spacing.lg,
+    },
+    error: { color: theme.colors.danger },
+    tagGroup: { gap: theme.spacing.xs },
+  });
+}

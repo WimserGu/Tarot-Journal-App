@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import {
+  GlassPanel,
+  MoonButton,
+  MysticHeader,
+  MysticScreen,
+  MysticText,
+} from '@/components/mystic';
 import { AuthField } from '@/features/auth/AuthField';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { AuthError } from '@/features/auth/authErrors';
@@ -32,28 +36,47 @@ export default function SignInScreen() {
     }
   };
   return (
-    <Screen scroll>
-      <Text variant="title">邮箱登录</Text>
-      <AuthField
-        label="邮箱"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoComplete="email"
+    <MysticScreen maxWidth={560} scroll>
+      <MysticHeader
+        eyebrow="Private Journal"
+        onBack={() => router.back()}
+        subtitle="你的记录只会通过当前数据模式保存。"
+        title="邮箱登录"
       />
-      <AuthField
-        label="密码"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoComplete="current-password"
-        onSubmitEditing={() => void submit()}
-      />
-      {error ? <Text accessibilityLiveRegion="polite">{error}</Text> : null}
-      <Button disabled={busy} label={busy ? '正在登录…' : '登录'} onPress={() => void submit()} />
-      <Button label="忘记密码" onPress={() => router.push('/(auth)/forgot-password')} />
-      <Button label="创建账号" onPress={() => router.push('/(auth)/sign-up')} />
-    </Screen>
+      <GlassPanel variant="elevated">
+        <AuthField
+          label="邮箱"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+        />
+        <AuthField
+          label="密码"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoComplete="current-password"
+          onSubmitEditing={() => void submit()}
+        />
+        {error ? (
+          <MysticText accessibilityLiveRegion="polite" variant="caption">
+            {error}
+          </MysticText>
+        ) : null}
+        <MoonButton label="登录" loading={busy} onPress={() => void submit()} />
+        <MoonButton
+          label="忘记密码"
+          onPress={() => router.push('/(auth)/forgot-password')}
+          variant="ghost"
+        />
+        <MoonButton
+          label="创建账号"
+          onPress={() => router.push('/(auth)/sign-up')}
+          variant="secondary"
+        />
+      </GlassPanel>
+    </MysticScreen>
   );
 }

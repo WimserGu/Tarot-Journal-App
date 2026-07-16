@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import {
+  MoonButton as Button,
+  MysticHeader,
+  MysticScreen as Screen,
+  MysticText as Text,
+} from '@/components/mystic';
 import { reviewCoordinator } from '@/features/reviews/reviewCoordinator';
 import {
   getReviewPeriod,
@@ -19,12 +22,15 @@ import {
   type StatisticsFilter,
 } from '@/features/statistics/statisticsTypes';
 import { reviewRepository } from '@/repositories/repositoryFactory';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 const localTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
 export default function ReviewsScreen() {
   const router = useRouter();
+  const styles = useReviewStyles();
+  const { theme } = useAppTheme();
   const [now] = useState(() => new Date().toISOString());
   const [reviewType, setReviewType] = useState<ReviewType>('weekly');
   const [anchor, setAnchor] = useState(now.slice(0, 10));
@@ -105,9 +111,13 @@ export default function ReviewsScreen() {
   const openReading = (id: string) => router.push(`/readings/${id}`);
 
   return (
-    <Screen scroll>
-      <Text variant="eyebrow">Traceable Reflections</Text>
-      <Text variant="title">每周与每月回顾</Text>
+    <Screen maxWidth={920} scroll>
+      <MysticHeader
+        eyebrow="Traceable Reflections"
+        onBack={() => router.back()}
+        subtitle="所有统计都可以回到产生它们的 Reading。"
+        title="每周与每月回顾"
+      />
       <View style={styles.row}>
         <Choice
           label="Weekly"
@@ -129,6 +139,7 @@ export default function ReviewsScreen() {
         value={anchor}
         onChangeText={setAnchor}
         placeholder="YYYY-MM-DD"
+        placeholderTextColor={theme.colors.textMuted}
         style={styles.input}
       />
       <TextInput
@@ -136,6 +147,7 @@ export default function ReviewsScreen() {
         value={timezone}
         onChangeText={setTimezone}
         placeholder="Asia/Shanghai"
+        placeholderTextColor={theme.colors.textMuted}
         style={styles.input}
       />
       <Choice
@@ -199,6 +211,7 @@ export default function ReviewsScreen() {
             value={summary}
             onChangeText={setSummary}
             placeholder="写下你自己的事实性回顾（可选）"
+            placeholderTextColor={theme.colors.textMuted}
             style={[styles.input, styles.summary]}
           />
           {existingId ? (
@@ -253,6 +266,7 @@ function Choice({
   active: boolean;
   onPress: () => void;
 }) {
+  const styles = useReviewStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -265,6 +279,7 @@ function Choice({
   );
 }
 function Metric({ label, value }: { label: string; value: number }) {
+  const styles = useReviewStyles();
   return (
     <View style={styles.metric}>
       <Text variant="subtitle">{value}</Text>
@@ -272,46 +287,58 @@ function Metric({ label, value }: { label: string; value: number }) {
     </View>
   );
 }
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  choice: {
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: spacing.md,
-  },
-  active: { backgroundColor: colors.text },
-  activeText: { color: colors.surface },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    color: colors.text,
-    minHeight: 48,
-    padding: spacing.md,
-  },
-  summary: { minHeight: 140, textAlignVertical: 'top' },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadii.md,
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
-  metrics: { flexDirection: 'row', gap: spacing.sm },
-  metric: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadii.md,
-    flex: 1,
-    padding: spacing.md,
-  },
-  saved: {
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-    minHeight: 52,
-    justifyContent: 'center',
-    paddingVertical: spacing.sm,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    row: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
+    choice: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.pill,
+      borderWidth: theme.borders.hairline,
+      justifyContent: 'center',
+      minHeight: 44,
+      paddingHorizontal: theme.spacing.md,
+    },
+    active: { backgroundColor: theme.colors.primary },
+    activeText: { color: theme.colors.textPrimary },
+    input: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: theme.borders.hairline,
+      color: theme.colors.textPrimary,
+      minHeight: 48,
+      padding: theme.spacing.md,
+    },
+    summary: { minHeight: 140, textAlignVertical: 'top' },
+    card: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: theme.borders.hairline,
+      gap: theme.spacing.sm,
+      padding: theme.spacing.lg,
+    },
+    metrics: { flexDirection: 'row', gap: theme.spacing.sm },
+    metric: {
+      backgroundColor: theme.colors.glassElevated,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: theme.borders.hairline,
+      flex: 1,
+      padding: theme.spacing.lg,
+    },
+    saved: {
+      borderBottomColor: theme.colors.divider,
+      borderBottomWidth: 1,
+      justifyContent: 'center',
+      minHeight: 52,
+      paddingVertical: theme.spacing.sm,
+    },
+  });
+}
+
+function useReviewStyles() {
+  const { theme } = useAppTheme();
+  return createStyles(theme);
+}

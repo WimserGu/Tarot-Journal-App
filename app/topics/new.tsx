@@ -1,14 +1,10 @@
 import { useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
 import { useState } from 'react';
 
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
-import { IconButton } from '@/features/topics/components/IconButton';
+import { MysticHeader, MysticScreen } from '@/components/mystic';
 import { TopicForm } from '@/features/topics/components/TopicForm';
 import { topicRepository } from '@/repositories/repositoryFactory';
 import type { TopicFormValues } from '@/features/topics/topicSchema';
-import { spacing } from '@/theme/tokens';
 
 const initialValues: TopicFormValues = {
   name: '',
@@ -33,37 +29,19 @@ export default function CreateTopicScreen() {
   };
 
   return (
-    <Screen scroll>
-      <View style={styles.header}>
-        <IconButton
-          accessibilityLabel="返回议题列表"
-          icon="arrow-back"
-          onPress={() => router.back()}
-        />
-        <View style={styles.headerCopy}>
-          <Text variant="eyebrow">长期议题</Text>
-          <Text variant="title">新建议题</Text>
-        </View>
-      </View>
+    <MysticScreen scroll maxWidth={760}>
+      <MysticHeader
+        eyebrow="长期议题"
+        title="新建议题"
+        subtitle="为一段值得长期观察的经历建立自己的空间。"
+        onBack={() => router.back()}
+      />
       <TopicForm
         initialValues={initialValues}
         onSubmit={createTopic}
         submitError={submitError}
         submitLabel="创建议题"
       />
-    </Screen>
+    </MysticScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  headerCopy: {
-    flex: 1,
-    flexShrink: 1,
-    gap: spacing.xs,
-  },
-});

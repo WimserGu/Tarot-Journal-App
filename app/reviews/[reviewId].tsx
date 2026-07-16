@@ -1,18 +1,25 @@
 import { useEffect, useState, type PropsWithChildren } from 'react';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Alert, StyleSheet, TextInput, View } from 'react-native';
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import {
+  GlassPanel,
+  MoonButton as Button,
+  MysticHeader,
+  MysticScreen as Screen,
+  MysticText as Text,
+} from '@/components/mystic';
 import { reviewCoordinator } from '@/features/reviews/reviewCoordinator';
 import { formatReviewPeriod, signedDelta } from '@/features/reviews/reviewPresentation';
 import type { Review } from '@/features/reviews/reviewTypes';
 import { ReadingTraceLinks } from '@/features/statistics/components/ReadingTraceLinks';
 import { reviewRepository } from '@/repositories/repositoryFactory';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 export default function ReviewDetailScreen() {
   const router = useRouter();
+  const styles = useReviewDetailStyles();
+  const { theme } = useAppTheme();
   const { reviewId } = useLocalSearchParams<{ reviewId: string }>();
   const [review, setReview] = useState<Review | null>(null);
   const [summary, setSummary] = useState('');
@@ -96,12 +103,12 @@ export default function ReviewDetailScreen() {
     );
   const snapshot = review.statisticsSnapshot;
   return (
-    <Screen scroll>
-      <Button label="返回" onPress={() => router.back()} />
-      <Text variant="eyebrow">
-        {review.reviewType === 'weekly' ? 'Weekly Review' : 'Monthly Review'}
-      </Text>
-      <Text variant="title">{formatReviewPeriod(review)}</Text>
+    <Screen maxWidth={920} scroll>
+      <MysticHeader
+        eyebrow={review.reviewType === 'weekly' ? 'Weekly Review' : 'Monthly Review'}
+        onBack={() => router.back()}
+        title={formatReviewPeriod(review)}
+      />
       <Text>
         {review.timezone} · {review.status === 'in_progress' ? '当前周期进行中' : '完整历史周期'}
       </Text>
@@ -271,6 +278,7 @@ export default function ReviewDetailScreen() {
         maxLength={5000}
         value={summary}
         onChangeText={setSummary}
+        placeholderTextColor={theme.colors.textMuted}
         style={styles.summary}
       />
       <Button
@@ -284,6 +292,7 @@ export default function ReviewDetailScreen() {
 }
 
 function Metric({ label, value }: { label: string; value: number }) {
+  const styles = useReviewDetailStyles();
   return (
     <View style={styles.metric}>
       <Text variant="subtitle">{value}</Text>
@@ -293,46 +302,51 @@ function Metric({ label, value }: { label: string; value: number }) {
 }
 function Section({ title, children }: PropsWithChildren<{ title: string }>) {
   return (
-    <View style={styles.card}>
+    <GlassPanel>
       <Text variant="subtitle">{title}</Text>
       {children}
-    </View>
+    </GlassPanel>
   );
 }
-const styles = StyleSheet.create({
-  notice: {
-    backgroundColor: '#fff2c7',
-    borderRadius: borderRadii.md,
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
-  metrics: { flexDirection: 'row', gap: spacing.sm },
-  metric: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadii.md,
-    flex: 1,
-    padding: spacing.md,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadii.md,
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
-  item: {
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-    gap: spacing.xs,
-    paddingBottom: spacing.sm,
-  },
-  summary: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    color: colors.text,
-    minHeight: 160,
-    padding: spacing.md,
-    textAlignVertical: 'top',
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    notice: {
+      backgroundColor: theme.colors.glassElevated,
+      borderColor: theme.colors.warning,
+      borderRadius: theme.radii.lg,
+      borderWidth: theme.borders.hairline,
+      gap: theme.spacing.sm,
+      padding: theme.spacing.lg,
+    },
+    metrics: { flexDirection: 'row', gap: theme.spacing.sm },
+    metric: {
+      backgroundColor: theme.colors.glassElevated,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: theme.borders.hairline,
+      flex: 1,
+      padding: theme.spacing.lg,
+    },
+    item: {
+      borderBottomColor: theme.colors.divider,
+      borderBottomWidth: 1,
+      gap: theme.spacing.xs,
+      paddingBottom: theme.spacing.sm,
+    },
+    summary: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: theme.borders.hairline,
+      color: theme.colors.textPrimary,
+      minHeight: 160,
+      padding: theme.spacing.md,
+      textAlignVertical: 'top',
+    },
+  });
+}
+
+function useReviewDetailStyles() {
+  const { theme } = useAppTheme();
+  return createStyles(theme);
+}

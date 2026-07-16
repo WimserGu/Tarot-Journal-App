@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { UUID } from '../../../domain/types';
-import { Text } from '../../../components/Text';
-import { colors, spacing } from '../../../theme/tokens';
+import { MysticText as Text } from '../../../components/mystic';
+import { useAppTheme } from '../../../theme/useAppTheme';
 export function ReadingTraceLinks({
   readingIds,
   onOpen,
@@ -9,6 +9,7 @@ export function ReadingTraceLinks({
   readingIds: UUID[];
   onOpen: (id: UUID) => void;
 }) {
+  const { theme } = useAppTheme();
   if (readingIds.length === 0) return <Text variant="muted">来源：0 条 Reading</Text>;
   return (
     <View style={styles.root}>
@@ -19,7 +20,15 @@ export function ReadingTraceLinks({
             accessibilityRole="button"
             key={id}
             onPress={() => onOpen(id)}
-            style={styles.link}
+            style={[
+              styles.link,
+              {
+                backgroundColor: theme.colors.glassSubtle,
+                borderColor: theme.colors.glassBorder,
+                borderRadius: theme.radii.pill,
+                paddingHorizontal: theme.spacing.sm,
+              },
+            ]}
           >
             <Text style={styles.text}>Reading {index + 1}</Text>
           </Pressable>
@@ -29,14 +38,12 @@ export function ReadingTraceLinks({
   );
 }
 const styles = StyleSheet.create({
-  root: { gap: spacing.xs },
-  links: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  root: { gap: 4 },
+  links: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   link: {
-    borderColor: colors.border,
     borderWidth: 1,
     minHeight: 44,
     justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
   },
   text: { fontSize: 13 },
 });

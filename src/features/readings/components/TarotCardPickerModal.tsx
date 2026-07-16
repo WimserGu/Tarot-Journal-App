@@ -2,10 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { Text } from '@/components/Text';
+import { MysticText as Text } from '@/components/mystic';
 import type { TarotCard } from '@/domain/types';
 import { CardArtwork } from '@/features/draw/components/CardArtwork';
-import { borderRadii, colors, fontSizes, spacing } from '@/theme/tokens';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 import {
   defaultTarotCardPickerFilters,
@@ -53,6 +54,16 @@ export function TarotCardPickerModal({
   selectedCardIds,
   visible,
 }: TarotCardPickerModalProps) {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const colors = useMemo(
+    () => ({
+      accent: theme.colors.primarySoft,
+      text: theme.colors.textPrimary,
+      textMuted: theme.colors.textMuted,
+    }),
+    [theme],
+  );
   const [filters, setFilters] = useState(defaultTarotCardPickerFilters);
   const matchingCards = useMemo(() => filterTarotCards(cards, filters), [cards, filters]);
 
@@ -104,9 +115,7 @@ export function TarotCardPickerModal({
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 key={filter.value}
-                onPress={() =>
-                  setFilters((current) => applyArcanaFilter(current, filter.value))
-                }
+                onPress={() => setFilters((current) => applyArcanaFilter(current, filter.value))}
                 style={({ pressed }) => [
                   styles.arcanaFilter,
                   selected ? styles.filterSelected : null,
@@ -198,133 +207,135 @@ export function TarotCardPickerModal({
   );
 }
 
-const styles = StyleSheet.create({
-  arcanaFilter: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 40,
-    paddingHorizontal: spacing.xs,
-  },
-  arcanaFilters: {
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  cardFace: {
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    backgroundColor: colors.surfaceMuted,
-    justifyContent: 'center',
-    minHeight: 72,
-    paddingHorizontal: spacing.sm,
-    width: 76,
-  },
-  cardCopy: {
-    flex: 1,
-    flexShrink: 1,
-    gap: spacing.xs,
-  },
-  cardRow: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: spacing.md,
-    minHeight: 84,
-    overflow: 'hidden',
-    paddingRight: spacing.md,
-  },
-  cardRowSelected: {
-    borderColor: colors.accent,
-    borderWidth: 2,
-  },
-  clearButton: {
-    minHeight: 32,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  clearButtonText: {
-    color: colors.accent,
-    fontWeight: '700',
-  },
-  closeButton: {
-    alignItems: 'center',
-    height: 44,
-    justifyContent: 'center',
-    width: 44,
-  },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  filterHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  filterSelected: {
-    backgroundColor: colors.accent,
-  },
-  filterSelectedText: {
-    color: colors.surface,
-    fontWeight: '700',
-  },
-  listContent: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  screen: {
-    backgroundColor: colors.background,
-    flex: 1,
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
-  },
-  selectedStatus: {
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  selectedText: {
-    color: colors.accent,
-    fontSize: fontSizes.caption,
-    fontWeight: '700',
-  },
-  searchInput: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    color: colors.text,
-    fontSize: fontSizes.body,
-    lineHeight: 24,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  separator: {
-    height: spacing.xs,
-  },
-  suitFilter: {
-    alignItems: 'center',
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 36,
-    paddingHorizontal: spacing.sm,
-  },
-  suitFilters: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    arcanaFilter: {
+      alignItems: 'center',
+      flex: 1,
+      justifyContent: 'center',
+      minHeight: 40,
+      paddingHorizontal: theme.spacing.xs,
+    },
+    arcanaFilters: {
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      flexDirection: 'row',
+      overflow: 'hidden',
+    },
+    cardFace: {
+      alignItems: 'center',
+      alignSelf: 'stretch',
+      backgroundColor: theme.colors.glassSubtle,
+      justifyContent: 'center',
+      minHeight: 72,
+      paddingHorizontal: theme.spacing.sm,
+      width: 76,
+    },
+    cardCopy: {
+      flex: 1,
+      flexShrink: 1,
+      gap: theme.spacing.xs,
+    },
+    cardRow: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+      minHeight: 84,
+      overflow: 'hidden',
+      paddingRight: theme.spacing.md,
+    },
+    cardRowSelected: {
+      borderColor: theme.colors.primarySoft,
+      borderWidth: 2,
+    },
+    clearButton: {
+      minHeight: 32,
+      justifyContent: 'center',
+      paddingHorizontal: theme.spacing.xs,
+    },
+    clearButtonText: {
+      color: theme.colors.primarySoft,
+      fontWeight: '700',
+    },
+    closeButton: {
+      alignItems: 'center',
+      height: 44,
+      justifyContent: 'center',
+      width: 44,
+    },
+    header: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    filterHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    filterSelected: {
+      backgroundColor: theme.colors.primary,
+    },
+    filterSelectedText: {
+      color: theme.colors.textPrimary,
+      fontWeight: '700',
+    },
+    listContent: {
+      gap: theme.spacing.sm,
+      paddingBottom: theme.spacing.xl,
+    },
+    pressed: {
+      opacity: theme.opacity.pressed,
+    },
+    screen: {
+      backgroundColor: theme.colors.backgroundDeep,
+      flex: 1,
+      gap: theme.spacing.md,
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.xl,
+    },
+    selectedStatus: {
+      alignItems: 'center',
+      gap: theme.spacing.xs,
+    },
+    selectedText: {
+      color: theme.colors.primarySoft,
+      fontSize: theme.typography.caption,
+      fontWeight: '700',
+    },
+    searchInput: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      color: theme.colors.textPrimary,
+      fontSize: theme.typography.body,
+      lineHeight: 24,
+      minHeight: 48,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+    },
+    separator: {
+      height: theme.spacing.xs,
+    },
+    suitFilter: {
+      alignItems: 'center',
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      justifyContent: 'center',
+      minHeight: 36,
+      paddingHorizontal: theme.spacing.sm,
+    },
+    suitFilters: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.xs,
+    },
+  });
+}

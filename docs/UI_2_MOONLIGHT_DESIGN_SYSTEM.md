@@ -107,14 +107,42 @@ Motion tokens are 180, 240 and 320 ms. Tarot cards use one short opacity/scale e
 - Decorative background layers are hidden from assistive technology.
 - Reduced Motion is respected.
 
-## 12. Migrated Phase 1 surfaces
+## 12. Migrated surfaces
 
 - Home, including Today Reading, recent Reading, Follow-ups, fixed questions and quick entry.
 - Reading Detail, including cards, per-card interpretation, overall interpretation, feedback, Follow-ups and management actions.
 - Bottom tab appearance.
 - Shared Tarot card presentation.
+- Draw mode selection and question preparation.
+- Interactive Tarot Table surface, deck edge, toolbar, observation overlay and Focus Card.
+- Reading create/edit screens, selectors, card editor and Tarot card picker.
+- Insights global filters, overview, single-card interpretation and trend surfaces.
+- Topics list, detail, create/edit, timeline and Topic controls.
+- Import Assistant six-step flow, editable candidates and result summary.
+- Settings, authentication, password recovery, Reviews and Follow-ups.
+- Draw History, DrawSession Detail, fixed Question History, Onboarding and artwork attribution.
 
-Authentication, Topics, Insights, Settings, Draw, Import, Reviews, Follow-up detail and forms retain their current visual implementation in Phase 1.
+Phase 4 migrates Settings, the complete authentication flow, Reviews and Follow-ups. Authentication forms use a narrow readable column and elevated glass form surface. Review and Follow-up pages retain their existing traceability and repository boundaries while using Moonlight hierarchy and actions.
+
+Authentication errors, recovery messages and loading states remain textual and accessible; decorative styling must never hide account state. Review statistics must keep source Reading navigation visible. Follow-up outcome labels describe the user's later observation and must not imply that Tarot predictions were objectively verified.
+
+Phase 5 history surfaces keep immutable source information visually distinct from later journal content. Question History places its `FlatList` directly inside `MysticScreen`, preserving virtualization without nesting it in a `ScrollView`. Onboarding uses the same repositories and validation as before; theme components only organize each step. Artwork attribution remains readable and keeps its external Commons source explicit.
+
+### Phase 2 interaction rules
+
+- DrawSession remains the only source of truth; Moonlight components do not add a parallel table state.
+- The table surface keeps its established placement coordinate system. Atmospheric styling must never rotate or offset the draggable container.
+- Pinch zoom is a view-only table transform between 75% and 160%. The midpoint between both fingers is the focal anchor and may move with the gesture. Stored normalized placements remain unchanged, and drag/drop coordinates must be converted through the complete viewport transform.
+- The deck edge keeps virtualization and the existing tap/drag gesture boundary.
+- Reading forms retain React Hook Form, Zod validation and repository inputs. Visual panels do not infer or rewrite Topic, spread, card or DrawSession data.
+- Reading card previews reuse `TarotCardDisplay`, while the picker continues using the lightweight picker artwork size for scrolling performance.
+
+### Phase 3 data-heavy surface rules
+
+- Insights uses restrained glass groups and pill filters; statistics remain subordinate to the selected view and global filter summary.
+- Topic timelines retain `FlatList`; Moonlight styling must not replace virtualization with a fully rendered scroll view.
+- Import keeps its local-only privacy boundary. Theme components never log, upload or transform pasted text.
+- Dense candidate controls may wrap on small screens, but the raw text area and error messages remain full width and readable.
 
 ## 13. Migration guide
 

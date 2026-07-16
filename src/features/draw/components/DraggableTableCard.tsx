@@ -8,6 +8,7 @@ import {
   type TableBounds,
 } from '../tablePlacement';
 import type { NormalizedTablePlacement } from '../drawTypes';
+import { useTarotTableScale } from './TarotTableSurface';
 
 export function DraggableTableCard({
   accessibilityLabel,
@@ -29,6 +30,7 @@ export function DraggableTableCard({
   placement: NormalizedTablePlacement;
   tableBounds: TableBounds;
 }>) {
+  const tableScale = useTarotTableScale();
   const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const suppressTapUntil = useRef(0);
@@ -41,15 +43,16 @@ export function DraggableTableCard({
         onMoveShouldSetPanResponderCapture: (_, gesture) =>
           !disabled && deckGestureIntent(gesture.dx, gesture.dy) === 'drag',
         onPanResponderGrant: () => setDragging(true),
-        onPanResponderMove: (_, gesture) => setDragDelta({ x: gesture.dx, y: gesture.dy }),
+        onPanResponderMove: (_, gesture) =>
+          setDragDelta({ x: gesture.dx / tableScale, y: gesture.dy / tableScale }),
         onPanResponderRelease: (_, gesture) => {
           suppressTapUntil.current = Date.now() + 150;
           setDragging(false);
           setDragDelta({ x: 0, y: 0 });
           onDragEnd(
             placementFromPixels(
-              origin.left + gesture.dx,
-              origin.top + gesture.dy,
+              origin.left + gesture.dx / tableScale,
+              origin.top + gesture.dy / tableScale,
               tableBounds,
               cardBounds,
               dragZIndex,
@@ -61,9 +64,9 @@ export function DraggableTableCard({
           setDragging(false);
           setDragDelta({ x: 0, y: 0 });
         },
-        onPanResponderTerminationRequest: () => false,
+        onPanResponderTerminationRequest: (event) => event.nativeEvent.touches.length >= 2,
       }),
-    [cardBounds, disabled, dragZIndex, onDragEnd, origin.left, origin.top, tableBounds],
+    [cardBounds, disabled, dragZIndex, onDragEnd, origin.left, origin.top, tableBounds, tableScale],
   );
 
   return (

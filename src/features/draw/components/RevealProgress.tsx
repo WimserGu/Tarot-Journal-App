@@ -1,4 +1,5 @@
-import { Text } from '@/components/Text';
+import { MysticText as Text } from '@/components/mystic';
+import { useAppTheme } from '@/theme/useAppTheme';
 export function RevealProgress({
   revealed,
   total,
@@ -8,8 +9,13 @@ export function RevealProgress({
   total: number;
   inverted?: boolean;
 }) {
+  const { theme } = useAppTheme();
   return (
-    <Text accessibilityLiveRegion="polite" style={inverted ? { color: '#B9CBC4' } : undefined}>
+    <Text
+      accessibilityLiveRegion="polite"
+      style={{ color: inverted ? theme.colors.textSecondary : theme.colors.textPrimary }}
+      variant="caption"
+    >
       {revealed} / {total} Revealed
     </Text>
   );

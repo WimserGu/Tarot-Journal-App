@@ -1,10 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { TextInput, View } from 'react-native';
 import type { FollowUpOutcome } from '../../src/domain/types';
-import { Button } from '../../src/components/Button';
-import { Screen } from '../../src/components/Screen';
-import { Text } from '../../src/components/Text';
+import {
+  GlassPanel,
+  MoonButton as Button,
+  MysticHeader,
+  MysticScreen as Screen,
+  MysticText as Text,
+} from '@/components/mystic';
 import {
   customFollowUpDate,
   followUpDateInputValue,
@@ -12,13 +16,14 @@ import {
 import { outcomeLabels } from '../../src/features/followups/followUpPresentation';
 import { useFollowUpDetail } from '../../src/features/followups/useFollowUps';
 import { followUpRepository } from '../../src/repositories/repositoryFactory';
-import { borderRadii, colors, spacing } from '../../src/theme/tokens';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 const outcomes = Object.keys(outcomeLabels) as FollowUpOutcome[];
 
 export default function EditFollowUpScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
   const id = first(useLocalSearchParams<{ followUpId?: string | string[] }>().followUpId);
   const { data, loading } = useFollowUpDetail(id);
   const [date, setDate] = useState('');
@@ -75,63 +80,68 @@ export default function EditFollowUpScreen() {
     }
   };
   return (
-    <Screen scroll>
-      <Text variant="title">编辑回顾</Text>
-      {data.followUp.status === 'scheduled' ? (
-        <>
-          <Text nativeID="edit-date-label">计划回顾日期（YYYY-MM-DD）</Text>
-          <TextInput
-            accessibilityLabelledBy="edit-date-label"
-            style={styles.input}
-            value={date}
-            onChangeText={setDate}
-          />
-          <Text variant="muted">修改的是同一条提醒，不会创建重复 Follow-Up。</Text>
-        </>
-      ) : (
-        <>
-          <View style={styles.actions}>
-            {outcomes.map((value) => (
-              <Button key={value} label={outcomeLabels[value]} onPress={() => setOutcome(value)} />
-            ))}
-          </View>
-          <Text nativeID="edit-reflection-label">当前回顾（可选）</Text>
-          <TextInput
-            accessibilityLabelledBy="edit-reflection-label"
-            multiline
-            maxLength={5000}
-            style={[styles.input, styles.multiline]}
-            textAlignVertical="top"
-            value={reflection}
-            onChangeText={setReflection}
-          />
-        </>
-      )}
-      {error ? (
-        <Text accessibilityLiveRegion="polite" style={styles.error}>
-          {error}
-        </Text>
-      ) : null}
-      <Button
-        label={submitting ? '正在保存…' : '保存修改'}
-        disabled={submitting}
-        onPress={() => void submit()}
-      />
-      <Button label="取消" disabled={submitting} onPress={() => router.back()} />
+    <Screen maxWidth={720} scroll>
+      <MysticHeader onBack={() => router.back()} title="编辑回顾" />
+      <GlassPanel variant="elevated">
+        {data.followUp.status === 'scheduled' ? (
+          <>
+            <Text nativeID="edit-date-label">计划回顾日期（YYYY-MM-DD）</Text>
+            <TextInput
+              accessibilityLabelledBy="edit-date-label"
+              style={{
+                backgroundColor: theme.colors.glassSubtle,
+                borderColor: theme.colors.glassBorder,
+                borderRadius: theme.radii.md,
+                borderWidth: theme.borders.hairline,
+                color: theme.colors.textPrimary,
+                minHeight: 48,
+                padding: theme.spacing.md,
+              }}
+              value={date}
+              onChangeText={setDate}
+            />
+            <Text variant="muted">修改的是同一条提醒，不会创建重复 Follow-Up。</Text>
+          </>
+        ) : (
+          <>
+            <View style={{ gap: theme.spacing.sm }}>
+              {outcomes.map((value) => (
+                <Button
+                  key={value}
+                  label={outcomeLabels[value]}
+                  onPress={() => setOutcome(value)}
+                  variant={outcome === value ? 'primary' : 'secondary'}
+                />
+              ))}
+            </View>
+            <Text nativeID="edit-reflection-label">当前回顾（可选）</Text>
+            <TextInput
+              accessibilityLabelledBy="edit-reflection-label"
+              multiline
+              maxLength={5000}
+              style={{
+                backgroundColor: theme.colors.glassSubtle,
+                borderColor: theme.colors.glassBorder,
+                borderRadius: theme.radii.md,
+                borderWidth: theme.borders.hairline,
+                color: theme.colors.textPrimary,
+                minHeight: 144,
+                padding: theme.spacing.md,
+              }}
+              textAlignVertical="top"
+              value={reflection}
+              onChangeText={setReflection}
+            />
+          </>
+        )}
+        {error ? (
+          <Text accessibilityLiveRegion="polite" style={{ color: theme.colors.danger }}>
+            {error}
+          </Text>
+        ) : null}
+        <Button label="保存修改" loading={submitting} onPress={() => void submit()} />
+        <Button label="取消" disabled={submitting} onPress={() => router.back()} variant="ghost" />
+      </GlassPanel>
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  actions: { gap: spacing.sm },
-  error: { color: colors.danger },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    minHeight: 48,
-    padding: spacing.md,
-  },
-  multiline: { minHeight: 144 },
-});

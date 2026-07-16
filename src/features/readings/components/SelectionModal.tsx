@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Text } from '@/components/Text';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
+import { MysticText as Text } from '@/components/mystic';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 export type SelectionOption = {
   id: string;
@@ -27,28 +27,56 @@ export function SelectionModal({
   title,
   visible,
 }: SelectionModalProps) {
+  const { theme } = useAppTheme();
   return (
     <Modal animationType="slide" onRequestClose={onClose} transparent visible={visible}>
       <View style={styles.overlay}>
-        <Pressable accessibilityLabel="关闭选择器" onPress={onClose} style={styles.backdrop} />
-        <View style={styles.sheet}>
+        <Pressable
+          accessibilityLabel="关闭选择器"
+          onPress={onClose}
+          style={[styles.backdrop, { backgroundColor: theme.colors.overlay }]}
+        />
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: theme.colors.backgroundMid,
+              borderColor: theme.colors.glassBorder,
+              borderTopLeftRadius: theme.radii.xl,
+              borderTopRightRadius: theme.radii.xl,
+              gap: theme.spacing.md,
+              paddingHorizontal: theme.spacing.lg,
+              paddingTop: theme.spacing.lg,
+            },
+          ]}
+        >
           <View style={styles.header}>
             <Text variant="subtitle">{title}</Text>
             <Pressable accessibilityLabel="关闭" onPress={onClose} style={styles.closeButton}>
-              <Ionicons color={colors.text} name="close" size={22} />
+              <Ionicons color={theme.icons.primary} name="close" size={22} />
             </Pressable>
           </View>
           {options.length === 0 ? (
             <Text variant="muted">{emptyMessage}</Text>
           ) : (
-            <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              contentContainerStyle={[styles.list, { gap: theme.spacing.sm }]}
+              keyboardShouldPersistTaps="handled"
+            >
               {options.map((option) => (
                 <Pressable
                   accessibilityLabel={option.label}
                   accessibilityRole="button"
                   key={option.id}
                   onPress={() => onSelect(option.id)}
-                  style={({ pressed }) => [styles.option, pressed ? styles.pressed : null]}
+                  style={({ pressed }) => [
+                    styles.option,
+                    {
+                      borderBottomColor: theme.colors.divider,
+                      opacity: pressed ? theme.opacity.pressed : 1,
+                      paddingVertical: theme.spacing.md,
+                    },
+                  ]}
                 >
                   <Text>{option.label}</Text>
                   {option.description ? <Text variant="muted">{option.description}</Text> : null}
@@ -65,7 +93,6 @@ export function SelectionModal({
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(37, 34, 31, 0.35)',
   },
   closeButton: {
     alignItems: 'center',
@@ -79,29 +106,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   list: {
-    gap: spacing.sm,
-    paddingBottom: spacing.lg,
+    paddingBottom: 24,
   },
   option: {
-    borderBottomColor: colors.border,
     borderBottomWidth: 1,
-    gap: spacing.xs,
-    paddingVertical: spacing.md,
+    gap: 4,
   },
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
   },
-  pressed: {
-    opacity: 0.7,
-  },
   sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: borderRadii.md,
-    borderTopRightRadius: borderRadii.md,
-    gap: spacing.md,
+    borderWidth: 1,
     maxHeight: '75%',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
   },
 });

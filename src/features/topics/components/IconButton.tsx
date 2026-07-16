@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet } from 'react-native';
 
-import { borderRadii, colors, spacing } from '@/theme/tokens';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 type IconButtonProps = {
   accessibilityLabel: string;
@@ -16,15 +16,24 @@ export function IconButton({
   onPress,
   tone = 'default',
 }: IconButtonProps) {
-  const iconColor = tone === 'danger' ? colors.danger : colors.text;
+  const { theme } = useAppTheme();
+  const iconColor = tone === 'danger' ? theme.colors.danger : theme.icons.primary;
 
   return (
     <Pressable
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
-      hitSlop={spacing.xs}
+      hitSlop={theme.spacing.xs}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, pressed ? styles.pressed : null]}
+      style={({ pressed }) => [
+        styles.button,
+        {
+          backgroundColor: theme.colors.glass,
+          borderColor: theme.colors.glassBorder,
+          borderRadius: theme.radii.pill,
+          opacity: pressed ? theme.opacity.pressed : 1,
+        },
+      ]}
     >
       <Ionicons color={iconColor} name={icon} size={22} />
     </Pressable>
@@ -34,14 +43,9 @@ export function IconButton({
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
     borderWidth: 1,
     height: 44,
     justifyContent: 'center',
     width: 44,
-  },
-  pressed: {
-    opacity: 0.7,
   },
 });

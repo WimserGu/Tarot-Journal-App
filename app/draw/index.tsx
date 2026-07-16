@@ -2,9 +2,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import {
+  GlassPanel,
+  MoonButton as Button,
+  MysticHeader,
+  MysticScreen,
+  MysticText as Text,
+  SectionLabel,
+} from '@/components/mystic';
 import { tarotCards } from '@/domain/tarotCards';
 import { DrawToolbar } from '@/features/draw/components/DrawToolbar';
 import {
@@ -51,16 +56,24 @@ import {
   updateTablePlacement,
   withInitialTablePlacement,
 } from '@/features/draw/tablePlacement';
+import {
+  IDENTITY_TABLE_VIEWPORT,
+  pointInUnscaledTable,
+  type TableViewportTransform,
+} from '@/features/draw/tableZoom';
 import { drawSessionRepository } from '@/repositories/repositoryFactory';
 import { spreadRepository } from '@/features/spreads/spreadRepository';
 import { preloadTarotCardFront } from '@/features/tarot/artwork/tarotArtworkPreload';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
 export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' | 'three' } = {}) {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const params = useLocalSearchParams<{
     mode?: string | string[];
@@ -79,6 +92,10 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [tableBounds, setTableBounds] = useState({ width: 0, height: 0 });
   const [windowTableBounds, setWindowTableBounds] = useState<WindowTableBounds | null>(null);
+  const tableViewportRef = useRef<TableViewportTransform>(IDENTITY_TABLE_VIEWPORT);
+  useEffect(() => {
+    tableViewportRef.current = IDENTITY_TABLE_VIEWPORT;
+  }, [session?.id]);
   const version = useRef(0);
   const sessionRef = useRef<DrawSession | null>(null);
   const writeQueue = useMemo(
@@ -251,11 +268,13 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
   };
   if (!['table', 'single', 'three'].includes(mode ?? ''))
     return (
-      <Screen scroll>
-        <Text variant="eyebrow">即时抽牌</Text>
-        <Text variant="title">选择抽牌方式</Text>
-        <Text variant="muted">四种方式并列展示；只有你主动选择后才会进入对应流程。</Text>
-        <View style={styles.choiceCard}>
+      <MysticScreen scroll>
+        <MysticHeader
+          eyebrow="即时抽牌"
+          title="选择抽牌方式"
+          subtitle="选择适合此刻的节奏。只有主动选择后，才会进入对应流程。"
+        />
+        <GlassPanel style={styles.choiceCard} variant="elevated">
           <Text variant="subtitle">自由牌桌</Text>
           <Text variant="muted">不预设数量和位置，从底部牌河自由选择并决定何时结束。</Text>
           <Text variant="muted">状态：可用</Text>
@@ -263,8 +282,8 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
             label={draftMode === 'free-table' ? '继续' : '开始'}
             onPress={() => chooseMode('/draw/table')}
           />
-        </View>
-        <View style={styles.choiceCard}>
+        </GlassPanel>
+        <GlassPanel style={styles.choiceCard}>
           <Text variant="subtitle">单张牌阵</Text>
           <Text variant="muted">使用现有 Single Card Spread，固定选择 1 张牌。</Text>
           <Text variant="muted">状态：可用</Text>
@@ -272,8 +291,8 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
             label={draftMode === 'single-card' ? '继续' : '开始'}
             onPress={() => chooseMode('/draw/single')}
           />
-        </View>
-        <View style={styles.choiceCard}>
+        </GlassPanel>
+        <GlassPanel style={styles.choiceCard}>
           <Text variant="subtitle">三张牌阵</Text>
           <Text variant="muted">固定选择 3 张牌，使用 Past、Present、Future 位置定义。</Text>
           <Text variant="muted">状态：可用</Text>
@@ -281,26 +300,35 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
             label={draftMode === 'three-cards' ? '继续' : '开始'}
             onPress={() => chooseMode('/draw/three-card')}
           />
-        </View>
-        <View style={styles.choiceCard}>
+        </GlassPanel>
+        <GlassPanel style={styles.choiceCard} variant="subtle">
           <Text variant="subtitle">自定义牌阵</Text>
           <Text variant="muted">自定义位置编辑器尚未实现。</Text>
           <Text variant="muted">状态：即将开放</Text>
           <Button label="查看状态" onPress={() => router.push('/draw/custom')} />
-        </View>
+        </GlassPanel>
         <View style={styles.secondaryActions}>
-          <Text variant="subtitle">其他</Text>
-          <Button label="抽牌历史" onPress={() => router.push('/draw/history' as never)} />
+          <SectionLabel title="其他" description="查看过往抽牌与尚未完成的草稿。" />
+          <Button
+            label="抽牌历史"
+            variant="secondary"
+            onPress={() => router.push('/draw/history' as never)}
+          />
         </View>
-      </Screen>
+      </MysticScreen>
     );
   if (!session)
     return (
-      <Screen scroll>
-        <Text variant="eyebrow">{modeTitle}</Text>
-        <Text variant="title">What would you like to explore today?</Text>
+      <MysticScreen scroll maxWidth={760}>
+        <MysticHeader
+          eyebrow={modeTitle}
+          title="此刻，你想探索什么？"
+          subtitle="先把注意力放在问题上，再进入牌桌。"
+          onBack={() => router.back()}
+        />
         {draft ? (
-          <View style={styles.panel}>
+          <GlassPanel style={styles.panel} variant="elevated">
+            <Text variant="eyebrow">未完成的牌桌</Text>
             <Text>{draft.configuration.questionText ?? 'Untitled question'}</Text>
             <Button
               label="Resume table"
@@ -313,21 +341,26 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
             />
             <Button
               label="Discard draft"
+              variant="destructive"
               onPress={() => void drawSessionRepository.delete(draft.id).then(() => setDraft(null))}
             />
-          </View>
+          </GlassPanel>
         ) : (
           <>
-            <TextInput
-              accessibilityLabel="Question"
-              value={question}
-              onChangeText={setQuestion}
-              multiline
-              placeholder="Write your question"
-              style={styles.input}
-            />
+            <GlassPanel variant="elevated">
+              <SectionLabel title="问题" description="可以是一句话，也可以是一段此刻的心情。" />
+              <TextInput
+                accessibilityLabel="Question"
+                value={question}
+                onChangeText={setQuestion}
+                multiline
+                placeholder="写下你想探索的问题"
+                placeholderTextColor={theme.colors.textMuted}
+                style={styles.input}
+              />
+            </GlassPanel>
             <View style={styles.reversalSection}>
-              <Text variant="subtitle">逆位设置</Text>
+              <SectionLabel title="逆位设置" description="选择本次抽牌使用的方向规则。" />
               {FREE_TABLE_REVERSAL_OPTIONS.map((option) => {
                 const selected = reversalMode === option.value;
                 return (
@@ -336,7 +369,11 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
                     accessibilityState={{ selected }}
                     key={option.value}
                     onPress={() => setReversalMode(option.value)}
-                    style={[styles.reversalOption, selected ? styles.reversalOptionSelected : null]}
+                    style={({ pressed }) => [
+                      styles.reversalOption,
+                      selected ? styles.reversalOptionSelected : null,
+                      pressed ? styles.pressed : null,
+                    ]}
                   >
                     <View style={styles.reversalOptionHeader}>
                       <Text variant="subtitle">{option.label}</Text>
@@ -348,14 +385,15 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
               })}
             </View>
             <Button
-              label={busy ? 'Starting…' : 'Continue'}
+              label={busy ? '正在准备牌桌…' : '进入牌桌'}
               disabled={busy}
+              loading={busy}
               onPress={() => void start()}
             />
           </>
         )}
         {error ? <Text style={styles.error}>{error}</Text> : null}
-      </Screen>
+      </MysticScreen>
     );
   const ritual = ritualState(session);
   const remainingDeck = session.configuration.hiddenDeckCardIds
@@ -397,7 +435,11 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
       </View>
       <TarotTableSurface
         empty={session.cards.length === 0}
+        key={session.id}
         onLayout={(event) => setTableBounds(event.nativeEvent.layout)}
+        onViewportChange={(viewport) => {
+          tableViewportRef.current = viewport;
+        }}
         onWindowBoundsChange={setWindowTableBounds}
       >
         {session.cards.map((card, index) => {
@@ -444,8 +486,13 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
           cardIds={remainingDeck}
           onDrop={(tarotCardId, point) => {
             if (!windowTableBounds) return;
-            const placement = placementFromWindowDrop(
+            const unscaledPoint = pointInUnscaledTable(
               point,
+              windowTableBounds,
+              tableViewportRef.current,
+            );
+            const placement = placementFromWindowDrop(
+              unscaledPoint,
               windowTableBounds,
               { width: CARD_TABLE_WIDTH, height: CARD_TABLE_HEIGHT },
               dragZIndex,
@@ -512,82 +559,91 @@ export function DrawScreen({ initialMode }: { initialMode?: 'table' | 'single' |
 export default function DrawModeSelectionScreen() {
   return <DrawScreen />;
 }
-const styles = StyleSheet.create({
-  choiceCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
-  error: { color: colors.danger },
-  input: {
-    borderColor: colors.border,
-    borderRadius: borderRadii.sm,
-    borderWidth: 1,
-    minHeight: 100,
-    padding: spacing.md,
-  },
-  panel: { gap: spacing.md },
-  reversalOption: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    gap: spacing.xs,
-    padding: spacing.md,
-  },
-  reversalOptionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  reversalOptionSelected: {
-    borderColor: colors.accent,
-    borderWidth: 2,
-  },
-  reversalSection: { gap: spacing.sm },
-  secondaryActions: {
-    borderTopColor: colors.border,
-    borderTopWidth: 1,
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-    paddingTop: spacing.md,
-  },
-  closedDeckEdge: {
-    alignItems: 'center',
-    backgroundColor: '#102A24',
-    borderTopColor: '#31594C',
-    borderTopWidth: 1,
-    justifyContent: 'center',
-    minHeight: 72,
-    padding: spacing.md,
-  },
-  question: { color: '#F2F6F4', textAlign: 'center' },
-  questionArea: {
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  reflectionAction: {
-    alignItems: 'center',
-    backgroundColor: '#102A24',
-    paddingBottom: spacing.sm,
-  },
-  tableError: {
-    backgroundColor: '#102A24',
-    color: '#FFB8B8',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    textAlign: 'center',
-  },
-  tableMessage: { color: '#B9CBC4', textAlign: 'center' },
-  tableScreen: {
-    backgroundColor: '#102A24',
-    flex: 1,
-    paddingHorizontal: spacing.sm,
-    paddingTop: spacing.sm,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    choiceCard: {
+      gap: theme.spacing.sm,
+    },
+    error: { color: theme.colors.danger },
+    input: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: theme.borders.hairline,
+      color: theme.colors.textPrimary,
+      fontSize: theme.typography.body,
+      lineHeight: 25,
+      minHeight: 120,
+      padding: theme.spacing.md,
+      textAlignVertical: 'top',
+    },
+    panel: { gap: theme.spacing.md },
+    pressed: { opacity: theme.opacity.pressed },
+    reversalOption: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: theme.borders.hairline,
+      gap: theme.spacing.xs,
+      padding: theme.spacing.md,
+    },
+    reversalOptionHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    reversalOptionSelected: {
+      backgroundColor: theme.colors.glassElevated,
+      borderColor: theme.colors.primarySoft,
+      borderWidth: 2,
+    },
+    reversalSection: { gap: theme.spacing.sm },
+    secondaryActions: {
+      borderTopColor: theme.colors.divider,
+      borderTopWidth: 1,
+      gap: theme.spacing.sm,
+      marginTop: theme.spacing.sm,
+      paddingTop: theme.spacing.lg,
+    },
+    closedDeckEdge: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.backgroundDeep,
+      borderTopColor: theme.colors.glassBorder,
+      borderTopWidth: 1,
+      justifyContent: 'center',
+      minHeight: 72,
+      padding: theme.spacing.md,
+    },
+    question: {
+      color: theme.colors.textPrimary,
+      fontSize: theme.typography.cardTitle,
+      lineHeight: 24,
+      textAlign: 'center',
+    },
+    questionArea: {
+      alignItems: 'center',
+      gap: 0,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.xs,
+    },
+    reflectionAction: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.backgroundDeep,
+      paddingBottom: theme.spacing.sm,
+    },
+    tableError: {
+      backgroundColor: theme.colors.backgroundDeep,
+      color: theme.colors.danger,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      textAlign: 'center',
+    },
+    tableMessage: { color: theme.colors.textSecondary, textAlign: 'center' },
+    tableScreen: {
+      backgroundColor: theme.colors.backgroundDeep,
+      flex: 1,
+      paddingHorizontal: 2,
+      paddingTop: 0,
+    },
+  });
+}

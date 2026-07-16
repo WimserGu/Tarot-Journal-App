@@ -20,6 +20,7 @@ import {
   type LoopedDeckItem,
 } from '../deckEdgeGestures';
 import { FaceDownCard } from './FaceDownCard';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 const CARD_STEP = 26;
 
@@ -32,6 +33,7 @@ export function TableEdge({
   onDrop?: (id: number, point: { x: number; y: number }) => void;
   onSelect: (id: number) => void;
 }) {
+  const { theme } = useAppTheme();
   const listRef = useRef<FlatList<LoopedDeckItem>>(null);
   const containerRef = useRef<View>(null);
   const containerWindowOrigin = useRef({ x: 0, y: 0 });
@@ -171,6 +173,10 @@ export function TableEdge({
       <View
         style={[
           styles.edge,
+          {
+            backgroundColor: theme.colors.backgroundDeep,
+            borderTopColor: theme.colors.glassBorder,
+          },
           Platform.OS === 'web'
             ? ({ cursor: dragging ? 'grabbing' : 'grab' } as unknown as ViewStyle)
             : null,
@@ -221,10 +227,7 @@ export function TableEdge({
       {dragPreview ? (
         <View
           pointerEvents="none"
-          style={[
-            styles.dragPreview,
-            { left: dragPreview.x - 37, top: dragPreview.y - 64 },
-          ]}
+          style={[styles.dragPreview, { left: dragPreview.x - 37, top: dragPreview.y - 64 }]}
         >
           <FaceDownCard label="Dragged face-down card" />
         </View>
@@ -251,8 +254,6 @@ const styles = StyleSheet.create({
     zIndex: 1001,
   },
   edge: {
-    backgroundColor: '#102A24',
-    borderTopColor: '#31594C',
     borderTopWidth: 1,
     height: 132,
     overflow: 'hidden',

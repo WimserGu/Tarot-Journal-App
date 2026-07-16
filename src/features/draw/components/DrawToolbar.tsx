@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Text } from '@/components/Text';
-import { borderRadii, spacing } from '@/theme/tokens';
+import { MysticText as Text } from '@/components/mystic';
+import { useAppTheme } from '@/theme/useAppTheme';
 export function DrawToolbar({
   disabled,
   canFinish,
@@ -16,9 +16,9 @@ export function DrawToolbar({
 }) {
   return (
     <View style={styles.toolbar}>
-      <ToolbarButton label="Observe" disabled={disabled} onPress={onObserve} />
-      <ToolbarButton label="Finish" disabled={!canFinish || disabled} onPress={onFinish} />
-      <ToolbarButton label="History" disabled={disabled} onPress={onHistory} />
+      <ToolbarButton label="观察" disabled={disabled} onPress={onObserve} />
+      <ToolbarButton label="完成抽牌" disabled={!canFinish || disabled} onPress={onFinish} />
+      <ToolbarButton label="抽牌历史" disabled={disabled} onPress={onHistory} />
     </View>
   );
 }
@@ -32,6 +32,7 @@ function ToolbarButton({
   disabled: boolean;
   onPress: () => void;
 }) {
+  const { theme } = useAppTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -39,11 +40,18 @@ function ToolbarButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        pressed && !disabled ? styles.pressed : null,
-        disabled ? styles.disabled : null,
+        {
+          backgroundColor: pressed ? theme.colors.glassElevated : theme.colors.glass,
+          borderColor: theme.colors.glassBorder,
+          borderRadius: theme.radii.pill,
+          opacity: disabled ? theme.opacity.disabled : 1,
+          paddingHorizontal: theme.spacing.md,
+        },
       ]}
     >
-      <Text style={styles.label}>{label}</Text>
+      <Text variant="caption" style={{ color: theme.colors.textPrimary, fontWeight: '700' }}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -51,24 +59,18 @@ function ToolbarButton({
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    borderColor: '#54766B',
-    borderRadius: borderRadii.md,
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 40,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: 4,
   },
-  disabled: { opacity: 0.42 },
-  label: { color: '#DCE8E3', fontWeight: '600' },
-  pressed: { backgroundColor: '#294A40' },
   toolbar: {
-    backgroundColor: '#102A24',
+    backgroundColor: 'transparent',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
+    gap: 8,
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
 });

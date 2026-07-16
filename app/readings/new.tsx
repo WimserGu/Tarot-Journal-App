@@ -1,11 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 
-import { Button } from '@/components/Button';
-import { Text } from '@/components/Text';
-import { IconButton } from '@/features/topics/components/IconButton';
+import {
+  EmptyMysticState,
+  GlassPanel,
+  MysticHeader,
+  MysticScreen,
+  MysticText as Text,
+} from '@/components/mystic';
 import { getCurrentTimeZone } from '@/features/topics/topicPresentation';
 import { ReadingForm } from '@/features/readings/components/ReadingForm';
 import { buildInitialReadingFormValues } from '@/features/readings/readingFormState';
@@ -18,7 +21,6 @@ import { createSubmissionGuard } from '@/features/readings/submissionGuard';
 import { FREE_TABLE_SPREAD_LABEL } from '@/features/readings/readingSpreadPresentation';
 import { useReadingFormContext } from '@/features/readings/useReadings';
 import { useUnsavedChangesGuard } from '@/features/readings/useUnsavedChangesGuard';
-import { colors, spacing } from '@/theme/tokens';
 
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -124,77 +126,48 @@ export default function NewReadingScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
-      >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={styles.header}>
-            <IconButton accessibilityLabel="返回" icon="arrow-back" onPress={() => router.back()} />
-            <View style={styles.headerCopy}>
-              <Text variant="eyebrow">{drawSessionId ? 'App 抽牌结果' : '实体牌记录'}</Text>
-              <Text variant="title">新增牌阵记录</Text>
-            </View>
-          </View>
+    <MysticScreen scroll maxWidth={900}>
+      <MysticHeader
+        eyebrow={drawSessionId ? 'App 抽牌结果' : '实体牌记录'}
+        title="新增牌阵记录"
+        subtitle="把这次抽牌整理成一页可以长期回看的私人日记。"
+        onBack={() => router.back()}
+      />
 
-          {isLoading ? <Text variant="muted">正在准备记录表单…</Text> : null}
+      {isLoading ? (
+        <GlassPanel variant="subtle">
+          <Text variant="muted">正在准备记录表单…</Text>
+        </GlassPanel>
+      ) : null}
 
-          {!isLoading && errorMessage ? (
-            <View style={styles.state}>
-              <Text>{errorMessage}</Text>
-              <Button label="重新加载" onPress={() => void reload()} />
-            </View>
-          ) : null}
+      {!isLoading && errorMessage ? (
+        <EmptyMysticState
+          title="暂时无法准备记录"
+          description={errorMessage}
+          actionLabel="重新加载"
+          onAction={() => void reload()}
+        />
+      ) : null}
 
-          {!isLoading && !errorMessage && context && initialValues && drawSessionLoaded ? (
-            <ReadingForm
-              context={context}
-              initialValues={initialValues}
-              isSaving={isSaving}
-              reversalMode={drawSession?.configuration.reversalMode}
-              onCreateTopic={() => router.push('/topics/new')}
-              onDirtyChange={setIsDirty}
-              onSave={saveReading}
-              saveError={saveError}
-              unspecifiedSpreadLabel={
-                drawSession?.configuration.spreadId === 'free-table'
-                  ? FREE_TABLE_SPREAD_LABEL
-                  : undefined
-              }
-            />
-          ) : null}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      {!isLoading && !errorMessage && context && initialValues && drawSessionLoaded ? (
+        <View>
+          <ReadingForm
+            context={context}
+            initialValues={initialValues}
+            isSaving={isSaving}
+            reversalMode={drawSession?.configuration.reversalMode}
+            onCreateTopic={() => router.push('/topics/new')}
+            onDirtyChange={setIsDirty}
+            onSave={saveReading}
+            saveError={saveError}
+            unspecifiedSpreadLabel={
+              drawSession?.configuration.spreadId === 'free-table'
+                ? FREE_TABLE_SPREAD_LABEL
+                : undefined
+            }
+          />
+        </View>
+      ) : null}
+    </MysticScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    flexGrow: 1,
-    gap: spacing.xl,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
-  },
-  header: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  headerCopy: {
-    flex: 1,
-    flexShrink: 1,
-    gap: spacing.xs,
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  safeArea: {
-    backgroundColor: colors.background,
-    flex: 1,
-  },
-  state: {
-    gap: spacing.md,
-  },
-});

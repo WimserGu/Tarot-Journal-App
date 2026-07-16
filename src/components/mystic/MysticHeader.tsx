@@ -6,11 +6,13 @@ import { useAppTheme } from '@/theme/useAppTheme';
 
 export function MysticHeader({
   action,
+  eyebrow,
   onBack,
   subtitle,
   title,
 }: {
   action?: React.ReactNode;
+  eyebrow?: string;
   onBack?: () => void;
   subtitle?: string;
   title: string;
@@ -41,6 +43,7 @@ export function MysticHeader({
           </Pressable>
         ) : null}
         <View style={{ flex: 1, gap: theme.spacing.xs }}>
+          {eyebrow ? <MysticText variant="eyebrow">{eyebrow}</MysticText> : null}
           <MysticText variant="pageTitle">{title}</MysticText>
           {subtitle ? <MysticText variant="caption">{subtitle}</MysticText> : null}
         </View>

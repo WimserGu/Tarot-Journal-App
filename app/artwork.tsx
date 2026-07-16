@@ -1,21 +1,30 @@
-import { Linking, StyleSheet, View } from 'react-native';
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import { Linking } from 'react-native';
+import { useRouter } from 'expo-router';
+import {
+  GlassPanel,
+  MoonButton as Button,
+  MysticHeader,
+  MysticScreen as Screen,
+  MysticText as Text,
+} from '@/components/mystic';
 import { rwsArtworkManifest } from '@/features/tarot/artwork/defaultTarotArtwork';
-import { borderRadii, colors, spacing } from '@/theme/tokens';
 
 export default function TarotArtworkAboutScreen() {
+  const router = useRouter();
   return (
-    <Screen scroll>
-      <Text variant="eyebrow">牌面主题</Text>
-      <Text variant="title">Rider–Waite–Smith Tarot</Text>
-      <View style={styles.panel}>
+    <Screen maxWidth={820} scroll>
+      <MysticHeader
+        eyebrow="牌面主题"
+        onBack={() => router.back()}
+        subtitle="记录当前牌面资产的作者、来源、许可与版本。"
+        title="Rider–Waite–Smith Tarot"
+      />
+      <GlassPanel variant="elevated">
         <Text variant="subtitle">Pamela Colman Smith</Text>
         <Text>由 Pamela Colman Smith 绘制，A. E. Waite 设计，最初出版于 1909 年。</Text>
         <Text variant="muted">当前版本：{rwsArtworkManifest.assetVersion}</Text>
-      </View>
-      <View style={styles.panel}>
+      </GlassPanel>
+      <GlassPanel>
         <Text variant="subtitle">牌面来源</Text>
         <Text>{rwsArtworkManifest.sourceName}</Text>
         <Text variant="muted">{rwsArtworkManifest.licenseLabel}</Text>
@@ -27,23 +36,12 @@ export default function TarotArtworkAboutScreen() {
           label="打开 Wikimedia Commons 来源"
           onPress={() => void Linking.openURL(rwsArtworkManifest.sourceUrl)}
         />
-      </View>
-      <View style={styles.panel}>
+      </GlassPanel>
+      <GlassPanel variant="subtle">
         <Text variant="subtitle">牌背</Text>
         <Text>{rwsArtworkManifest.cardBackSource}</Text>
         <Text variant="muted">牌背为本 App 的原创对称几何图案，不复制现代商业牌背。</Text>
-      </View>
+      </GlassPanel>
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  panel: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
-});

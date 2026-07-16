@@ -1,12 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
 
-import { Button } from '@/components/Button';
-import { Text } from '@/components/Text';
+import { MoonButton as Button, MysticText as Text } from '@/components/mystic';
 import { topicIconOptions } from '@/features/topics/topicConstants';
 import { topicFormSchema, type TopicFormValues } from '@/features/topics/topicSchema';
-import { borderRadii, colors, fontSizes, spacing } from '@/theme/tokens';
+import type { AppTheme } from '@/theme/types';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 import { TopicIcon } from './TopicIcon';
 
@@ -18,6 +19,8 @@ type TopicFormProps = {
 };
 
 export function TopicForm({ initialValues, onSubmit, submitError, submitLabel }: TopicFormProps) {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const {
     control,
     formState: { errors, isSubmitting },
@@ -42,7 +45,7 @@ export function TopicForm({ initialValues, onSubmit, submitError, submitLabel }:
               onBlur={onBlur}
               onChangeText={onChange}
               placeholder="例如：论文进展"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={theme.colors.textMuted}
               style={styles.input}
               value={value}
             />
@@ -64,7 +67,7 @@ export function TopicForm({ initialValues, onSubmit, submitError, submitLabel }:
               onBlur={onBlur}
               onChangeText={onChange}
               placeholder="可选：写下你想持续观察的内容。"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={theme.colors.textMuted}
               style={[styles.input, styles.descriptionInput]}
               textAlignVertical="top"
               value={value}
@@ -121,8 +124,8 @@ export function TopicForm({ initialValues, onSubmit, submitError, submitLabel }:
             <Switch
               accessibilityLabel="置顶显示"
               onValueChange={onChange}
-              thumbColor={colors.surface}
-              trackColor={{ false: colors.border, true: colors.accent }}
+              thumbColor={theme.colors.moonlight}
+              trackColor={{ false: theme.colors.divider, true: theme.colors.primary }}
               value={value}
             />
           </View>
@@ -139,71 +142,80 @@ export function TopicForm({ initialValues, onSubmit, submitError, submitLabel }:
   );
 }
 
-const styles = StyleSheet.create({
-  descriptionInput: {
-    minHeight: 120,
-  },
-  errorText: {
-    color: colors.danger,
-  },
-  field: {
-    gap: spacing.sm,
-  },
-  form: {
-    gap: spacing.xl,
-  },
-  iconGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  iconLabel: {
-    fontSize: fontSizes.caption,
-    lineHeight: 16,
-  },
-  iconOption: {
-    alignItems: 'center',
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    flexBasis: 92,
-    gap: spacing.xs,
-    minHeight: 72,
-    justifyContent: 'center',
-    padding: spacing.sm,
-  },
-  iconOptionSelected: {
-    backgroundColor: colors.surfaceMuted,
-    borderColor: colors.accent,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: borderRadii.md,
-    borderWidth: 1,
-    color: colors.text,
-    fontSize: fontSizes.body,
-    lineHeight: 24,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  pressed: {
-    opacity: 0.75,
-  },
-  switchCopy: {
-    flex: 1,
-    flexShrink: 1,
-    gap: spacing.xs,
-  },
-  switchRow: {
-    alignItems: 'center',
-    borderBottomColor: colors.border,
-    borderTopColor: colors.border,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    descriptionInput: {
+      minHeight: 120,
+    },
+    errorText: {
+      color: theme.colors.danger,
+    },
+    field: {
+      backgroundColor: theme.colors.glassSubtle,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.lg,
+      borderWidth: theme.borders.hairline,
+      gap: theme.spacing.sm,
+      padding: theme.spacing.lg,
+    },
+    form: {
+      gap: theme.spacing.lg,
+    },
+    iconGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.sm,
+    },
+    iconLabel: {
+      fontSize: theme.typography.caption,
+      lineHeight: 16,
+    },
+    iconOption: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      flexBasis: 92,
+      gap: theme.spacing.xs,
+      minHeight: 72,
+      justifyContent: 'center',
+      padding: theme.spacing.sm,
+    },
+    iconOptionSelected: {
+      backgroundColor: theme.colors.glassElevated,
+      borderColor: theme.colors.primarySoft,
+    },
+    input: {
+      backgroundColor: theme.colors.glass,
+      borderColor: theme.colors.glassBorder,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      color: theme.colors.textPrimary,
+      fontSize: theme.typography.body,
+      lineHeight: 24,
+      minHeight: 48,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+    },
+    pressed: {
+      opacity: theme.opacity.pressed,
+    },
+    switchCopy: {
+      flex: 1,
+      flexShrink: 1,
+      gap: theme.spacing.xs,
+    },
+    switchRow: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.glassSubtle,
+      borderBottomColor: theme.colors.glassBorder,
+      borderTopColor: theme.colors.glassBorder,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+      padding: theme.spacing.lg,
+    },
+  });
+}
